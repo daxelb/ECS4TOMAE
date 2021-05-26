@@ -1,30 +1,49 @@
-from model import CausalGraph, SCM
-import pandas as pd
-import numpy as np
+from model import CausalGraph
 
-class Agent:
+class Knowledge():
   def __init__(self, model):
     self.model = model
-    self.var_names = self.model.get_variables()
+    self.var_names = self.model.get_observable()
     self.observations = self.experiments = {}
     for var_name in self.var_names:
-      self.observations[var_name] = list()
-      self.experiments[var_name] = list()
+      self.observations[var_name] = []
+      self.experiments[var_name] = []
+  
+  def get_observable(self):
+    return self.model.get_observable()
 
-  def convert_to_dataframe(self, lst):
-    return pd.DataFrame(lst, columns=self.model.get_variables())
+  def get_parents(self, node):
+    return self.model.parents(node)
 
+  def get_children(self, node):
+    return self.model.get_children()
 
-  def add_sample(self, sample, datatype="obs"):
+  def get_exogenous(self):
+    return self.model.get_exogenous()
+
+  def get_endogenous(self):
+    return self.model.get_endogenous()
+
+  def draw_model(self, v=False):
+    self.model.draw().render('output/causal-model.gv', view=v)
+  
+  def add_obs(self, sample):
     if len(self.var_names) != len(sample):
       print("Error adding sample to agent's dataset.")
-    dataset = self.observations if datatype == "obs" else self.experiments
-    # Format the sample as a dictionary if it is passed in as a list
-    # (assumes values are in alphabetical order)
+    # if sample is a list, format correctly as dict
     if type(sample) is list:
       sample = dict(zip(self.var_names, sample))
     for var_name in self.var_names:
-      dataset[var_name].append(sample[var_name])
+      self.observations[var_name].append(sample[var_name])
+  
+  def add_exp(self, sample):
+    if len(self.var_names) != len(sample):
+      print("Error adding sample to agent's dataset.")
+    # if sample is a list, format correctly as dict
+    if type(sample) is list:
+      sample = dict(zip(self.var_names, sample))
+    for var_name in self.var_names:
+      self.experiments[var_name].append(sample[var_name])
 
   def get_prob(self, Q, e = {}, datatype="obs"):
     dataset = self.observations if datatype == "obs" else self.experiments
@@ -41,15 +60,20 @@ class Agent:
           Q_and_e_count += 1
     return Q_and_e_count / e_count
 
+class Agent:
+  def __init__(self, model):
+    self.knowledge = Knowledge(model)
+
+
 if __name__ == "__main__":
   model = CausalGraph([("W", "X"), ("X", "Z"), ("Z", "Y"), ("W", "Y")])
   agent0 = Agent(model)
-  agent0.add_sample([0,1,1,1])
-  agent0.add_sample([1,1,0,1])
-  agent0.add_sample([1,0,0,0])
-  agent0.add_sample([0,0,0,0])
-  agent0.add_sample([0,1,1,1])
+  agent0.knowledge.add_obs([0,1,1,1])
+  agent0.knowledge.add_obs([1,1,0,1])
+  agent0.knowledge.add_obs([1,0,0,0])
+  agent0.knowledge.add_obs([0,0,0,0])
+  agent0.knowledge.add_obs([0,1,1,1])
   model.draw_model()
-  print(agent0.observations)
-  print(agent0.get_prob(("Y", 1), {"X": 1}))
+  print(agent0.knowledge.observations)
+  print(agent0.knowledge.get_prob(("Y", 1), {"X": 1}))
   # print(agent0.observations[agent0.observations["Y"].isin([0,1])])

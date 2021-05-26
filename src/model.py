@@ -5,11 +5,14 @@ from causalgraphicalmodels import CausalGraphicalModel
 from util import alphabetize
 
 class CausalGraph(CausalGraphicalModel):
-  def __init__(self, edges):
-    nodes = self.get_nodes_from_edges(edges)
-    super(CausalGraph, self).__init__(nodes, edges)
+  def __init__(self, edges, latent_edges=None):
+    nodes = self.get_nodes_from_edges(edges, latent_edges)
+    super(CausalGraph, self).__init__(nodes, edges, latent_edges)
 
-  def get_nodes_from_edges(self, edges):
+  def get_nodes_from_edges(self, obs_edges, latent_edges):
+    edges = obs_edges
+    if latent_edges:
+      edges.extend(e for e in latent_edges if e not in edges)
     nodes = list()
     for tup in edges:
       for i in range(len(tup)):
@@ -17,7 +20,7 @@ class CausalGraph(CausalGraphicalModel):
           nodes.append(tup[i])
     return nodes
 
-  def get_variables(self):
+  def get_observable(self):
     return alphabetize(list(self.dag.nodes))
 
   def get_parents(self, node):
