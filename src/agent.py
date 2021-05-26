@@ -1,11 +1,6 @@
-from model import Model
-from causalgraphicalmodels.csm import linear_model, logistic_model
+from model import CausalGraph, SCM
 import pandas as pd
 import numpy as np
-from util import format_sample
-
-OBS = 1
-EXP = 0
 
 class Agent:
   def __init__(self, model):
@@ -47,18 +42,14 @@ class Agent:
     return Q_and_e_count / e_count
 
 if __name__ == "__main__":
-  universal_model = Model({
-    "W": lambda n_samples: np.random.normal(size=n_samples),
-    "X": linear_model(["W"], [1]),
-    "Z": linear_model(["X"], [1]),
-    "Y": linear_model(["Z", "W"], [0.2, 0.8])
-  })
-  agent0 = Agent(universal_model)
+  model = CausalGraph([("W", "X"), ("X", "Z"), ("Z", "Y"), ("W", "Y")])
+  agent0 = Agent(model)
   agent0.add_sample([0,1,1,1])
   agent0.add_sample([1,1,0,1])
   agent0.add_sample([1,0,0,0])
   agent0.add_sample([0,0,0,0])
   agent0.add_sample([0,1,1,1])
+  model.draw_model()
   print(agent0.observations)
   print(agent0.get_prob(("Y", 1), {"X": 1}))
   # print(agent0.observations[agent0.observations["Y"].isin([0,1])])

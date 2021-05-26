@@ -1,11 +1,43 @@
 import numpy as np
 from causalgraphicalmodels.csm import StructuralCausalModel, \
     linear_model, logistic_model
+from causalgraphicalmodels import CausalGraphicalModel
 from util import alphabetize
 
-class Model(StructuralCausalModel):
+class CausalGraph(CausalGraphicalModel):
+  def __init__(self, edges):
+    nodes = self.get_nodes_from_edges(edges)
+    super(CausalGraph, self).__init__(nodes, edges)
+
+  def get_nodes_from_edges(self, edges):
+    nodes = list()
+    for tup in edges:
+      for i in range(len(tup)):
+        if tup[i] not in nodes:
+          nodes.append(tup[i])
+    return nodes
+
+  def get_variables(self):
+    return alphabetize(list(self.dag.nodes))
+
+  def get_parents(self, node):
+    return alphabetize(list(self.dag.predecessors(node)))
+
+  def get_children(self, node):
+    return alphabetize(list(self.dag.successors(node)))
+
+  def get_exogenous(self):
+    return alphabetize([n for n in self.dag.nodes if not self.get_parents(n)])
+
+  def get_endogenous(self):
+    return alphabetize([n for n in self.dag.nodes if self.get_parents(n)])
+
+  def draw_model(self, v=False):
+    self.draw().render('output/causal-model.gv', view=v)
+
+class SCM(StructuralCausalModel):
   def __init__(self, assignment):
-    super(Model, self).__init__(assignment)
+    super(SCM, self).__init__(assignment)
 
   def get_variables(self):
     return alphabetize(list(self.cgm.dag.nodes))
@@ -22,8 +54,8 @@ class Model(StructuralCausalModel):
   def get_endogenous(self):
     return alphabetize([n for n in self.cgm.dag.nodes if self.get_parents(n)])
 
-  def draw(self, v=False):
-    self.cgm.draw().render('output/model.gv', view=v)
+  def draw_model(self, v=False):
+    self.cgm.draw().render('output/SCM.gv', view=v)
 
   def get_distribution(self):
     return self.cgm.get_distribution()
@@ -50,12 +82,12 @@ class Model(StructuralCausalModel):
     return self.cgm.get_all_frontdoor_adjustment_sets()
 
 if __name__ == "__main__":
-  universal_model = Model({
+  universal_model = SCM({
     "W": lambda n_samples: np.random.normal(size=n_samples),
     "X": linear_model(["W"], [1]),
     "Z": linear_model(["X"], [1]),
     "Y": linear_model(["Z", "W"], [0.2, 0.8])
   })
-  universal_model.draw()
+  universal_model.draw_model()
   print(universal_model.get_parents("Y"))
   print(universal_model.get_endogenous())
