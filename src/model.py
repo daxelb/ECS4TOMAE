@@ -35,6 +35,13 @@ class CausalGraph(CausalGraphicalModel):
   def get_endogenous(self):
     return alphabetize([n for n in self.dag.nodes if self.get_parents(n)])
 
+  def get_leaves(self):
+    leaves = list()
+    for i in self.dag.nodes:
+      if not len(list(self.dag.successors(i))):
+        leaves.append(i)
+    return leaves
+
   def draw_model(self, v=False):
     self.draw().render('output/causal-model.gv', view=v)
 
@@ -56,6 +63,13 @@ class SCM(StructuralCausalModel):
 
   def get_endogenous(self):
     return alphabetize([n for n in self.cgm.dag.nodes if self.get_parents(n)])
+
+  def get_leaves(self):
+    leaves = list()
+    for i in self.cgm.dag.nodes:
+      if not len(list(self.cgm.dag.successors(i))):
+        leaves.append(i)
+    return leaves
 
   def draw_model(self, v=False):
     self.cgm.draw().render('output/SCM.gv', view=v)
@@ -94,3 +108,4 @@ if __name__ == "__main__":
   universal_model.draw_model()
   print(universal_model.get_parents("Y"))
   print(universal_model.get_endogenous())
+  print(universal_model.get_leaves())
