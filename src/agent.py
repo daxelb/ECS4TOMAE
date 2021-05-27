@@ -105,8 +105,9 @@ if __name__ == "__main__":
 
   sample_query = agent0.knowledge.model.get_distribution()
   print(sample_query)
-  print()
+  # print()
   for p in util.parse_query(sample_query):
     # print(p)
     print(util.prob_with_unassigned(agent0.knowledge.observations, agent0.knowledge.domains, p[0], p[1]))
+    print(util.prob(agent0.knowledge.observations, p[0], p[1]))
     print()

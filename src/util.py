@@ -75,9 +75,7 @@ def prob_with_unassigned(dataset, domains, Q, e={}):
 
 def prob(dataset, Q, e={}):
   if exists_unassigned(Q) or exists_unassigned(Q):
-    print("You need to assign value to all variables using this method.\
-      \n To get probabilities for all possible values in each variable's domain,\
-      \n use util.prob_with_unassigned()")
+    print("All variables should have assignments to use util.prob(). Try util.prob_with_unassigned(), instead.")
   return uncond_prob(dataset, {**Q, **e}) / uncond_prob(dataset, e)
 
 def uncond_prob(dataset, Q):
@@ -94,52 +92,56 @@ def uncond_prob(dataset, Q):
     count += consistent
   return count / total
 
+def split_query(str_query):
+  return ["P"+e for e in str_query.split("P") if e]
+
 def parse_query(str_query):
   parsed = []
-  new_p = [{}, {}]
-  query = True
-  assignment = False
-  Q_var = Q_val = e_var = e_val = ""
-  for char in str_query:
-    if char == 'P' or char == '(':
-      query = True
-      assignment = False
-    elif char == '|':
-      assignment = False
-      Q_val = None if Q_val == "" else float(Q_val) if int(float(Q_val)) != float(Q_val) else int(float(Q_val))
-      new_p[0][Q_var] = Q_val
-      query = False
-    elif char == ')':
-      if query:
+  for q in split_query(str_query):
+    query = True
+    assignment = False
+    Q_var = Q_val = e_var = e_val = ""
+    new_p = [{}, {}]
+    for char in q:
+      if char == 'P' or char == '(':
+        query = True
+        assignment = False
+      elif char == '|':
+        assignment = False
         Q_val = None if Q_val == "" else float(Q_val) if int(float(Q_val)) != float(Q_val) else int(float(Q_val))
         new_p[0][Q_var] = Q_val
-      elif len(e_var):
-        e_val = None if e_val == "" else float(e_val) if int(float(e_val)) != float(e_val) else int(float(e_val))
-        new_p[1][e_var] = e_val
-      parsed.append(tuple(new_p))
-      Q_var = Q_val = e_var = e_val = ""
-      new_p = [{}, {}]
-    elif char == ',':
-      assignment = False
-      if query:
-        Q_val = None if Q_val == "" else float(Q_val) if int(float(Q_val)) != float(Q_val) else int(float(Q_val))
-        new_p[0][Q_var] = Q_val
+        query = False
+      elif char == ')':
+        if query:
+          Q_val = None if Q_val == "" else float(Q_val) if int(float(Q_val)) != float(Q_val) else int(float(Q_val))
+          new_p[0][Q_var] = Q_val
+        elif len(e_var):
+          e_val = None if e_val == "" else float(e_val) if int(float(e_val)) != float(e_val) else int(float(e_val))
+          new_p[1][e_var] = e_val
+        parsed.append(tuple(new_p))
         Q_var = Q_val = e_var = e_val = ""
-      else:
-        e_val = None if e_val == "" else float(e_val) if int(float(e_val)) != float(e_val) else int(float(e_val))
-        new_p[1][e_var] = e_val
-        Q_var = Q_val = e_var = e_val = ""
-    elif char == '=':
-      assignment = True
-    else:
-      if query:
-        if assignment:
-          Q_val += char
+        new_p = [{}, {}]
+      elif char == ',':
+        assignment = False
+        if query:
+          Q_val = None if Q_val == "" else float(Q_val) if int(float(Q_val)) != float(Q_val) else int(float(Q_val))
+          new_p[0][Q_var] = Q_val
+          Q_var = Q_val = e_var = e_val = ""
         else:
-          Q_var += char
+          e_val = None if e_val == "" else float(e_val) if int(float(e_val)) != float(e_val) else int(float(e_val))
+          new_p[1][e_var] = e_val
+          Q_var = Q_val = e_var = e_val = ""
+      elif char == '=':
+        assignment = True
       else:
-        if assignment:
-          e_val += char
+        if query:
+          if assignment:
+            Q_val += char
+          else:
+            Q_var += char
         else:
-          e_var += char
+          if assignment:
+            e_val += char
+          else:
+            e_var += char
   return parsed

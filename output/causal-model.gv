@@ -1,7 +1,7 @@
 digraph {
 	X [label=X shape=ellipse]
-	W [label=W shape=ellipse]
 	Y [label=Y shape=ellipse]
+	W [label=W shape=ellipse]
 	Z [label=Z shape=ellipse]
 	W -> X
 	W -> Y
