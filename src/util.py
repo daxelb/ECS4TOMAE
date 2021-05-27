@@ -15,9 +15,10 @@ def combinations(dictionary):
   num_combos = num_combinations(dictionary.values())
 
   for _ in range(num_combos):
-    combos.append([None] * len(dictionary.keys()))
-
-  for index, item in enumerate(dictionary.items()):
+    combos.append(dict())
+    # combos.append([None] * len(dictionary.keys()))
+  # index was previously in here w/ enumerate()
+  for item in dictionary.items():
     var = item[0]
     domain = item[1]
     num_combos /= len(domain)
@@ -27,27 +28,73 @@ def combinations(dictionary):
       if count >= num_combos:
         count = 0
         pos_val_index = pos_val_index + 1 if pos_val_index + 1 < len(domain) else 0
-      combo[index] = (var, domain[pos_val_index])
+      combo[var] = domain[pos_val_index]
+      # combo[index] = (var, domain[pos_val_index])
       count += 1
   return combos
 
-def conditional_prob(Q, e, dataset):
-  Q_and_e = {**Q, **e}
-  return prob(Q_and_e, dataset) / prob(e, dataset)
+def only_specified_keys(dictionary, keys):
+  res = dict(dictionary)
+  for key in dictionary:
+    if key not in keys:
+      del res[key]
+  return res
 
-def prob(Q, dataset):
+
+def query_combos(domains, Q):
+  queries = combinations(domains)
+  unused_keys = queries[0].keys() - Q.keys()
+  for q in combinations(domains):
+    for var in Q:
+      if q in queries and Q[var] != None and q[var] != Q[var]:
+        queries.remove(q)
+  queries_no_dupes = []
+  for q in queries:
+    for key in unused_keys:
+      del q[key]
+    if q not in queries_no_dupes:
+      queries_no_dupes.append(q)
+  return queries_no_dupes
+
+def exists_unassigned(Q):
+  for q in Q:
+    if Q[q] == None:
+      return True
+  return False
+
+def prob_with_unassigned(dataset, domains, Q, e={}):
+  if not exists_unassigned(Q) and not exists_unassigned(e):
+    return prob(dataset, Q, e)
+  probs = list()
+  Q_and_e = {**Q, **e}
+  for q in query_combos(domains, Q_and_e):
+    new_e = only_specified_keys(q, e.keys())
+    assignment = only_specified_keys(q, [q for q in Q_and_e if Q_and_e[q] == None])
+    probs.append((assignment, uncond_prob(dataset, q) / uncond_prob(dataset, new_e)))
+  return probs
+
+def prob(dataset, Q, e={}):
+  if exists_unassigned(Q) or exists_unassigned(Q):
+    print("You need to assign value to all variables using this method.\
+      \n To get probabilities for all possible values in each variable's domain,\
+      \n use util.prob_with_unassigned()")
+  return uncond_prob(dataset, {**Q, **e}) / uncond_prob(dataset, e)
+
+def uncond_prob(dataset, Q):
+  if not Q:
+    return 1.0
   total = len(list(dataset.values())[0])
   count = 0
   for i in range(len(list(dataset.values())[0])):
     consistent = True
     for key in Q:
-      if Q[key] and dataset[key][i] != Q[key]:
+      if Q[key] != None and dataset[key][i] != Q[key]:
         consistent = False
         break
     count += consistent
   return count / total
 
-def parse_prob_query(str_query):
+def parse_query(str_query):
   parsed = []
   new_p = [{}, {}]
   query = True

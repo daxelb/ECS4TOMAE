@@ -56,7 +56,7 @@ class Knowledge():
     self.most_recent = sample
 
   def get_model_dist(self):
-    return util.parse_prob_query(self.model.get_distribution())
+    return util.parse_query(self.model.get_distribution())
 
 
 class Agent:
@@ -98,14 +98,15 @@ if __name__ == "__main__":
   # print(agent0.feature_vars)
   # print(agent0.knowledge.domains)
   # print(agent0.get_choice_combinations())
-  # print(util.conditional_prob({"Y": 1}, {"X": None}, agent0.knowledge.observations))
-  # print(util.prob({"Y": None}, agent0.knowledge.observations))
 
-  print(agent0.knowledge.model.get_distribution())
-  for p in agent0.knowledge.get_model_dist():
-    print(p)
+  # print(agent0.knowledge.model.get_distribution())
+  # for p in agent0.knowledge.get_model_dist():
+  #   print(p)
 
-  sample_query = "P(Y=1|X,W=1)"
+  sample_query = agent0.knowledge.model.get_distribution()
   print(sample_query)
-  for p in util.parse_prob_query(sample_query):
-    print(p)
+  print()
+  for p in util.parse_query(sample_query):
+    # print(p)
+    print(util.prob_with_unassigned(agent0.knowledge.observations, agent0.knowledge.domains, p[0], p[1]))
+    print()
