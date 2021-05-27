@@ -1,7 +1,6 @@
 import numpy as np
-from causalgraphicalmodels.csm import StructuralCausalModel, \
-    linear_model, logistic_model
-from causalgraphicalmodels import CausalGraphicalModel
+from causalgraphicalmodels.csm import linear_model, logistic_model
+from causalgraphicalmodels import CausalGraphicalModel, StructuralCausalModel
 from util import alphabetize
 
 class CausalGraph(CausalGraphicalModel):

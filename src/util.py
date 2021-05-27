@@ -10,7 +10,7 @@ def num_combinations(list_of_lists):
     count *= len(lst)
   return count
 
-def get_combinations(dictionary):
+def combinations(dictionary):
   combos = list()
   num_combos = num_combinations(dictionary.values())
 
@@ -30,3 +30,19 @@ def get_combinations(dictionary):
       combo[index] = (var, domain[pos_val_index])
       count += 1
   return combos
+
+def conditional_prob(Q, e, dataset):
+  Q_and_e = {**Q, **e}
+  return prob(Q_and_e, dataset) / prob(e, dataset)
+
+def prob(Q, dataset):
+  total = len(list(dataset.values())[0])
+  count = 0
+  for i in range(len(list(dataset.values())[0])):
+    consistent = True
+    for key in Q:
+      if Q[key] and dataset[key][i] != Q[key]:
+        consistent = False
+        break
+    count += consistent
+  return count / total
