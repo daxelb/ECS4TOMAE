@@ -1,64 +1,7 @@
-from model import CausalGraph
+from causal_graph import CausalGraph
+from knowledge import Knowledge
 import util
 import random
-
-class Knowledge():
-  def __init__(self, model, domains):
-    self.model = model
-    self.domains = domains
-    self.most_recent = None
-    self.observations = self.experiments = {}
-    for var_name in self.get_observable():
-      self.observations[var_name] = []
-      self.experiments[var_name] = []
-
-  def get_observable(self):
-    return self.model.get_observable()
-
-  def get_parents(self, node):
-    return self.model.get_parents(node)
-
-  def get_children(self, node):
-    return self.model.get_children(node)
-
-  def get_exogenous(self):
-    return self.model.get_exogenous()
-
-  def get_endogenous(self):
-    return self.model.get_endogenous()
-  
-  def get_leaves(self):
-    return self.model.get_leaves()
-
-  def draw_model(self, v=False):
-    self.model.draw().render('output/causal-model.gv', view=v)
-  
-  def add_obs(self, sample):
-    observable_vars = self.get_observable()
-    if len(observable_vars) != len(sample):
-      print("Error adding sample to agent's dataset.")
-    # if sample is a list, format correctly as dict
-    if type(sample) is list:
-      sample = dict(zip(observable_vars, sample))
-    for var_name in observable_vars:
-      self.observations[var_name].append(sample[var_name])
-    self.most_recent = sample
-  
-  def add_exp(self, sample):
-    observable_vars = self.get_observable()
-    if len(observable_vars) != len(sample):
-      print("Error adding sample to agent's dataset.")
-    # if sample is a list, format correctly as dict
-    if type(sample) is list:
-      sample = dict(zip(observable_vars, sample))
-    for var_name in observable_vars:
-      self.experiments[var_name].append(sample[var_name])
-    self.most_recent = sample
-
-  def get_model_dist(self):
-    return util.parse_query(self.model.get_distribution())
-
-
 class Agent:
   def __init__(self, model, domains, action_vars):
     self.knowledge = Knowledge(model, domains)
@@ -103,11 +46,10 @@ if __name__ == "__main__":
   # for p in agent0.knowledge.get_model_dist():
   #   print(p)
 
-  sample_query = agent0.knowledge.model.get_distribution()
+  sample_query = "P(X)"
   print(sample_query)
   # print()
   for p in util.parse_query(sample_query):
     # print(p)
     print(util.prob_with_unassigned(agent0.knowledge.observations, agent0.knowledge.domains, p[0], p[1]))
-    print(util.prob(agent0.knowledge.observations, p[0], p[1]))
     print()

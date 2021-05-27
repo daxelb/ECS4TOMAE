@@ -40,7 +40,6 @@ def only_specified_keys(dictionary, keys):
       del res[key]
   return res
 
-
 def query_combos(domains, Q):
   queries = combinations(domains)
   unused_keys = queries[0].keys() - Q.keys()
