@@ -55,31 +55,8 @@ class Knowledge():
       self.experiments[var_name].append(sample[var_name])
     self.most_recent = sample
 
-  def format_conditional_distribution(self):
-    dist = []
-    for p in self.model.get_distribution().split("P")[1:]:
-      new_p = ["", {}]
-      query = True
-      e_word = ""
-      for char in p:
-        if char == '|':
-          query = False
-        elif char != '(':
-          if query:
-            if char == ')':
-              break
-            else:
-              new_p[0] += char
-          else:
-            if char == ',' or char == ')':
-              # Using None to denote an unspecified value
-              new_p[1][e_word] = None
-              e_word = ""
-            else:
-              e_word += char
-      dist.append(tuple(new_p))
-    return dist
-    # for eqn in self.model.get_distribution().split("P"):
+  def get_model_dist(self):
+    return util.parse_prob_query(self.model.get_distribution())
 
 
 class Agent:
@@ -117,11 +94,18 @@ if __name__ == "__main__":
   agent0.knowledge.add_obs([0,1,1,1])
   model.draw_model()
   # print(agent0.knowledge.observations)
-  # print(agent0.knowledge.observations)
   # print(agent0.knowledge.get_conditional_prob({"Y": 1}, {"X": None}, agent0.knowledge.observations))
   # print(agent0.feature_vars)
   # print(agent0.knowledge.domains)
   # print(agent0.get_choice_combinations())
-  print(util.conditional_prob({"Y": 1}, {"X": None}, agent0.knowledge.observations))
-  print(util.prob({"Y": None}, agent0.knowledge.observations))
-  # print(agent0.knowledge.format_conditional_distribution())
+  # print(util.conditional_prob({"Y": 1}, {"X": None}, agent0.knowledge.observations))
+  # print(util.prob({"Y": None}, agent0.knowledge.observations))
+
+  print(agent0.knowledge.model.get_distribution())
+  for p in agent0.knowledge.get_model_dist():
+    print(p)
+
+  sample_query = "P(Y=1|X,W=1)"
+  print(sample_query)
+  for p in util.parse_prob_query(sample_query):
+    print(p)

@@ -46,3 +46,53 @@ def prob(Q, dataset):
         break
     count += consistent
   return count / total
+
+def parse_prob_query(str_query):
+  parsed = []
+  new_p = [{}, {}]
+  query = True
+  assignment = False
+  Q_var = Q_val = e_var = e_val = ""
+  for char in str_query:
+    if char == 'P' or char == '(':
+      query = True
+      assignment = False
+    elif char == '|':
+      assignment = False
+      Q_val = None if Q_val == "" else float(Q_val) if int(float(Q_val)) != float(Q_val) else int(float(Q_val))
+      new_p[0][Q_var] = Q_val
+      query = False
+    elif char == ')':
+      if query:
+        Q_val = None if Q_val == "" else float(Q_val) if int(float(Q_val)) != float(Q_val) else int(float(Q_val))
+        new_p[0][Q_var] = Q_val
+      elif len(e_var):
+        e_val = None if e_val == "" else float(e_val) if int(float(e_val)) != float(e_val) else int(float(e_val))
+        new_p[1][e_var] = e_val
+      parsed.append(tuple(new_p))
+      Q_var = Q_val = e_var = e_val = ""
+      new_p = [{}, {}]
+    elif char == ',':
+      assignment = False
+      if query:
+        Q_val = None if Q_val == "" else float(Q_val) if int(float(Q_val)) != float(Q_val) else int(float(Q_val))
+        new_p[0][Q_var] = Q_val
+        Q_var = Q_val = e_var = e_val = ""
+      else:
+        e_val = None if e_val == "" else float(e_val) if int(float(e_val)) != float(e_val) else int(float(e_val))
+        new_p[1][e_var] = e_val
+        Q_var = Q_val = e_var = e_val = ""
+    elif char == '=':
+      assignment = True
+    else:
+      if query:
+        if assignment:
+          Q_val += char
+        else:
+          Q_var += char
+      else:
+        if assignment:
+          e_val += char
+        else:
+          e_var += char
+  return parsed
