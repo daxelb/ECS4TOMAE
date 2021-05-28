@@ -1,3 +1,5 @@
+import math
+
 def alphabetize(l):
   l.sort()
   return l
@@ -11,13 +13,8 @@ def num_combinations(list_of_lists):
   return count
 
 def combinations(dictionary):
-  combos = list()
   num_combos = num_combinations(dictionary.values())
-
-  for _ in range(num_combos):
-    combos.append(dict())
-    # combos.append([None] * len(dictionary.keys()))
-  # index was previously in here w/ enumerate()
+  combos = [{} for _ in range(num_combos)]
   for item in dictionary.items():
     var = item[0]
     domain = item[1]
@@ -29,9 +26,19 @@ def combinations(dictionary):
         count = 0
         pos_val_index = pos_val_index + 1 if pos_val_index + 1 < len(domain) else 0
       combo[var] = domain[pos_val_index]
-      # combo[index] = (var, domain[pos_val_index])
       count += 1
   return combos
+
+def kl_divergence(domains, P_data, Q_data, query, e, log_base=math.e):
+  Px = prob_with_unassigned(domains, P_data, query, e)
+  Qx = prob_with_unassigned(domains, Q_data, query, e)
+  res = 0
+  for i in range(len(Px)):
+    if Px[i][0] != Qx[i][0]:
+      print("Assignments of P and Q are unmated in kl_divergence() method")
+      return
+    res += Px[i][1] * math.log(Px[i][1] / Qx[i][1], log_base)
+  return res
 
 def only_specified_keys(dictionary, keys):
   res = dict(dictionary)
@@ -61,7 +68,7 @@ def exists_unassigned(Q):
       return True
   return False
 
-def prob_with_unassigned(dataset, domains, Q, e={}):
+def prob_with_unassigned(domains, dataset, Q, e={}):
   if not exists_unassigned(Q) and not exists_unassigned(e):
     return prob(dataset, Q, e)
   probs = list()

@@ -1,12 +1,13 @@
+import util
 class Knowledge():
   def __init__(self, model, domains):
     self.model = model
     self.domains = domains
     self.most_recent = None
-    self.observations = self.experiments = {}
+    self.obs = self.exp = {}
     for var_name in self.get_observable():
-      self.observations[var_name] = []
-      self.experiments[var_name] = []
+      self.obs[var_name] = []
+      self.exp[var_name] = []
 
   def get_observable(self):
     return self.model.get_observable()
@@ -37,7 +38,7 @@ class Knowledge():
     if type(sample) is list:
       sample = dict(zip(observable_vars, sample))
     for var_name in observable_vars:
-      self.observations[var_name].append(sample[var_name])
+      self.obs[var_name].append(sample[var_name])
     self.most_recent = sample
   
   def add_exp(self, sample):
@@ -48,7 +49,7 @@ class Knowledge():
     if type(sample) is list:
       sample = dict(zip(observable_vars, sample))
     for var_name in observable_vars:
-      self.experiments[var_name].append(sample[var_name])
+      self.exp[var_name].append(sample[var_name])
     self.most_recent = sample
 
   def get_model_dist(self):

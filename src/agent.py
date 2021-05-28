@@ -21,7 +21,7 @@ class Agent:
     for act_var in self.action_vars:
       action_domains[act_var] = self.knowledge.domains[act_var]
     for choice in random.shuffle(util.combinations(action_domains)):
-      if choice not in self.knowledge.observations and choice not in self.knowledge.experiments:
+      if choice not in self.knowledge.obs and choice not in self.knowledge.exp:
         print()
 
 
@@ -36,8 +36,8 @@ if __name__ == "__main__":
   agent0.knowledge.add_obs([0,0,0,0])
   agent0.knowledge.add_obs([0,1,1,1])
   model.draw_model()
-  # print(agent0.knowledge.observations)
-  # print(agent0.knowledge.get_conditional_prob({"Y": 1}, {"X": None}, agent0.knowledge.observations))
+  # print(agent0.knowledge.obs)
+  # print(agent0.knowledge.get_conditional_prob({"Y": 1}, {"X": None}, agent0.knowledge.obs))
   # print(agent0.feature_vars)
   # print(agent0.knowledge.domains)
   # print(agent0.get_choice_combinations())
@@ -50,6 +50,9 @@ if __name__ == "__main__":
   print(sample_query)
   # print()
   for p in util.parse_query(sample_query):
-    # print(p)
-    print(util.prob_with_unassigned(agent0.knowledge.observations, agent0.knowledge.domains, p[0], p[1]))
+    print(p)
+    print(util.prob_with_unassigned(agent0.knowledge.domains, agent0.knowledge.obs, p[0], p[1]))
     print()
+  
+  parsed_q = util.parse_query(sample_query)[0]
+  print(util.kl_divergence(agent0.knowledge.domains, agent0.knowledge.obs, agent0.knowledge.obs, parsed_q[0], parsed_q[1], 2))
