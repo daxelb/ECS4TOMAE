@@ -3,4 +3,3 @@
 Dependencies:
 - numpy
 - causalgraphicalmodels
-- pandas ?
