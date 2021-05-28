@@ -1,25 +1,23 @@
 import numpy as np
 from causalgraphicalmodels.csm import StructuralCausalModel, linear_model, logistic_model
-from util import alphabetize
-
 class SCM(StructuralCausalModel):
   def __init__(self, assignment):
     super(SCM, self).__init__(assignment)
 
   def get_variables(self):
-    return alphabetize(list(self.cgm.dag.nodes))
+    return sorted(list(self.cgm.dag.nodes))
 
   def get_parents(self, node):
-    return alphabetize(list(self.cgm.dag.predecessors(node)))
+    return sorted(list(self.cgm.dag.predecessors(node)))
 
   def get_children(self, node):
-    return alphabetize(list(self.cgm.dag.successors(node)))
+    return sorted(list(self.cgm.dag.successors(node)))
 
   def get_exogenous(self):
-    return alphabetize([n for n in self.cgm.dag.nodes if not self.get_parents(n)])
+    return sorted([n for n in self.cgm.dag.nodes if not self.get_parents(n)])
 
   def get_endogenous(self):
-    return alphabetize([n for n in self.cgm.dag.nodes if self.get_parents(n)])
+    return sorted([n for n in self.cgm.dag.nodes if self.get_parents(n)])
 
   def get_leaves(self):
     leaves = list()

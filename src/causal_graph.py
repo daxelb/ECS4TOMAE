@@ -1,6 +1,4 @@
 from causalgraphicalmodels import CausalGraphicalModel
-from util import alphabetize
-
 class CausalGraph(CausalGraphicalModel):
   def __init__(self, edges, latent_edges=None):
     nodes = self.get_nodes_from_edges(edges, latent_edges)
@@ -18,19 +16,19 @@ class CausalGraph(CausalGraphicalModel):
     return nodes
 
   def get_observable(self):
-    return alphabetize(list(self.dag.nodes))
+    return sorted(list(self.dag.nodes))
 
   def get_parents(self, node):
-    return alphabetize(list(self.dag.predecessors(node)))
+    return sorted(list(self.dag.predecessors(node)))
 
   def get_children(self, node):
-    return alphabetize(list(self.dag.successors(node)))
+    return sorted(list(self.dag.successors(node)))
 
   def get_exogenous(self):
-    return alphabetize([n for n in self.dag.nodes if not self.get_parents(n)])
+    return sorted([n for n in self.dag.nodes if not self.get_parents(n)])
 
   def get_endogenous(self):
-    return alphabetize([n for n in self.dag.nodes if self.get_parents(n)])
+    return sorted([n for n in self.dag.nodes if self.get_parents(n)])
 
   def get_leaves(self):
     leaves = list()

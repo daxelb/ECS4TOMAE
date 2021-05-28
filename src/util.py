@@ -1,10 +1,10 @@
 import math
 
-def alphabetize(l):
-  l.sort()
-  return l
-
-def num_combinations(list_of_lists):
+def num_permutations(list_of_lists):
+  """
+  Returns the number of permutations from an input
+  list of lists, representing domains.
+  """
   if not len(list_of_lists):
     return 0
   count = 1
@@ -12,8 +12,13 @@ def num_combinations(list_of_lists):
     count *= len(lst)
   return count
 
-def combinations(dictionary):
-  num_combos = num_combinations(dictionary.values())
+def permutations(dictionary):
+  """
+  Returns all permutations of variable assignments given a
+  dictionary mapping var_names: domain. Result is a list of
+  dicts with var_names mapping to assignments.
+  """
+  num_combos = num_permutations(dictionary.values())
   combos = [{} for _ in range(num_combos)]
   for item in dictionary.items():
     var = item[0]
@@ -30,6 +35,16 @@ def combinations(dictionary):
   return combos
 
 def kl_divergence(domains, P_data, Q_data, query, e, log_base=math.e):
+  """
+  Calculates kl_divergence between two probability distributions.
+
+  Uses the equation:
+    D(KL) = Σ P(X) * log(P(X) / Q(X))
+  where the summation is summing over all possible values of X
+
+  By default, the log_base is e to measure information in nats. A log_base
+  of 2 would measure information in bits.
+  """
   Px = prob_with_unassigned(domains, P_data, query, e)
   Qx = prob_with_unassigned(domains, Q_data, query, e)
   res = 0
@@ -41,6 +56,11 @@ def kl_divergence(domains, P_data, Q_data, query, e, log_base=math.e):
   return res
 
 def only_specified_keys(dictionary, keys):
+  """
+  Outputs a dictionary with the key:values of an
+  original dictionary, but only with items whose
+  keys are specified as a parameter.
+  """
   res = dict(dictionary)
   for key in dictionary:
     if key not in keys:
@@ -48,9 +68,18 @@ def only_specified_keys(dictionary, keys):
   return res
 
 def query_combos(domains, Q):
-  queries = combinations(domains)
+  """
+  Used when a query contains unassigned/unspecified variables.
+  Returns a list of fully-specified queries where previously
+  unassigned variables are given assignments from their domain.
+
+  Ex:
+  P(Y|X=1) where domain of Y = {0,1}
+    => [ P(Y=0|X=1), P(Y=1|X=1) ]
+  """
+  queries = permutations(domains)
   unused_keys = queries[0].keys() - Q.keys()
-  for q in combinations(domains):
+  for q in permutations(domains):
     for var in Q:
       if q in queries and Q[var] != None and q[var] != Q[var]:
         queries.remove(q)
@@ -62,14 +91,27 @@ def query_combos(domains, Q):
       queries_no_dupes.append(q)
   return queries_no_dupes
 
-def exists_unassigned(Q):
+def has_unassigned(Q):
+  """
+  Returns True if the input query contains
+  an unassigned variable, else False
+  """
   for q in Q:
     if Q[q] == None:
       return True
   return False
 
 def prob_with_unassigned(domains, dataset, Q, e={}):
-  if not exists_unassigned(Q) and not exists_unassigned(e):
+  """
+  For unassigned variables, calculates the conditional
+  probability query for all possible assignment values.
+
+  Returns a list of tuples where the first element is
+  the assigned values of the unspecified variables (as
+  a dictionary) and the second element is the calculated
+  probability.
+  """
+  if not has_unassigned(Q) and not has_unassigned(e):
     return prob(dataset, Q, e)
   probs = list()
   Q_and_e = {**Q, **e}
@@ -80,11 +122,25 @@ def prob_with_unassigned(domains, dataset, Q, e={}):
   return probs
 
 def prob(dataset, Q, e={}):
-  if exists_unassigned(Q) or exists_unassigned(Q):
+  """
+  For a query for which all queried-on variables
+  are assigned, returns the conditional probability 
+  calculated from the dataset.
+  """
+  if has_unassigned(Q) or has_unassigned(Q):
     print("All variables should have assignments to use util.prob(). Try util.prob_with_unassigned(), instead.")
   return uncond_prob(dataset, {**Q, **e}) / uncond_prob(dataset, e)
 
 def uncond_prob(dataset, Q):
+  """
+  Calculates an probability query that excludes
+  evidence/conditional arguments that would follow
+  a conditioning bar.
+  
+  Ex:
+  P(A,B) = P(A ∩ B)
+    => 0.5
+  """
   if not Q:
     return 1.0
   total = len(list(dataset.values())[0])
@@ -99,9 +155,25 @@ def uncond_prob(dataset, Q):
   return count / total
 
 def split_query(str_query):
+  """
+  Helper method that splits a probability distribution
+  into its single parts.
+
+  Ex:
+  "P(X)P(X|Y)P(X|Y,W)"
+    => ["P(X)", "P(X|Y)", "P(X|Y,W)"]
+  """
   return ["P"+e for e in str_query.split("P") if e]
 
 def parse_query(str_query):
+  """
+  Parses a (tier-1) probability query into a form
+  that is meaningful and the program can parse.
+
+  Ex:
+  P(X=1)P(Y|X=1)
+    => [({"X": 1}, {}), ({"Y": None}, {"X": 1})]
+  """
   parsed = []
   for q in split_query(str_query):
     query = True

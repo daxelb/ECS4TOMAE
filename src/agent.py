@@ -20,7 +20,7 @@ class Agent:
     action_domains = {}
     for act_var in self.action_vars:
       action_domains[act_var] = self.knowledge.domains[act_var]
-    for choice in random.shuffle(util.combinations(action_domains)):
+    for choice in random.shuffle(util.permutations(action_domains)):
       if choice not in self.knowledge.obs and choice not in self.knowledge.exp:
         print()
 
