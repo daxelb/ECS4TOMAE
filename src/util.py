@@ -1,5 +1,22 @@
 import math
 
+def max_key(dictionary):
+  return max(dictionary, key=dictionary.get)
+
+def subtract_lists(list1, list2):
+  return [e for e in list1 if e not in list2]
+
+def get_nodes_from_edges(obs_edges, latent_edges=None):
+  edges = obs_edges
+  if latent_edges:
+    edges.extend(e for e in latent_edges if e not in edges)
+  nodes = list()
+  for tup in edges:
+    for i in range(len(tup)):
+      if tup[i] not in nodes:
+        nodes.append(tup[i])
+  return nodes
+
 def num_permutations(list_of_lists):
   """
   Returns the number of permutations from an input
@@ -34,6 +51,85 @@ def permutations(dictionary):
       count += 1
   return combos
 
+def hash_from_dict(dictionary):
+  hashable = ""
+  for i, key in enumerate(dictionary.keys()):
+    hashable += str(key) + "=" + str(dictionary[key])
+    if i < len(dictionary.keys()) - 1:
+      hashable += ","
+  return hashable
+
+def hashes_from_domain(domain_dict):
+  return [hash_from_dict(d) for d in permutations(domain_dict)]
+
+def dict_from_hash(hash_string):
+  res = dict()
+  key_bool = True
+  key = ""
+  val = ""
+  for char in hash_string:
+    if char == '=':
+      key_bool = False
+    elif char == ',':
+      key_bool = True
+      res[key] = int(float(val))
+      key = ""
+      val = ""
+    else:
+      if key_bool:
+        key += char
+      else:
+        val += char
+  if len(val):
+    res[key] = int(float(val))
+  return res
+
+def reward_vals(dataset, action_vars, reward_var, givens={}):
+  """
+  From a dataset, returns the rewards associated with different
+  values of action_variables. Formatted as a dictionary mapping
+  action_var to a list of rewards.
+  """
+  reward_vals = dict()
+  for sample in only_dicts_with_givens(dataset, givens):
+    key = hash_from_dict(
+        only_specified_keys(sample, action_vars))
+    if key not in reward_vals:
+      reward_vals[key] = list()
+    reward_vals[key].append(sample[reward_var])
+  return reward_vals
+
+def expected_vals_from_rewards(dictionary):
+  """
+  Calculates the expected value of keys in a dictionary
+  whose parameterized value is a list of numbers.
+  Result is a dictionary mapping the keys of the entry
+  dictionary to the average value of the key (from a list).
+
+  Although the method is named to take "rewards" as the
+  param, it could be any dictionary whose keys map to lists of
+  numbers.
+  """
+  expected_vals = {}
+  for key in dictionary:
+    expected_vals[key] = avg(dictionary[key])
+  return expected_vals
+
+def expected_vals(dataset, action_vars, reward_var, givens={}):
+  """
+  Returns a dictionary mapping action_vars to their
+  expected/mean reward value using two previously defined
+  methods.
+  """
+  return expected_vals_from_rewards(reward_vals(dataset, action_vars, reward_var, givens))
+
+def avg(lst):
+  """
+  Returns the average/mean/expected value of a list
+  of numbers
+  """
+  return sum(lst) / len(lst)
+
 def kl_divergence(domains, P_data, Q_data, query, e, log_base=math.e):
   """
   Calculates kl_divergence between two probability distributions.
@@ -65,6 +161,25 @@ def only_specified_keys(dictionary, keys):
   for key in dictionary:
     if key not in keys:
       del res[key]
+  return res
+
+def only_dicts_with_givens(dicts, assignments={}):
+  """
+  Takes a list of dictionaries, and returns a subset
+  list only containing dictionaries whose key:value pairs
+  are consistent with the parameterized assignments.
+
+  Ex:
+  dicts=[{"A": 1, "B": 0}, {"A": 0, "B": 1}], assignments={"A": 0}
+    => [{"A": 0, "B": 1}]
+  """
+  if not assignments:
+    return dicts
+  res = list(dicts)
+  for d in dicts:
+    for a in assignments:
+      if d[a] != assignments[a]:
+        res.remove(d)
   return res
 
 def query_combos(domains, Q):
@@ -143,12 +258,12 @@ def uncond_prob(dataset, Q):
   """
   if not Q:
     return 1.0
-  total = len(list(dataset.values())[0])
+  total = len(dataset)
   count = 0
-  for i in range(len(list(dataset.values())[0])):
+  for i in range(total):
     consistent = True
     for key in Q:
-      if Q[key] != None and dataset[key][i] != Q[key]:
+      if Q[key] != None and dataset[i][key] != Q[key]:
         consistent = False
         break
     count += consistent
@@ -181,33 +296,37 @@ def parse_query(str_query):
     Q_var = Q_val = e_var = e_val = ""
     new_p = [{}, {}]
     for char in q:
-      if char == 'P' or char == '(':
-        query = True
-        assignment = False
+      if char == '(':
+        Q_var = ""
       elif char == '|':
         assignment = False
-        Q_val = None if Q_val == "" else float(Q_val) if int(float(Q_val)) != float(Q_val) else int(float(Q_val))
-        new_p[0][Q_var] = Q_val
+        # Q_val = 
+        new_p[0][Q_var] = None if Q_val == "" else float(Q_val) if int(
+            float(Q_val)) != float(Q_val) else int(float(Q_val))
         query = False
       elif char == ')':
         if query:
-          Q_val = None if Q_val == "" else float(Q_val) if int(float(Q_val)) != float(Q_val) else int(float(Q_val))
-          new_p[0][Q_var] = Q_val
+          # Q_val = 
+          new_p[0][Q_var] = None if Q_val == "" else float(Q_val) if int(
+              float(Q_val)) != float(Q_val) else int(float(Q_val))
         elif len(e_var):
-          e_val = None if e_val == "" else float(e_val) if int(float(e_val)) != float(e_val) else int(float(e_val))
-          new_p[1][e_var] = e_val
+          # e_val = 
+          new_p[1][e_var] = None if e_val == "" else float(e_val) if int(
+              float(e_val)) != float(e_val) else int(float(e_val))
         parsed.append(tuple(new_p))
         Q_var = Q_val = e_var = e_val = ""
         new_p = [{}, {}]
       elif char == ',':
         assignment = False
         if query:
-          Q_val = None if Q_val == "" else float(Q_val) if int(float(Q_val)) != float(Q_val) else int(float(Q_val))
-          new_p[0][Q_var] = Q_val
+          # Q_val = 
+          new_p[0][Q_var] = None if Q_val == "" else float(Q_val) if int(
+              float(Q_val)) != float(Q_val) else int(float(Q_val))
           Q_var = Q_val = e_var = e_val = ""
         else:
-          e_val = None if e_val == "" else float(e_val) if int(float(e_val)) != float(e_val) else int(float(e_val))
-          new_p[1][e_var] = e_val
+          # e_val = 
+          new_p[1][e_var] = None if e_val == "" else float(e_val) if int(
+              float(e_val)) != float(e_val) else int(float(e_val))
           Q_var = Q_val = e_var = e_val = ""
       elif char == '=':
         assignment = True

@@ -1,6 +1,6 @@
 digraph {
-	Y [label=Y shape=ellipse]
 	X [label=X shape=ellipse]
+	Y [label=Y shape=ellipse]
 	X -> Y
 	Unobserved_0 [shape=point]
 	Unobserved_0 -> X [style=dashed]

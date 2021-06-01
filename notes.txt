@@ -1,0 +1,42 @@
+AGENTS
+- policies
+    - (1) no communication
+        -  does not receive information, but can share comm. w/ agents who use comm.
+    - (2) naive communication
+    - (3) communication of only transferable w/o adjustment
+    - (4) communication if all transferable w/ adjustment
+
+- methods:
+    - find S-node loc.
+        - compare model CPTs using KL divergence
+        - returns a dictionary w/ "confidence" of each node having S node attached
+
+    - P(Y|do(X), W) == P(Y|X, W)
+        - if can't do this with just model, we can compare datapoints
+        - OR just assume this is always true... because it is
+
+    - choose optimally
+        - if experimental == observable, use both ?
+            - else (won't happen...) use experimental
+        - if there is no data, "experiment"
+        - if there is no data on the value of W, "experiment"
+        - loop through choices, and choose one that maximizes the value of Y (reward/outcome)
+
+    - get data from (single) agent/friend
+        - if friend is new, add a knowledge object for that agent
+            - self.domains are identical
+            - self.model is universal/non-S node model?
+            - Do agents with S-nodes know where those S-nodes are themselves?
+                - can an agent think it does not have an S-node when it does,
+                and think that another agent without one has one where it has one?
+        - add most recent experiment/observation datapoint of that agent to knowledge about that agent
+            - self.most_recent
+        - maybe an I know an agent's entire knowledge every time I comm. with it?
+
+    - get wanted query:
+        - P(Y|do(X), W)
+            - if experimental == observational, P(Y|X, W)
+
+    - world/environment class
+        - uses SCM
+        - with inputted X (input vars), returns dictionary with the values returned for each observable variable

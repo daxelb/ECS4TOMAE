@@ -4,10 +4,7 @@ class Knowledge():
     self.model = model
     self.domains = domains
     self.most_recent = None
-    self.obs = self.exp = {}
-    for var_name in self.get_observable():
-      self.obs[var_name] = []
-      self.exp[var_name] = []
+    self.obs = self.exp = list()
 
   def get_observable(self):
     return self.model.get_observable()
@@ -37,8 +34,9 @@ class Knowledge():
     # if sample is a list, format correctly as dict
     if type(sample) is list:
       sample = dict(zip(observable_vars, sample))
-    for var_name in observable_vars:
-      self.obs[var_name].append(sample[var_name])
+    # for var_name in observable_vars:
+    self.obs.append(sample)
+      # self.obs[var_name].append(sample[var_name])
     self.most_recent = sample
   
   def add_exp(self, sample):
@@ -48,8 +46,9 @@ class Knowledge():
     # if sample is a list, format correctly as dict
     if type(sample) is list:
       sample = dict(zip(observable_vars, sample))
-    for var_name in observable_vars:
-      self.exp[var_name].append(sample[var_name])
+    self.exp.append(sample)
+    # for var_name in observable_vars:
+      # self.exp[var_name].append(sample[var_name])
     self.most_recent = sample
 
   def get_model_dist(self):

@@ -1,8 +1,8 @@
 digraph {
-	W [label=W shape=ellipse]
 	X [label=X shape=ellipse]
-	Y [label=Y shape=ellipse]
 	Z [label=Z shape=ellipse]
+	W [label=W shape=ellipse]
+	Y [label=Y shape=ellipse]
 	W -> X
 	W -> Y
 	X -> Z
