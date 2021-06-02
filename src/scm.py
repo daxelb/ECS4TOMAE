@@ -81,7 +81,7 @@ class Environment:
         for node in nx.topological_sort(self.cgm.dag):
             c_model = self.assignment[node]
 
-            if c_model is None:
+            if c_model.model is None:
                 # assert len(set_values[node]) == n_samples
                 # samples[node] = np.array(set_values[node])
                 samples[node] = set_values[node]
@@ -108,12 +108,14 @@ if __name__ == "__main__":
       'C:/Program Files/Graphviz/bin/'
   universal_model = Environment({
     "W": lambda: np.random.choice([0,1], p=[0.5, 0.5]),
-    "X": None,
-    "Z": discrete_model(["X"], {(0): [0.9, 0.1], (1): [0.1, 0.9]}),
+    "X": CausalAssignmentModel(None, ["W"]),
+    "Z": discrete_model(["X"], {(0,): [0.9, 0.1], (1,): [0.1, 0.9]}),
     "Y": discrete_model(["W", "Z"], {(0, 0): [1, 0], (0, 1): [1, 0], (1, 0): [1,0], (1,1): [0,1]})
   })
   print(universal_model.sample({"X": 1}))
+  print(universal_model.cgm.get_ancestors("Y"))
 #   universal_model.draw_model()
-#   print(universal_model.get_parents("Y"))
+#   print(universal_model.cgm.get_parents("Y"))
+#   print(universal_model.cgm.get_parents("X"))
 #   print(universal_model.get_endogenous())
 #   print(universal_model.get_leaves())

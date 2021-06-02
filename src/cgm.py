@@ -75,6 +75,16 @@ class CausalGraph:
     def has_latent_parents(self, node):
         return len(self.do(node).get_parents(node)) == len(self.get_parents(node))
 
+    def get_ancestors(self, node):
+        return self.get_ancestors_recursive(self.get_parents(node))
+
+    def get_ancestors_recursive(self, frontier=[], visited=[]):
+        for node in frontier:
+            if node not in visited:
+                visited.append(node)
+                self.get_ancestors_recursive(self.get_parents(node), visited)
+        return visited
+
     def get_observable(self):
         return sorted(list(self.observed_variables))
 

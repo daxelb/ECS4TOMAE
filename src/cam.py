@@ -52,23 +52,18 @@ def discrete_model(parents, lookup_table):
     output_length = len(weights[0])
     assert all(len(w) == output_length for w in weights)
     outputs = np.arange(output_length)
-    ps = [np.array(w) / sum(w) for w in weights]  # probabilities
+    ps = [np.array(w) / sum(w) for w in weights]
 
     def model(**kwargs):
-        # n_samples = kwargs["n_samples"]
-        print(kwargs)
-        a = np.vstack([kwargs[p] for p in parents]).T
-
-        b = [np.nan] * 1
+        a = tuple([kwargs[p] for p in parents])
+        b = None
         for m, p in zip(inputs, ps):
-            b = np.where(
-                (a == m).all(axis=1),
-                np.random.choice(outputs, size=1, p=p), b)
+            if a == m:
+                b = np.random.choice(outputs, p=p)
 
-        if np.isnan(b).any():
+        if b == None:
             raise ValueError(
                 "It looks like an input was provided which doesn't have a lookup.")
-        # print(b.astype(int))
-        return b.astype(int)[0]
+        return int(b)
 
     return CausalAssignmentModel(model, parents)
