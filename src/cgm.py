@@ -138,13 +138,24 @@ class CausalGraph:
             if not parents:
                 p = "P({})".format(node)
             else:
-                parents = [
-                    "do({})".format(n) if n in self.set_nodes else str(n)
-                    for n in parents
-                ]
-                p = "P({}|{})".format(node, ",".join(parents))
+                formatted_parents = []
+                [formatted_parents.append("do({})".format(parent)) for parent in sorted(
+                    parents) if parent in self.set_nodes]
+                [formatted_parents.append(str(parent)) for parent in sorted(parents) if parent not in self.set_nodes]
+                p = "P({}|{})".format(node, ",".join(formatted_parents))
             products.append(p)
         return "".join(products)
+
+    def get_node_distributions(self):
+        product = []
+        for node in nx.topological_sort(self.dag):
+            parents = self.get_parents(node)
+            query = {node: None}
+            givens = {}
+            for parent in parents:
+                givens[parent] = None
+            product.append((query, givens))
+        return product
 
     def do(self, node):
         """

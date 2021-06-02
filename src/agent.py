@@ -49,6 +49,9 @@ class Agent:
   def random_action(self):
     return util.random_assignment(self.action_domains)
 
+  def compare_distributions(self, other_dist):
+    my_dist = self.knowledge.get_model_dist()
+
 
     # print(self.action_domains)
     # choices = util.permutations(self.action_domains)
@@ -74,6 +77,8 @@ if __name__ == "__main__":
   agent0.knowledge.add_obs([0,1,0,0])
   # print(agent0.optimal_choice())
   print(agent0.experiment())
+  print(model.get_node_distributions())
+  print(agent0.knowledge.get_model_dist())
   # print(agent0.reward({"Y": 1}))
   # model.draw_model()
   # print(agent0.knowledge.obs)
