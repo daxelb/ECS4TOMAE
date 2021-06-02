@@ -74,10 +74,10 @@ class CausalGraph:
                         vars=variables))
 
     def has_latent_parents(self, node):
-        return sorted(list(self.latent_edges))
+        return len(self.do(node).get_parents(node)) == len(self.get_parents(node))
 
     def get_observable(self):
-        return sorted(list(self.dag.nodes))
+        return sorted(list(self.observed_variables))
 
     def get_parents(self, node):
         return sorted(list(self.dag.predecessors(node)))

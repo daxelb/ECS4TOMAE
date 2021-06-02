@@ -40,3 +40,28 @@ AGENTS
     - world/environment class
         - uses SCM
         - with inputted X (input vars), returns dictionary with the values returned for each observable variable
+
+
+Questions for Dr. Forney:
+1. What is the best way to determine where an 'S' (sample-selection) node is? My idea:
+    - Node with greatest greatest KL-divergence (magnitude) compared to others
+    (using conditional probabilities of each node)
+    - require confidence as well as magnitude
+        - confidence could be a function of the number of samples:
+            - more samples + discrepancy = more likely there is an S-node
+            - less samples = possibility that noise is skewing
+
+    - in the end, our agent should be able to determine if there is a difference between
+    two models, and where that difference lies
+        - we want to minimize the frequency of this being miscalculated, because then it would
+        incorrectly screw with our policy
+
+2. If there is more than one agent that can communicate and can have different models, how would
+we deal with the case that there are two agents who both of sample-selection nodes on different nodes
+in their model?
+    Then, they would each have to identify that there are two places where SS-bias comes in to play.
+        Is it feasible to adjust for this?
+        If not, we can stick with just one agent, who has a "universal" model to adjust for biases.
+            This agent has at most one node difference between other agents in the system.
+                To get all agents to be able to communicate with all others, there must always be at most
+                1 node difference between agents.

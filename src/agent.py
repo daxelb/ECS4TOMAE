@@ -7,19 +7,20 @@ from cgm import CausalGraph
 
 class Agent:
   def __init__(self, name, model, domains, action_vars, reward_var):
+    self.epsilon = 0.3
     self.name = name
     self.friends = {}
 
-    self.knowledge = Knowledge(model, domains)
+    self.knowledge = Knowledge(model, domains, action_vars)
 
     self.action_vars = action_vars
     self.reward_var = reward_var
     # assumptions: outcome_vars are all leaves in the model,
     # feature_vars are all parents of action_vars
-    self.outcome_vars = self.knowledge.get_leaves()
+    self.outcome_vars = self.knowledge.model.get_leaves()
     self.feature_vars = list()
     for node in self.action_vars:
-      for parent in self.knowledge.get_parents(node):
+      for parent in self.knowledge.model.get_parents(node):
         self.feature_vars.append(parent)
     self.action_domains = {}
     for act_var in self.action_vars:
@@ -29,17 +30,24 @@ class Agent:
     if random.random() < self.epsilon:
       return self.experiment(givens)
     else:
-      return self.optimal_choice(givens)
+      optimal_choice = self.optimal_choice(givens)
+      return optimal_choice if optimal_choice else self.experiment(givens)
 
   def experiment(self, givens={}):
-    reward_vals = util.reward_vals(self.knowledge.obs, self.action_vars, self.reward_var, givens)
-    unexplored = util.subtract_lists(util.hashes_from_domain(self.action_domains), reward_vals.keys())
-    return util.dict_from_hash(random.choice(unexplored)) if unexplored else random.choice(util.permutations(self.action_domains))
+    reward_vals = util.reward_vals(
+      self.knowledge.get_useful_data(), self.action_vars, self.reward_var, givens)
+    unexplored = [util.dict_from_hash(e) for e in util.hashes_from_domain(self.action_domains) if e not in reward_vals.keys()]
+    return random.choice(unexplored) if unexplored\
+      else self.random_action()
 
   def optimal_choice(self, givens={}):
     expected_values = util.expected_vals(
-        self.knowledge.obs, self.action_vars, self.reward_var, givens)
-    return util.dict_from_hash(util.max_key(expected_values)) if expected_values else None
+        self.knowledge.get_useful_data(), self.action_vars, self.reward_var, givens)
+    return util.dict_from_hash(util.max_key(expected_values)) if expected_values\
+      else self.random_action()
+
+  def random_action(self):
+    return util.random_assignment(self.action_domains)
 
 
     # print(self.action_domains)

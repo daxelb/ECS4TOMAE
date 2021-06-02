@@ -1,10 +1,14 @@
 import math
+import random
 
 def max_key(dictionary):
   return max(dictionary, key=dictionary.get)
 
-def subtract_lists(list1, list2):
-  return [e for e in list1 if e not in list2]
+# def subtract_lists(list1, list2):
+#   return [e for e in list1 if e not in list2]
+
+def random_assignment(domains):
+  return random.choice(permutations(domains))
 
 def get_nodes_from_edges(obs_edges, latent_edges=None):
   edges = obs_edges

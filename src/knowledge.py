@@ -1,55 +1,40 @@
 import util
 class Knowledge():
-  def __init__(self, model, domains):
+  def __init__(self, model, domains, action_vars):
     self.model = model
     self.domains = domains
+    self.action_vars = action_vars
     self.most_recent = None
-    self.obs = self.exp = list()
-
-  def get_observable(self):
-    return self.model.get_observable()
-
-  def get_parents(self, node):
-    return self.model.get_parents(node)
-
-  def get_children(self, node):
-    return self.model.get_children(node)
-
-  def get_exogenous(self):
-    return self.model.get_exogenous()
-
-  def get_endogenous(self):
-    return self.model.get_endogenous()
-  
-  def get_leaves(self):
-    return self.model.get_leaves()
-
-  def draw_model(self, v=False):
-    self.model.draw().render('output/causal-model.gv', view=v)
+    self.obs = list()
+    self.exp = list()
   
   def add_obs(self, sample):
-    observable_vars = self.get_observable()
-    if len(observable_vars) != len(sample):
+    if len(self.model.observed_variables) != len(sample):
       print("Error adding sample to agent's dataset.")
     # if sample is a list, format correctly as dict
     if type(sample) is list:
-      sample = dict(zip(observable_vars, sample))
+      sample = dict(zip(self.model.observed_variables, sample))
     # for var_name in observable_vars:
     self.obs.append(sample)
       # self.obs[var_name].append(sample[var_name])
     self.most_recent = sample
   
   def add_exp(self, sample):
-    observable_vars = self.get_observable()
-    if len(observable_vars) != len(sample):
+    if len(self.model.observed_variables) != len(sample):
       print("Error adding sample to agent's dataset.")
     # if sample is a list, format correctly as dict
     if type(sample) is list:
-      sample = dict(zip(observable_vars, sample))
+      sample = dict(zip(self.model.observed_variables, sample))
     self.exp.append(sample)
     # for var_name in observable_vars:
       # self.exp[var_name].append(sample[var_name])
     self.most_recent = sample
+
+  def get_useful_data(self):
+    for var in self.action_vars:
+      if self.model.do(var).get_parents(var) != self.model.get_parents(var):
+        return self.exp
+    return self.obs + self.exp
 
   def get_model_dist(self):
     return util.parse_query(self.model.get_distribution())
