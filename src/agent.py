@@ -70,6 +70,7 @@ if __name__ == "__main__":
   domains = {"W": (0,1), "X": (0,1), "Y": (0,1), "Z": (0,1)}
   # # action_domains = {"X": [0,1]}
   agent0 = Agent("zero", model, domains, "X", "Y")
+  agent1 = Agent("one", model, domains, "X", "Y")
   agent0.knowledge.add_obs([0,1,1,1])
   agent0.knowledge.add_obs([1,0,0,0])
   agent0.knowledge.add_obs([1,0,0,1])

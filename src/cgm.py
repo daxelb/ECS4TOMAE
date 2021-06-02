@@ -13,7 +13,6 @@ class CausalGraph:
     """
     Causal Graphical Models
     """
-
     def __init__(self, edges, nodes=None, latent_edges=None, set_nodes=None):
         """
         Create CausalGraph

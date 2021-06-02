@@ -1,8 +1,16 @@
 import math
+import numpy as np
 import random
 
 def max_key(dictionary):
   return max(dictionary, key=dictionary.get)
+
+def dict_of_lists_to_list_of_dicts(dictionary):
+  res = [{}] * len(list(dictionary.values())[0])
+  for key, value in dictionary.items():
+    for i, e in enumerate(value):
+      res[i][key] = e
+  return res
 
 # def subtract_lists(list1, list2):
 #   return [e for e in list1 if e not in list2]
@@ -304,17 +312,14 @@ def parse_query(str_query):
         Q_var = ""
       elif char == '|':
         assignment = False
-        # Q_val = 
         new_p[0][Q_var] = None if Q_val == "" else float(Q_val) if int(
             float(Q_val)) != float(Q_val) else int(float(Q_val))
         query = False
       elif char == ')':
         if query:
-          # Q_val = 
           new_p[0][Q_var] = None if Q_val == "" else float(Q_val) if int(
               float(Q_val)) != float(Q_val) else int(float(Q_val))
         elif len(e_var):
-          # e_val = 
           new_p[1][e_var] = None if e_val == "" else float(e_val) if int(
               float(e_val)) != float(e_val) else int(float(e_val))
         parsed.append(tuple(new_p))
@@ -323,12 +328,10 @@ def parse_query(str_query):
       elif char == ',':
         assignment = False
         if query:
-          # Q_val = 
           new_p[0][Q_var] = None if Q_val == "" else float(Q_val) if int(
               float(Q_val)) != float(Q_val) else int(float(Q_val))
           Q_var = Q_val = e_var = e_val = ""
         else:
-          # e_val = 
           new_p[1][e_var] = None if e_val == "" else float(e_val) if int(
               float(e_val)) != float(e_val) else int(float(e_val))
           Q_var = Q_val = e_var = e_val = ""
@@ -346,3 +349,8 @@ def parse_query(str_query):
           else:
             e_var += char
   return parsed
+
+if __name__ == "__main__":
+  d = {'X': np.array([1, 1, 1, 1, 1]), 'Z': np.array([1, 1, 1, 1, 1]),
+       'W': np.array([1, 0, 0, 1, 0]), 'Y': np.array([1, 0, 0, 1, 0])}
+  print(dict_of_lists_to_list_of_dicts(d))
