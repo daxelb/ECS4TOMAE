@@ -60,7 +60,7 @@ class StructuralCausalModel:
                 .format(classname=self.__class__.__name__,
                         vars=variables))
 
-    def sample(self, set_values=dict()):
+    def sample(self, set_values={}):
         """
         Sample from CSM
 

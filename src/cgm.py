@@ -8,7 +8,6 @@ from itertools import combinations, chain
 from collections import Iterable
 from util import get_nodes_from_edges
 
-
 class CausalGraph:
     """
     Causal Graphical Models

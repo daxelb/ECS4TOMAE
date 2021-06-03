@@ -5,7 +5,6 @@ class Knowledge():
     self.model = model
     self.domains = domains
     self.action_vars = action_vars
-    self.most_recent = None
     self.obs = list()
     self.exp = list()
 
@@ -16,7 +15,6 @@ class Knowledge():
     if type(sample) is list:
       sample = dict(zip(self.model.observed_variables, sample))
     dataset.append(sample)
-    self.most_recent = sample
   
   def add_obs(self, sample):
     self.add_sample(self.obs, sample)
@@ -28,10 +26,13 @@ class Knowledge():
     """
     Returns any data in the model that satisfied do(action_vars)
     """
+    return self.obs + self.exp if self.obs_is_useful() else self.exp
+
+  def obs_is_useful(self):
     for var in self.action_vars:
-      if self.model.do(var).get_parents(var) != self.model.get_parents(var):
-        return self.exp
-    return self.obs + self.exp
+      if self.model.has_latent_parents(var):
+        return False
+    return True
 
   def get_model_dist(self):
     """
@@ -65,4 +66,4 @@ class Knowledge():
     """
     if node in self.action_vars:
       print("S-nodes cannot be inputs into action nodes.")
-    return self.get_kl_divergence_of_query(self.get_node_dist(node), other_data)
+    return self.kl_divergence_of_query(self.get_node_dist(node), other_data)

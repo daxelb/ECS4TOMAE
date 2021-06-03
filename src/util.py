@@ -1,3 +1,4 @@
+from copy import Error
 import math
 import numpy as np
 import random
@@ -155,12 +156,18 @@ def kl_divergence(domains, P_data, Q_data, query, e, log_base=math.e):
   """
   Px = prob_with_unassigned(domains, P_data, query, e)
   Qx = prob_with_unassigned(domains, Q_data, query, e)
+  if Px == None or Qx == None:
+    print("Insufficient data to compute probabilities in KL Divergence")
+    return None
   res = 0
   for i in range(len(Px)):
     if Px[i][0] != Qx[i][0]:
       print("Assignments of P and Q are unmated in kl_divergence() method")
       return
-    res += Px[i][1] * math.log(Px[i][1] / Qx[i][1], log_base)
+    res += 0 if Qx[i][1] == Px[i][1] else \
+        math.inf if Qx[i][1] == 0 else \
+        -math.inf if Px[i][1] == 0 else \
+        Px[i][1] * math.log(Px[i][1] / Qx[i][1], log_base)
   return res
 
 def only_specified_keys(dictionary, keys):
@@ -245,7 +252,13 @@ def prob_with_unassigned(domains, dataset, Q, e={}):
   for q in query_combos(domains, Q_and_e):
     new_e = only_specified_keys(q, e.keys())
     assignment = only_specified_keys(q, [q for q in Q_and_e if Q_and_e[q] == None])
-    probs.append((assignment, uncond_prob(dataset, q) / uncond_prob(dataset, new_e)))
+    prob_new_e = uncond_prob(dataset, new_e)
+    if not prob_new_e:
+      # print(uncond_prob(dataset, only_specified_keys(
+      #     q, [q for q in Q_and_e if q not in new_e])), uncond_prob(dataset, q), uncond_prob(dataset, new_e))
+      # print(only_specified_keys(q, [q for q in Q_and_e if q not in new_e]), q, new_e)
+      return None
+    probs.append((assignment, uncond_prob(dataset, q) / prob_new_e))
   return probs
 
 def prob(dataset, Q, e={}):

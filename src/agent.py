@@ -4,34 +4,27 @@ import util
 import random
 import math
 from cgm import CausalGraph
+from environment import Environment
+from cam import CausalAssignmentModel, discrete_model
+import numpy as np
 
 class Agent:
-  def __init__(self, name, model, domains, action_vars, reward_var):
-    self.epsilon = 0.3
+  def __init__(self, name, environment, reward_var):
+    self.epsilon = 0.5
     self.name = name
-    self.friends = {}
-
-    self.knowledge = Knowledge(model, domains, action_vars)
-
-    self.action_vars = action_vars
+    self.environment = environment
     self.reward_var = reward_var
-    # assumptions: outcome_vars are all leaves in the model,
-    # feature_vars are all parents of action_vars
-    self.outcome_vars = self.knowledge.model.get_leaves()
-    self.feature_vars = list()
-    for node in self.action_vars:
-      for parent in self.knowledge.model.get_parents(node):
-        self.feature_vars.append(parent)
-    self.action_domains = {}
-    for act_var in self.action_vars:
-      self.action_domains[act_var] = self.knowledge.domains[act_var]
+    self.friends = {}
+    self.action_vars = self.environment.action_nodes
+    self.knowledge = Knowledge(self.environment.cgm, self.environment.domains, self.action_vars)
+    self.action_domains = util.only_specified_keys(self.environment.domains, self.action_vars)
 
   def choose(self, givens={}):
     if random.random() < self.epsilon:
-      return self.experiment(givens)
+      return ("exp", self.experiment(givens))
     else:
       optimal_choice = self.optimal_choice(givens)
-      return optimal_choice if optimal_choice else self.experiment(givens)
+      return ("obs", optimal_choice) if optimal_choice else ("exp", self.experiment(givens))
 
   def experiment(self, givens={}):
     reward_vals = util.reward_vals(
@@ -49,37 +42,60 @@ class Agent:
   def random_action(self):
     return util.random_assignment(self.action_domains)
 
-  def compare_distributions(self, other_dist):
-    my_dist = self.knowledge.get_model_dist()
+  def act(self):
+    givens = self.environment.pre.sample()
+    choice = self.choose(givens)
+    givens |= choice[1]
+    dp = self.environment.post.sample(givens)
+    if choice[0] == "obs":
+      self.knowledge.add_obs(dp)
+    else:
+      self.knowledge.add_exp(dp)
 
+  def encounter(self, other):
+    friend_data = other.knowledge.get_useful_data()
+    if other.name not in self.friends:
+      self.friends[other.name] = []
+    if friend_data:
+      self.friends[other.name].append(friend_data[-1])
 
-    # print(self.action_domains)
-    # choices = util.permutations(self.action_domains)
-    # print(choices)
-    # random.shuffle(choices)
-    # print(choices)
-    # for choice in choices:
-    #   print(choice)
-      # if choice not in self.knowledge.obs and choice not in self.knowledge.exp:
-        # print()
+  def divergence(self, other_data):
+    divergence = {}
+    for node in self.knowledge.model.get_observable():
+      if node in self.action_vars: continue
+      divergence[node] = self.knowledge.kl_divergence_of_node(node, other_data)
+    return divergence
+
+  def divergences(self):
+    divergences = {}
+    for agent in self.friends:
+      divergences[agent] = self.divergence(self.friends[agent])
+    return divergences
 
 
 if __name__ == "__main__":
-  edges = [("W", "X"), ("X", "Z"), ("Z", "Y"), ("W", "Y")]
-  model = CausalGraph(edges)
-  domains = {"W": (0,1), "X": (0,1), "Y": (0,1), "Z": (0,1)}
-  # # action_domains = {"X": [0,1]}
-  agent0 = Agent("zero", model, domains, "X", "Y")
-  agent1 = Agent("one", model, domains, "X", "Y")
-  agent0.knowledge.add_obs([0,1,1,1])
-  agent0.knowledge.add_obs([1,0,0,0])
-  agent0.knowledge.add_obs([1,0,0,1])
-  agent0.knowledge.add_obs([0,1,1,1])
-  agent0.knowledge.add_obs([0,1,0,0])
+  domains = {"W": (0, 1), "X": (0, 1), "Z": (0, 1), "Y": (0, 1)}
+  environment = Environment(domains, {
+      "W": lambda: np.random.choice([0, 1], p=[0.5, 0.5]),
+      "X": CausalAssignmentModel(["W"], None),
+      "Z": discrete_model(["X"], {(0,): [0.9, 0.1], (1,): [0.1, 0.9]}),
+      "Y": discrete_model(["W", "Z"], {(0, 0): [1, 0], (0, 1): [1, 0], (1, 0): [1, 0], (1, 1): [0, 1]})
+  })
+  agent0 = Agent("zero", environment, "Y")
+  agent1 = Agent("one", environment, "Y")
   # print(agent0.optimal_choice())
-  print(agent0.experiment())
-  print(model.get_node_distributions())
-  print(agent0.knowledge.get_model_dist())
+  # print(agent0.experiment())
+  # print(agent0.knowledge.model.get_node_distributions())
+  # print(agent0.knowledge.get_model_dist())
+  for _ in range(500):
+    agent0.act()
+    agent1.act()
+    agent0.encounter(agent1)
+    agent1.encounter(agent0)
+  print()  
+  print(agent0.divergences())
+  # print(agent0.knowledge.get_useful_data())
+  # print(agent1.knowledge.get_useful_data())
   # print(agent0.reward({"Y": 1}))
   # model.draw_model()
   # print(agent0.knowledge.obs)
