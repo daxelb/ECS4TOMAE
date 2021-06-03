@@ -6,9 +6,9 @@ class CausalAssignmentModel:
     arguments of a dynamically generated function.
     """
 
-    def __init__(self, model, parents):
-        self.model = model
+    def __init__(self, parents, model):
         self.parents = parents
+        self.model = model
 
     def __call__(self, *args, **kwargs):
         assert len(args) == 0
@@ -66,4 +66,4 @@ def discrete_model(parents, lookup_table):
                 "It looks like an input was provided which doesn't have a lookup.")
         return int(b)
 
-    return CausalAssignmentModel(model, parents)
+    return CausalAssignmentModel(parents, model)

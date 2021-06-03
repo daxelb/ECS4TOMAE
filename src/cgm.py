@@ -60,9 +60,9 @@ class CausalGraph:
 
         assert nx.is_directed_acyclic_graph(self.dag)
 
-        for set_node in self.set_nodes:
+        # for set_node in self.set_nodes:
             # set nodes cannot have parents
-            assert not nx.ancestors(self.dag, set_node)
+            # assert not nx.ancestors(self.dag, set_node)
 
         self.graph = self.dag.to_undirected()
 
@@ -76,13 +76,13 @@ class CausalGraph:
         return len(self.do(node).get_parents(node)) == len(self.get_parents(node))
 
     def get_ancestors(self, node):
-        return self.get_ancestors_recursive(self.get_parents(node))
+        return self.get_ancestors_helper(self.get_parents(node))
 
-    def get_ancestors_recursive(self, frontier=[], visited=[]):
+    def get_ancestors_helper(self, frontier=[], visited=[]):
         for node in frontier:
             if node not in visited:
                 visited.append(node)
-                self.get_ancestors_recursive(self.get_parents(node), visited)
+                self.get_ancestors_helper(self.get_parents(node), visited)
         return visited
 
     def get_observable(self):

@@ -7,11 +7,14 @@ import inspect
 import pandas as pd
 import networkx as nx
 import os
+import util
 
+from scm import StructuralCausalModel
 from cgm import CausalGraph
 from cam import CausalAssignmentModel, discrete_model
 
-class StructuralCausalModel:
+
+class Environment:
     def __init__(self, assignment):
         """
         Creates StructuralCausalModel from assignment of the form
@@ -19,7 +22,7 @@ class StructuralCausalModel:
         """
         self.assignment = assignment.copy()
         nodes = list(assignment.keys())
-        set_nodes = []
+        self.action_nodes = []  # set_nodes
         edges = []
 
         for node, model in assignment.items():
@@ -29,8 +32,9 @@ class StructuralCausalModel:
                     "Model must be assigned to a CausalAssignmentModel object")
 
             elif isinstance(model, CausalAssignmentModel):
+                # print(model.model, model.parents)
                 if model.model == None:
-                    set_nodes.append(node)
+                    self.action_nodes.append(node)
                 edges.extend([
                     (parent, node)
                     for parent in model.parents
@@ -52,7 +56,14 @@ class StructuralCausalModel:
                                  .format(model, node))
 
         self.cgm = CausalGraph(
-            nodes=nodes, edges=edges, set_nodes=set_nodes)
+            nodes=nodes, edges=edges, set_nodes=self.action_nodes)
+
+        pre_nodes = []
+        [pre_nodes.extend(self.cgm.get_ancestors(v)) for v in self.action_nodes]
+        self.pre = StructuralCausalModel(util.only_specified_keys(self.assignment, pre_nodes))
+        post_ass = self.assignment
+        [post_ass.update({n: CausalAssignmentModel(self.cgm.get_parents(n), None)}) for n in pre_nodes]
+        self.post = StructuralCausalModel(post_ass)
 
     def __repr__(self):
         variables = ", ".join(map(str, sorted(self.cgm.dag.nodes())))
@@ -102,3 +113,18 @@ class StructuralCausalModel:
         new_assignment = self.assignment.copy()
         new_assignment[node] = None
         return CausalGraph(new_assignment)
+
+
+if __name__ == "__main__":
+    os.environ["PATH"] += os.pathsep + \
+        'C:/Program Files/Graphviz/bin/'
+    universal_model = Environment({
+        "W": lambda: np.random.choice([0, 1], p=[0.5, 0.5]),
+        "X": CausalAssignmentModel(["W"], None),
+        "Z": discrete_model(["X"], {(0,): [0.9, 0.1], (1,): [0.1, 0.9]}),
+        "Y": discrete_model(["W", "Z"], {(0, 0): [1, 0], (0, 1): [1, 0], (1, 0): [1, 0], (1, 1): [0, 1]})
+    })
+#   print(universal_model.sample({"X": 1}))
+#   print(universal_model.cgm.get_ancestors("Y"))
+    print(universal_model.pre.sample())
+    print(universal_model.post.sample(set_values={"W": 1, "X": 1}))
