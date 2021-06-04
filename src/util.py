@@ -1,7 +1,12 @@
-from copy import Error
 import math
 import numpy as np
 import random
+
+def dict_to_list_of_tuples(dictionary):
+  res = []
+  for key, val in dictionary.items():
+    res.append((key, val))
+  return res
 
 def max_key(dictionary):
   return max(dictionary, key=dictionary.get)
@@ -373,4 +378,4 @@ def num_matches(dict1, dict2):
 if __name__ == "__main__":
   d = {'X': np.array([1, 1, 1, 1, 1]), 'Z': np.array([1, 1, 1, 1, 1]),
        'W': np.array([1, 0, 0, 1, 0]), 'Y': np.array([1, 0, 0, 1, 0])}
-  print(dict_of_lists_to_list_of_dicts(d))
+  print(dict_to_list_of_tuples(d))

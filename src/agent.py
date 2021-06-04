@@ -3,11 +3,11 @@ from knowledge import Knowledge
 import util
 import random
 from environment import Environment
-from cam import CausalAssignmentModel, discrete_model
+from assignment_models import AssignmentModel, discrete_model
 import numpy as np
 
 DIV_NODE_CONF = 0.08
-SAMPS_NEEDED = 8
+SAMPS_NEEDED = 0
 
 class Agent:
   def __init__(self, name, environment, reward_var):
@@ -86,13 +86,19 @@ class Agent:
           else True
     return is_divergent_dict
 
+  def __hash__(self):
+    return hash(self.name)
+
+  def __eq__(self, other):
+    return self.__class__ == other.__class__ and self.name == other.name and self.environment == other.environment and self.reward_var == other.reward_var
+
 
 
 if __name__ == "__main__":
   domains = {"W": (0, 1), "X": (0, 1), "Z": (0, 1), "Y": (0, 1)}
   environment = Environment(domains, {
       "W": lambda: np.random.choice([0, 1], p=[0.5, 0.5]),
-      "X": CausalAssignmentModel(["W"], None),
+      "X": AssignmentModel(["W"], None),
       "Z": discrete_model(["X"], {(0,): [0.75, 0.25], (1,): [0.25, 0.75]}),
       "Y": discrete_model(["W", "Z"], {(0, 0): [1, 0], (0, 1): [1, 0], (1, 0): [1, 0], (1, 1): [0, 1]})
   })

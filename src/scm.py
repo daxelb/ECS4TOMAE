@@ -9,7 +9,7 @@ import networkx as nx
 import os
 
 from cgm import CausalGraph
-from cam import CausalAssignmentModel, discrete_model
+from assignment_models import AssignmentModel, discrete_model
 
 class StructuralCausalModel:
     def __init__(self, assignment):
@@ -26,7 +26,7 @@ class StructuralCausalModel:
             if model is None:
                 set_nodes.append(node)
 
-            elif isinstance(model, CausalAssignmentModel):
+            elif isinstance(model, AssignmentModel):
                 edges.extend([
                     (parent, node)
                     for parent in model.parents
@@ -39,7 +39,7 @@ class StructuralCausalModel:
                     for parent in sig.parameters.keys()
                     if parent != "n_samples"
                 ]
-                self.assignment[node] = CausalAssignmentModel(parents, model)
+                self.assignment[node] = AssignmentModel(parents, model)
                 edges.extend([(p, node) for p in parents])
 
             else:

@@ -1,28 +1,42 @@
 import numpy as np
 
-class CausalAssignmentModel:
+class AssignmentModel:
     """
     Basically just a hack to allow me to provide information about the
     arguments of a dynamically generated function.
     """
 
-    def __init__(self, parents, model):
+    def __init__(self, parents, model, domain):
         self.parents = parents
         self.model = model
+        self.domain = domain
 
     def __call__(self, *args, **kwargs):
         assert len(args) == 0
         return self.model(**kwargs)
 
     def __repr__(self):
-        return "CausalAssignmentModel({})".format(",".join(self.parents))
+        return "AssignmentModel({})".format(",".join(self.parents))
+
+    def __eq__(self, other):
+        return isinstance(other, AssignmentModel) and self.parents == other.parents and self.model == other.model and self.domain == other.domain
 
 
 # Some Helper functions for defining models
 
+def action_model(parents, domain):
+    return AssignmentModel(parents, None, domain)
+
+def random_model(probs):
+    domain = list(range(len(probs)))
+    parents = []
+    def model(**kwargs):
+        return np.random.choice(domain, p=probs)
+    return AssignmentModel(parents, model, domain)
+
 def discrete_model(parents, lookup_table):
     """
-    Create CausalAssignmentModel based on a lookup table.
+    Create AssignmentModel based on a lookup table.
 
     Lookup_table maps inputs values to weigths of the output values
     The actual output values are sampled from a discrete distribution
@@ -42,7 +56,7 @@ def discrete_model(parents, lookup_table):
 
     Returns
     -------
-        model: CausalAssignmentModel
+        model: AssignmentModel
     """
     assert len(parents) > 0
 
@@ -53,6 +67,8 @@ def discrete_model(parents, lookup_table):
     assert all(len(w) == output_length for w in weights)
     outputs = np.arange(output_length)
     ps = [np.array(w) / sum(w) for w in weights]
+
+    domain = list(range(len(list(lookup_table.values())[0])))
 
     def model(**kwargs):
         a = tuple([kwargs[p] for p in parents])
@@ -66,4 +82,4 @@ def discrete_model(parents, lookup_table):
                 "It looks like an input was provided which doesn't have a lookup.")
         return int(b)
 
-    return CausalAssignmentModel(parents, model)
+    return AssignmentModel(parents, model, domain)
