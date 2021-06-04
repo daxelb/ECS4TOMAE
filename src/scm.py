@@ -24,13 +24,9 @@ class StructuralCausalModel:
 
         for node, model in assignment.items():
             if model is None:
-                # XXX could use a better error type here
-                raise ValueError(
-                    "Model must be assigned to a CausalAssignmentModel object")
+                set_nodes.append(node)
 
             elif isinstance(model, CausalAssignmentModel):
-                if model.model == None:
-                    set_nodes.append(node)
                 edges.extend([
                     (parent, node)
                     for parent in model.parents

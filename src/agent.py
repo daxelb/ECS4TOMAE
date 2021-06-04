@@ -2,15 +2,16 @@
 from knowledge import Knowledge
 import util
 import random
-import math
-from cgm import CausalGraph
 from environment import Environment
 from cam import CausalAssignmentModel, discrete_model
 import numpy as np
 
+DIV_NODE_CONF = 0.08
+SAMPS_NEEDED = 8
+
 class Agent:
   def __init__(self, name, environment, reward_var):
-    self.epsilon = 0.5
+    self.epsilon = 0.99
     self.name = name
     self.environment = environment
     self.reward_var = reward_var
@@ -72,13 +73,27 @@ class Agent:
       divergences[agent] = self.divergence(self.friends[agent])
     return divergences
 
+  def divergent_nodes(self):
+    is_divergent_dict = {}
+    friend_divs = self.divergences()
+    for f in friend_divs:
+      is_divergent_dict[f] = {}
+      for node in friend_divs[f]:
+        is_divergent_dict[f][node] = False \
+          if friend_divs[f][node] != None \
+          and abs(friend_divs[f][node]) < DIV_NODE_CONF \
+          and len(self.friends[f]) >= SAMPS_NEEDED \
+          else True
+    return is_divergent_dict
+
+
 
 if __name__ == "__main__":
   domains = {"W": (0, 1), "X": (0, 1), "Z": (0, 1), "Y": (0, 1)}
   environment = Environment(domains, {
       "W": lambda: np.random.choice([0, 1], p=[0.5, 0.5]),
       "X": CausalAssignmentModel(["W"], None),
-      "Z": discrete_model(["X"], {(0,): [0.9, 0.1], (1,): [0.1, 0.9]}),
+      "Z": discrete_model(["X"], {(0,): [0.75, 0.25], (1,): [0.25, 0.75]}),
       "Y": discrete_model(["W", "Z"], {(0, 0): [1, 0], (0, 1): [1, 0], (1, 0): [1, 0], (1, 1): [0, 1]})
   })
   agent0 = Agent("zero", environment, "Y")
@@ -87,15 +102,12 @@ if __name__ == "__main__":
   # print(agent0.experiment())
   # print(agent0.knowledge.model.get_node_distributions())
   # print(agent0.knowledge.get_model_dist())
-  for _ in range(500):
+  for _ in range(1000):
     agent0.act()
     agent1.act()
     agent0.encounter(agent1)
     agent1.encounter(agent0)
-  print()  
-  print(agent0.divergences())
-  # print(agent0.knowledge.get_useful_data())
-  # print(agent1.knowledge.get_useful_data())
+  print(agent0.divergent_nodes())
   # print(agent0.reward({"Y": 1}))
   # model.draw_model()
   # print(agent0.knowledge.obs)

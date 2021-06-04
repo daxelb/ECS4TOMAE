@@ -23,13 +23,12 @@ class Environment:
         self._assignment = assignment.copy()
         nodes = list(assignment.keys())
         self.action_nodes = []
+        set_nodes = []
         edges = []
 
         for node, model in assignment.items():
             if model is None:
-                # XXX could use a better error type here
-                raise ValueError(
-                    "Model must be assigned to a CausalAssignmentModel object")
+                set_nodes.append(node)
 
             elif isinstance(model, CausalAssignmentModel):
                 if model.model == None:
@@ -54,7 +53,7 @@ class Environment:
                                  "Instead got {} for node {}."
                                  .format(model, node))
 
-        self.cgm = CausalGraph(edges)
+        self.cgm = CausalGraph(nodes=nodes, edges=edges, set_nodes=set_nodes)
 
         pre_nodes = []
         [pre_nodes.extend(self.cgm.get_ancestors(v)) for v in self.action_nodes]

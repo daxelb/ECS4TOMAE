@@ -157,7 +157,7 @@ def kl_divergence(domains, P_data, Q_data, query, e, log_base=math.e):
   Px = prob_with_unassigned(domains, P_data, query, e)
   Qx = prob_with_unassigned(domains, Q_data, query, e)
   if Px == None or Qx == None:
-    print("Insufficient data to compute probabilities in KL Divergence")
+    # print("Insufficient data to compute probabilities in KL Divergence")
     return None
   res = 0
   for i in range(len(Px)):
@@ -362,6 +362,13 @@ def parse_query(str_query):
           else:
             e_var += char
   return parsed
+
+def num_matches(dict1, dict2):
+  num = 0
+  for key in dict1:
+    if dict1[key] == dict2[key]:
+      num += 1
+  return num
 
 if __name__ == "__main__":
   d = {'X': np.array([1, 1, 1, 1, 1]), 'Z': np.array([1, 1, 1, 1, 1]),
