@@ -21,7 +21,6 @@ class Tests(unittest.TestCase):
   def test_dict_from_hash(self):
     self.assertEqual(util.dict_from_hash(
         "X=0,W=1,Z=123"), {"X": 0, "W": 1, "Z": 123})
-    
 
 if __name__ == "__main__":
   unittest.main()
