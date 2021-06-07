@@ -18,9 +18,6 @@ def dict_of_lists_to_list_of_dicts(dictionary):
       res[i][key] = e
   return res
 
-# def subtract_lists(list1, list2):
-#   return [e for e in list1 if e not in list2]
-
 def random_assignment(domains):
   return random.choice(permutations(domains))
 
