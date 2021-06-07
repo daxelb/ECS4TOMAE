@@ -17,9 +17,9 @@ class World:
 
   def run(self, episodes=250):
     for _ in range(episodes):
-        self.act()
-        self.encounter_all()
-        self.update_num_correct()
+      self.act()
+      self.encounter_all()
+      self.update_num_correct()
     plt.plot(np.arange(episodes), np.array(world.total_correct))
     plt.xlabel("Iterations")
     plt.ylabel("Num. correct IDs of S-node locations")
@@ -58,7 +58,9 @@ class World:
       for f in self.agents:
         if a == f: continue
         correct = util.num_matches(
-            a.divergent_nodes()[f.name], self.cdn[a.name][f.name])
+          a.divergent_nodes()[f.name],
+          self.cdn[a.name][f.name]
+        )
         total_correct += correct
         self.num_correct[a.name].append(correct)
     self.total_correct.append(total_correct)

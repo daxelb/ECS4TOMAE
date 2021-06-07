@@ -66,9 +66,6 @@ class StructuralCausalModel:
     """
     samples = {}
 
-        # if set_values is None:
-        #     set_values = dict()
-
     for node in nx.topological_sort(self.cgm.dag):
       c_model = self.assignment[node]
 
