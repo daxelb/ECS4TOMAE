@@ -20,6 +20,14 @@ class Agent:
     self.knowledge = Knowledge(self.environment.cgm, self.environment.domains, self.action_vars)
     self.action_domains = util.only_specified_keys(self.environment.domains, self.action_vars)
 
+  def act(self):
+    givens = self.environment.pre.sample()
+    choice = self.choose(givens)
+    givens |= choice[1]
+    self.knowledge.add_obs(self.environment.post.sample(givens)) \
+        if choice[0] == "obs" \
+        else self.knowledge.add_exp(self.environment.post.sample(givens))
+
   def choose(self, givens={}):
     if random.random() < self.epsilon:
       return ("exp", self.experiment(givens))
@@ -42,16 +50,6 @@ class Agent:
 
   def random_action(self):
     return util.random_assignment(self.action_domains)
-
-  def act(self):
-    givens = self.environment.pre.sample()
-    choice = self.choose(givens)
-    givens |= choice[1]
-    dp = self.environment.post.sample(givens)
-    if choice[0] == "obs":
-      self.knowledge.add_obs(dp)
-    else:
-      self.knowledge.add_exp(dp)
 
   def encounter(self, other):
     friend_data = other.knowledge.get_useful_data()

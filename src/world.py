@@ -10,19 +10,43 @@ class World:
   def __init__(self, agents):
     self.agents = agents
     self.cdn = self.get_correct_div_nodes()
-    self.num_correct = {}
-    [self.num_correct.update({a.name: []}) for a in self.agents]
+    self.episodes = []
+    
     self.total_correct = []
     return
+  
+  def update_episode_data(self):
+    new_data = {}
+    new_data["%_correct"] = self.get_perc_correct()
+    self.episodes.append(new_data)
 
   def run(self, episodes=250):
     for _ in range(episodes):
       self.act()
       self.encounter_all()
-      self.update_num_correct()
-    plt.plot(np.arange(episodes), np.array(world.total_correct))
+      self.update_episode_data()
+    self.plot_agent_percent_correct_s_node_ids()
+
+  def plot_agent_percent_correct_s_node_ids(self):
+    for a in self.agents:
+      plt.plot(
+        np.arange(len(self.episodes)),
+        np.array(util.list_from_list_of_dicts(self.episodes, "%_correct", a.name)),
+        label=a.name
+      )
     plt.xlabel("Iterations")
-    plt.ylabel("Num. correct IDs of S-node locations")
+    plt.ylabel("% Correct IDs of S-node locations")
+    plt.legend()
+    plt.show()
+    
+  def plot_total_percent_correct_s_node_ids(self):
+    plt.plot(
+        np.arange(len(self.episodes)),
+        np.array(util.list_from_list_of_dicts(self.episodes, "%_correct", "total")),
+        label="total"
+    )
+    plt.xlabel("Iterations")
+    plt.ylabel("% Correct IDs of S-node locations")
     plt.show()
 
   def act(self):
@@ -52,7 +76,8 @@ class World:
           correct_div_nodes[a.name][f.name][node] = assignment != f.environment._assignment[node]
     return correct_div_nodes
 
-  def update_num_correct(self):
+  def get_perc_correct(self):
+    percent_correct = {}
     total_correct = 0
     for a in self.agents:
       for f in self.agents:
@@ -61,9 +86,11 @@ class World:
           a.divergent_nodes()[f.name],
           self.cdn[a.name][f.name]
         )
+        perc_correct = correct / (len(self.cdn) - 1)
         total_correct += correct
-        self.num_correct[a.name].append(correct)
-    self.total_correct.append(total_correct)
+        percent_correct[a.name] = perc_correct
+    percent_correct["total"] = total_correct / ((len(self.cdn) - 1) * len(self.cdn) * len(self.agents[0].divergent_nodes()))
+    return percent_correct
 
 if __name__ == "__main__":
   baseline = {
@@ -87,4 +114,4 @@ if __name__ == "__main__":
     Agent("four", Environment(z5), "Y")
   ]
   world = World(agents)
-  world.run(10)
+  world.run(50)

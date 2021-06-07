@@ -2,6 +2,13 @@ import math
 import numpy as np
 import random
 
+def list_from_list_of_dicts(list_of_dicts, prim_key, sec_key=None):
+    new_list = []
+    for e in list_of_dicts:
+      new_list.append(e[prim_key][sec_key]) if sec_key \
+        else new_list.append(e[prim_key])
+    return new_list
+
 def dict_to_list_of_tuples(dictionary):
   res = []
   for key, val in dictionary.items():

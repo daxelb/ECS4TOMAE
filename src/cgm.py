@@ -445,7 +445,6 @@ class CausalGraph:
 
     return valid_adjustment_sets
 
-
 def _variable_or_iterable_to_set(x):
   """
   Convert variable or iterable x to a frozenset.
@@ -473,7 +472,6 @@ def _variable_or_iterable_to_set(x):
       .format(x))
 
   return frozenset(x)
-
 
 def _powerset(iterable):
   """
