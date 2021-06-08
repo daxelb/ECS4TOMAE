@@ -11,7 +11,7 @@ def first_value(dictionary):
 def remove_dupes(lst):
   res = []
   [res.append(e) for e in lst if e not in res]
-  return res
+  lst = res
 
 def list_from_list_of_dicts(list_of_dicts, prim_key, sec_key=None):
     new_list = []

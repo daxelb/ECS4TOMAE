@@ -65,11 +65,11 @@ class Environment:
         [post_ass.update({n: AssignmentModel(self.cgm.get_parents(n), None, self.domains[n])}) for n in pre_nodes]
         self.post = StructuralCausalModel(post_ass)
         self.action_rewards = self.get_action_rewards()
-        
-    def get_action_rewards(self, iterations=200):
-      act_feat_nodes = [n for n in self.action_nodes]
-      [act_feat_nodes.extend(self.cgm.get_parents(a)) for a in self.action_nodes]
-      act_feat_nodes = util.remove_dupes(act_feat_nodes)
+  
+    def get_action_rewards(self, iterations=1000):
+      act_feat_nodes = list(self.action_nodes)
+      [act_feat_nodes.extend(self.cgm.get_parents(p)) for p in self.action_nodes]
+      util.remove_dupes(act_feat_nodes)
       perms = util.permutations(util.only_specified_keys(self.domains, act_feat_nodes))
       action_rewards = []
       for p in perms:
@@ -88,14 +88,12 @@ class Environment:
           if tup[0][key] != givens[key]:
             action_rewards = action_rewards[:-1]
             break
-      best = []
       best_rew = -math.inf
+      best = []
       for tup in action_rewards:
-        if tup[1] > best_rew:
-          best_rew = tup[1]
-          best = [tup]
-        elif tup[1] == best_rew:
-          best.append(tup)
+        best = [tup] if tup[1] > best_rew else best + [tup] if tup[1] == best_rew else best
+        best_rew = max(best_rew, tup[1])
+        
       return best
     
     def optimal_actions(self, givens={}):
@@ -134,6 +132,6 @@ if __name__ == "__main__":
     # print(universal_model.pre.sample())
     # print(universal_model.post.sample(set_values={"W": 1, "X": 1}))
     # print(universal_model._assignment["W"].model)
-    # print(util.only_dicts_with_specified_entries(universal_model.get_action_rewards2(), {"X": 1}))
-    print(universal_model.optimal_rewards({"W": 0}))
+    # print(universal_model.get_action_rewards())
+    print(universal_model.optimal_action_rewards({"W":1}))
     # print(universal_model.optimal_act_rew({"W":1}))
