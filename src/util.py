@@ -211,6 +211,17 @@ def only_specified_keys(dictionary, keys):
       del res[key]
   return res
 
+def only_dicts_with_specified_entries(dicts, entries):
+  res_dicts = dicts.copy()
+  print(dicts)
+  for i, d in enumerate(dicts):
+    for key in entries:
+      print(d[key], entries[key])
+      if key not in d or d[key] != entries[key]:
+        res_dicts[i] = None
+        break
+  return res_dicts
+
 def only_dicts_with_givens(dicts, assignments={}):
   """
   Takes a list of dictionaries, and returns a subset

@@ -70,32 +70,39 @@ class Environment:
       act_feat_nodes = [n for n in self.action_nodes]
       [act_feat_nodes.extend(self.cgm.get_parents(a)) for a in self.action_nodes]
       act_feat_nodes = util.remove_dupes(act_feat_nodes)
-      feat_nodes = [n for n in act_feat_nodes if n not in self.action_nodes]
-      feat_perms = util.permutations(util.only_specified_keys(self.domains, feat_nodes))
-      perm_rewards = dict()
-      for p in feat_perms:
-        key1 = tuple(util.dict_to_list_of_tuples(p))
-        perm_rewards[key1] = {}
-        for act in util.permutations(util.only_specified_keys(self.domains, self.action_nodes)):
-          key2 = tuple(util.dict_to_list_of_tuples(act))
-          perm_rewards[key1][key2] = 0
-          set_vals = dict(p)
-          set_vals |= act
-          for _ in range(iterations):
-            perm_rewards[key1][key2] += self.post.sample(set_values=set_vals)[self.reward_node]
-          perm_rewards[key1][key2] /= iterations
-      return perm_rewards
+      perms = util.permutations(util.only_specified_keys(self.domains, act_feat_nodes))
+      action_rewards = []
+      for p in perms:
+        action_reward = [p,0]
+        for _ in range(iterations):
+          action_reward[1] += self.post.sample(p)[self.reward_node]
+        action_reward[1] /= iterations
+        action_rewards.append(tuple(action_reward))
+      return action_rewards
     
-    def optimal_act_rew(self, givens={}):
-      act_rewards = self.action_rewards[tuple(util.dict_to_list_of_tuples(givens))]
-      best = util.max_key(act_rewards)
-      return (util.dict_from_list_of_tuples(best), act_rewards[best])
+    def optimal_action_rewards(self, givens={}):
+      action_rewards = []
+      for tup in self.action_rewards:
+        action_rewards.append((util.only_specified_keys(tup[0], self.action_nodes), tup[1]))
+        for key in givens:
+          if tup[0][key] != givens[key]:
+            action_rewards = action_rewards[:-1]
+            break
+      best = []
+      best_rew = -math.inf
+      for tup in action_rewards:
+        if tup[1] > best_rew:
+          best_rew = tup[1]
+          best = [tup]
+        elif tup[1] == best_rew:
+          best.append(tup)
+      return best
     
-    def optimal_action(self, givens={}):
-      return self.optimal_act_rew(givens)[0]
+    def optimal_actions(self, givens={}):
+      return [tup[0] for tup in self.optimal_action_rewards(givens)]
     
-    def get_optimal_reward(self, givens={}):
-      return self.optimal_act_rew(givens)[0]
+    def optimal_rewards(self, givens={}):
+      return self.optimal_action_rewards(givens)[0][1]
 
     def __repr__(self):
         variables = ", ".join(map(str, sorted(self.cgm.dag.nodes())))
@@ -127,5 +134,6 @@ if __name__ == "__main__":
     # print(universal_model.pre.sample())
     # print(universal_model.post.sample(set_values={"W": 1, "X": 1}))
     # print(universal_model._assignment["W"].model)
-    # print(universal_model.get_action_rewards())
-    print(universal_model.optimal_act_rew({"W":1}))
+    # print(util.only_dicts_with_specified_entries(universal_model.get_action_rewards2(), {"X": 1}))
+    print(universal_model.optimal_rewards({"W": 0}))
+    # print(universal_model.optimal_act_rew({"W":1}))
