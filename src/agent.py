@@ -5,16 +5,18 @@ import random
 from environment import Environment
 from assignment_models import AssignmentModel, discrete_model
 import numpy as np
+from enums import Datatype, Policy
 
 DIV_NODE_CONF = 0.08
 SAMPS_NEEDED = 0
 
 class Agent:
-  def __init__(self, name, environment, reward_var):
-    self.epsilon = 0.99
+  def __init__(self, name, environment, reward_var, epsilon=0.5, policy=Policy.DEAF):
     self.name = name
     self.environment = environment
     self.reward_var = reward_var
+    self.epsilon = epsilon
+    self.policy = policy
     self.friends = {}
     self.action_vars = self.environment.action_nodes
     self.knowledge = Knowledge(self.environment.cgm, self.environment.domains, self.action_vars)
@@ -25,15 +27,15 @@ class Agent:
     choice = self.choose(givens)
     givens |= choice[1]
     self.knowledge.add_obs(self.environment.post.sample(givens)) \
-        if choice[0] == "obs" \
+        if choice[0] == Datatype.OBS \
         else self.knowledge.add_exp(self.environment.post.sample(givens))
 
   def choose(self, givens={}):
     if random.random() < self.epsilon:
-      return ("exp", self.experiment(givens))
+      return (Datatype.EXP, self.experiment(givens))
     else:
       optimal_choice = self.optimal_choice(givens)
-      return ("obs", optimal_choice) if optimal_choice else ("exp", self.experiment(givens))
+      return (Datatype.OBS, optimal_choice) if optimal_choice else (Datatype.EXP, self.experiment(givens))
 
   def experiment(self, givens={}):
     reward_vals = util.reward_vals(
@@ -52,28 +54,29 @@ class Agent:
     return util.random_assignment(self.action_domains)
 
   def encounter(self, other):
+    if self.policy == Policy.DEAF: return
     friend_data = other.knowledge.get_useful_data()
     if other.name not in self.friends:
       self.friends[other.name] = []
     if friend_data:
       self.friends[other.name].append(friend_data[-1])
 
-  def divergence(self, other_data):
+  def divergence_from_other(self, other_data):
     divergence = {}
     for node in self.knowledge.model.get_observable():
       if node in self.action_vars: continue
       divergence[node] = self.knowledge.kl_divergence_of_node(node, other_data)
     return divergence
 
-  def divergences(self):
+  def divergences_from_friends(self):
     divergences = {}
     for agent in self.friends:
-      divergences[agent] = self.divergence(self.friends[agent])
+      divergences[agent] = self.divergence_from_other(self.friends[agent])
     return divergences
 
   def divergent_nodes(self):
     is_divergent_dict = {}
-    friend_divs = self.divergences()
+    friend_divs = self.divergences_from_friends()
     for f in friend_divs:
       is_divergent_dict[f] = {}
       for node in friend_divs[f]:

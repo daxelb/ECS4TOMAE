@@ -2,6 +2,17 @@ import math
 import numpy as np
 import random
 
+def first_key(dictionary):
+  return list(dictionary.keys())[0]
+
+def first_value(dictionary):
+  return list(dictionary.values())[0]
+
+def remove_dupes(lst):
+  res = []
+  [res.append(e) for e in lst if e not in res]
+  return res
+
 def list_from_list_of_dicts(list_of_dicts, prim_key, sec_key=None):
     new_list = []
     for e in list_of_dicts:
@@ -16,7 +27,16 @@ def dict_to_list_of_tuples(dictionary):
   return res
 
 def max_key(dictionary):
-  return max(dictionary, key=dictionary.get)
+  max_val = -math.inf
+  keys = []
+  for key, val in dictionary.items():
+    if val > max_val:
+      max_val = val
+      keys = [key]
+    elif val == max_val:
+      keys.append(key)
+  return random.choice(keys)
+  # return max(dictionary, key=dictionary.get)
 
 def dict_of_lists_to_list_of_dicts(dictionary):
   res = [{}] * len(list(dictionary.values())[0])
@@ -378,6 +398,12 @@ def num_matches(dict1, dict2):
     if dict1[key] == dict2[key]:
       num += 1
   return num
+
+def dict_from_list_of_tuples(lst):
+  res = {}
+  for tup in lst:
+    res[tup[0]] = tup[1]
+  return res
 
 if __name__ == "__main__":
   d = {'X': np.array([1, 1, 1, 1, 1]), 'Z': np.array([1, 1, 1, 1, 1]),

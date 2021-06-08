@@ -5,6 +5,7 @@ from assignment_models import AssignmentModel, discrete_model, random_model, act
 import numpy as np
 import random
 import util
+from enums import Policy
 
 class World:
   def __init__(self, agents):
@@ -25,10 +26,11 @@ class World:
       self.act()
       self.encounter_all()
       self.update_episode_data()
-    self.plot_agent_percent_correct_s_node_ids()
+    self.plot_agent_perc_corr_div_ids()
 
-  def plot_agent_percent_correct_s_node_ids(self):
+  def plot_agent_perc_corr_div_ids(self):
     for a in self.agents:
+      if a.policy == Policy.DEAF: continue
       plt.plot(
         np.arange(len(self.episodes)),
         np.array(util.list_from_list_of_dicts(self.episodes, "%_correct", a.name)),
@@ -39,7 +41,7 @@ class World:
     plt.legend()
     plt.show()
     
-  def plot_total_percent_correct_s_node_ids(self):
+  def plot_total_perc_corr_div_ids(self):
     plt.plot(
         np.arange(len(self.episodes)),
         np.array(util.list_from_list_of_dicts(self.episodes, "%_correct", "total")),
@@ -80,6 +82,7 @@ class World:
     percent_correct = {}
     total_correct = 0
     for a in self.agents:
+      if a.policy == Policy.DEAF: continue
       for f in self.agents:
         if a == f: continue
         correct = util.num_matches(
@@ -89,7 +92,7 @@ class World:
         perc_correct = correct / (len(self.cdn) - 1)
         total_correct += correct
         percent_correct[a.name] = perc_correct
-    percent_correct["total"] = total_correct / ((len(self.cdn) - 1) * len(self.cdn) * len(self.agents[0].divergent_nodes()))
+    percent_correct["total"] = total_correct / ((len(self.cdn) - 1) * len(self.cdn) * len(util.first_value(util.first_value(self.cdn))))
     return percent_correct
 
 if __name__ == "__main__":
@@ -107,7 +110,7 @@ if __name__ == "__main__":
   z5["Z"] = discrete_model(("X"), {(0,): (0.8, 0.2), (1,): (0.5, 0.5)})
 
   agents = [
-    Agent("zero", Environment(baseline), "Y"),
+    Agent("zero", Environment(baseline), "Y", policy=Policy.NAIVE),
     Agent("one", Environment(baseline), "Y"),
     Agent("two", Environment(w1), "Y"),
     Agent("three", Environment(w9), "Y"),
