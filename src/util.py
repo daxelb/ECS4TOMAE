@@ -3,38 +3,73 @@ import numpy as np
 import random
 
 def avg_list(lists):
+  """
+  Returns averaged values of elements in list of lists
+  Ex:
+    lists = [[0,1,2],[5,2,1],[4,3,0]]
+      => [(0+5+4)/3, (1+2+3)/3, (2+1+0)/3]
+      => [3,2,1]
+  """
   averaged_list = [0] * len(lists[0])
   for lst in lists:
     for i, e in enumerate(lst):
       averaged_list[i] += e / len(lists)
   return averaged_list
-      
-
-def first_key(dictionary):
-  return list(dictionary.keys())[0]
 
 def first_value(dictionary):
+  """
+  Returns the value of the first entry in a dictionary.
+  """
   return list(dictionary.values())[0]
 
 def remove_dupes(lst):
-  res = []
-  [res.append(e) for e in lst if e not in res]
-  lst = res
+  """
+  Removes duplicates from an input list and updates it.
+  Returns True if duplicates were removed, else False.
+  """
+  no_dupes = []
+  [no_dupes.append(e) for e in lst if e not in no_dupes]
+  elements_were_removed = len(no_dupes) == len(lst)
+  lst = no_dupes
+  return elements_were_removed 
 
 def list_from_dicts(list_of_dicts, prim_key, sec_key=None):
-    new_list = []
-    for e in list_of_dicts:
-      new_list.append(e[prim_key][sec_key]) if sec_key \
-        else new_list.append(e[prim_key])
-    return new_list
+  """
+  From a list of dictionaries with homogenous keys, returns a 
+  list of the values at a specified key and optional second key.
+  Ex:
+    list_of_dicts = [{"X": 1}, {"X": 2}, {"X": 3}]
+    prim_key = "X"
+    sec_key = None
+      => [1,2,3]
+  """
+  new_list = []
+  for e in list_of_dicts:
+    new_list.append(e[prim_key][sec_key]) if sec_key \
+      else new_list.append(e[prim_key])
+  return new_list
 
-def dict_to_list_of_tuples(dictionary):
+def dict_to_tuple_list(dictionary):
+  """
+  Returns a list of tuples where each tuple
+  represents a key, value pair from the input
+  dictionary.
+  """
   res = []
   for key, val in dictionary.items():
     res.append((key, val))
   return res
 
 def max_key(dictionary):
+  """
+  Returns the key in the dictionary whose value
+  is the maximum of all values in the dictionary.
+  In the case of a tie, return one of the max keys
+  at random.
+  Ex:
+    dictionary={"X": 4, "Y": 1, "Z": 4, "W": 2}
+      => "X" or "Z" (randomly choice)
+  """
   max_val = -math.inf
   keys = []
   for key, val in dictionary.items():
@@ -44,17 +79,6 @@ def max_key(dictionary):
     elif val == max_val:
       keys.append(key)
   return random.choice(keys)
-  # return max(dictionary, key=dictionary.get)
-
-def dict_of_lists_to_list_of_dicts(dictionary):
-  res = [{}] * len(list(dictionary.values())[0])
-  for key, value in dictionary.items():
-    for i, e in enumerate(value):
-      res[i][key] = e
-  return res
-
-def random_assignment(domains):
-  return random.choice(permutations(domains))
 
 def get_nodes_from_edges(obs_edges, latent_edges=None):
   edges = obs_edges

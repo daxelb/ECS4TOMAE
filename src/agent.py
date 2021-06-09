@@ -66,7 +66,7 @@ class Agent:
       else self.random_action()
 
   def random_action(self):
-    return util.random_assignment(self.action_domains)
+    return random.choice(util.permutations(domains))
 
   def encounter(self, other):
     if self.policy == Policy.DEAF: return

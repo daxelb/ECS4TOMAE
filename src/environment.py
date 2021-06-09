@@ -112,7 +112,7 @@ class Environment:
                         vars=variables))
 
     def __hash__(self):
-        return hash(util.dict_to_list_of_tuples(self._assignment))
+        return hash(util.dict_to_tuple_list(self._assignment))
 
     def __eq__(self, other):
         for key in self._assignment:

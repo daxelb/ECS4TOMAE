@@ -1,4 +1,5 @@
 import numpy as np
+import util
 
 class AssignmentModel:
     """
@@ -65,7 +66,7 @@ def discrete_model(parents, lookup_table):
     outputs = np.arange(output_length)
     ps = [np.array(w) / sum(w) for w in weights]
 
-    domain = list(range(len(list(lookup_table.values())[0])))
+    domain = list(range(len(util.first_value(lookup_table))))
 
     def model(**kwargs):
         a = tuple([kwargs[p] for p in parents])
