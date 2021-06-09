@@ -4,7 +4,6 @@ from environment import Environment
 from assignment_models import AssignmentModel, discrete_model, random_model
 import numpy as np
 import random
-import util
 import gutil
 from enums import Policy, Result
 
@@ -73,7 +72,7 @@ class World:
         perc_correct = correct / (len(self.cdn) - 1)
         total_correct += correct
         percent_correct[a.name] = perc_correct
-    percent_correct["total"] = total_correct / (len(self.cdn) * (len(self.agents) - 1) * len(gutil.first_value(gutil.first_value(self.cdn))))
+    percent_correct["total"] = total_correct / ((len(self.cdn)) * (len(self.agents)-1) * len(gutil.first_value(gutil.first_value(self.cdn))))
     return percent_correct
   
   def get_cum_regret(self):
@@ -136,7 +135,7 @@ class World:
 
 if __name__ == "__main__":
   baseline = {
-    "W": random_model((0.5, 0.5)),
+    "W": random_model((0.4, 0.6)),
     "X": AssignmentModel(("W"), None, (0, 1)),
     "Z": discrete_model(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
     "Y": discrete_model(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
@@ -146,7 +145,9 @@ if __name__ == "__main__":
   w9 = dict(baseline)
   w9["W"] = random_model((0.9, 0.1))
   z5 = dict(baseline)
-  z5["Z"] = discrete_model(("X"), {(0,): (0.8, 0.2), (1,): (0.5, 0.5)})
+  z5["Z"] = discrete_model(("X"), {(0,): (0.9, 0.1), (1,): (0.5, 0.5)})
+  reversed_z = dict(baseline)
+  reversed_z["Z"] = discrete_model(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
 
   agents = [
     Agent("00", Environment(baseline), policy=Policy.DEAF),
@@ -155,15 +156,18 @@ if __name__ == "__main__":
     Agent("03", Environment(baseline), policy=Policy.NAIVE),
     Agent("04", Environment(baseline), policy=Policy.SENSITIVE),
     Agent("05", Environment(baseline), policy=Policy.SENSITIVE),
-    Agent("06", Environment(z5), policy=Policy.DEAF),
-    Agent("07", Environment(z5), policy=Policy.DEAF),
-    Agent("08", Environment(z5), policy=Policy.NAIVE),
-    Agent("09", Environment(z5), policy=Policy.NAIVE),
-    Agent("10", Environment(z5), policy=Policy.SENSITIVE),
-    Agent("11", Environment(z5), policy=Policy.SENSITIVE)
+    Agent("06", Environment(reversed_z), policy=Policy.DEAF),
+    Agent("07", Environment(reversed_z), policy=Policy.DEAF),
+    Agent("08", Environment(reversed_z), policy=Policy.NAIVE),
+    Agent("09", Environment(reversed_z), policy=Policy.NAIVE),
+    Agent("10", Environment(reversed_z), policy=Policy.SENSITIVE),
+    Agent("11", Environment(reversed_z), policy=Policy.SENSITIVE),
+    Agent("12", Environment(z5), policy=Policy.DEAF),
+    Agent("13", Environment(z5), policy=Policy.NAIVE),
+    Agent("14", Environment(z5), policy=Policy.SENSITIVE),
   ]
   world = World(agents)
-  world.run(200)
-  world.plot_agent(Result.PERC_CORR)
+  world.run(250)
+#   world.plot_agent(Result.PERC_CORR)
   world.plot_total(Result.PERC_CORR)
   world.plot_policy(Result.CUM_REGRET)

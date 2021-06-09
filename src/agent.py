@@ -3,17 +3,14 @@ from knowledge import Knowledge
 import util
 import gutil
 import random
-from environment import Environment
-from assignment_models import AssignmentModel, discrete_model
-import numpy as np
 from enums import Datatype, Policy
 
-DIV_NODE_CONF = 0.07
-SAMPS_NEEDED = 20
-DIV_EPS_DEC_SLOWNESS = 2.25
+DIV_NODE_CONF = 0.055
+SAMPS_NEEDED = 15
+DIV_EPS_DEC_SLOWNESS = 2
 
 class Agent:
-  def __init__(self, name, environment, epsilon=0.1, policy=Policy.DEAF):
+  def __init__(self, name, environment, epsilon=0.05, policy=Policy.DEAF):
     self.name = name
     self.environment = environment
     self.reward_var = self.environment.reward_node
@@ -117,8 +114,8 @@ class Agent:
         node_div = self.knowledge.kl_divergence_of_node(node, friend_data)
         if node_div != None and node_div < DIV_NODE_CONF:
           self.friend_divergence[f][node] = False
-        else:
-          break
+        # else:
+        #   break
     return
 
   def __hash__(self):
