@@ -64,11 +64,14 @@ class Environment:
         post_ass = self._assignment.copy()
         [post_ass.update({n: AssignmentModel(self.cgm.get_parents(n), None, self.domains[n])}) for n in pre_nodes]
         self.post = StructuralCausalModel(post_ass)
+        
+        self.feature_nodes = []
+        [self.feature_nodes.extend(self.cgm.get_parents(n)) for n in self.action_nodes]
+        util.remove_dupes(self.feature_nodes)
         self.action_rewards = self.get_action_rewards()
   
-    def get_action_rewards(self, iterations=1000):
-      act_feat_nodes = list(self.action_nodes)
-      [act_feat_nodes.extend(self.cgm.get_parents(p)) for p in self.action_nodes]
+    def get_action_rewards(self, iterations=825):
+      act_feat_nodes = self.action_nodes + self.feature_nodes
       util.remove_dupes(act_feat_nodes)
       perms = util.permutations(util.only_specified_keys(self.domains, act_feat_nodes))
       action_rewards = []
@@ -99,7 +102,7 @@ class Environment:
     def optimal_actions(self, givens={}):
       return [tup[0] for tup in self.optimal_action_rewards(givens)]
     
-    def optimal_rewards(self, givens={}):
+    def optimal_reward(self, givens={}):
       return self.optimal_action_rewards(givens)[0][1]
 
     def __repr__(self):

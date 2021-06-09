@@ -2,6 +2,14 @@ import math
 import numpy as np
 import random
 
+def avg_list(lists):
+  averaged_list = [0] * len(lists[0])
+  for lst in lists:
+    for i, e in enumerate(lst):
+      averaged_list[i] += e / len(lists)
+  return averaged_list
+      
+
 def first_key(dictionary):
   return list(dictionary.keys())[0]
 
@@ -13,7 +21,7 @@ def remove_dupes(lst):
   [res.append(e) for e in lst if e not in res]
   lst = res
 
-def list_from_list_of_dicts(list_of_dicts, prim_key, sec_key=None):
+def list_from_dicts(list_of_dicts, prim_key, sec_key=None):
     new_list = []
     for e in list_of_dicts:
       new_list.append(e[prim_key][sec_key]) if sec_key \

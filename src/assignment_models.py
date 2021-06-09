@@ -24,9 +24,6 @@ class AssignmentModel:
 
 # Some Helper functions for defining models
 
-def action_model(parents, domain):
-    return AssignmentModel(parents, None, domain)
-
 def random_model(probs):
     domain = list(range(len(probs)))
     parents = []

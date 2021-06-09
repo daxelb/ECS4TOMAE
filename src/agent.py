@@ -7,28 +7,31 @@ from assignment_models import AssignmentModel, discrete_model
 import numpy as np
 from enums import Datatype, Policy
 
-DIV_NODE_CONF = 0.08
-SAMPS_NEEDED = 0
+DIV_NODE_CONF = 0.075
+SAMPS_NEEDED = 15
 
 class Agent:
-  def __init__(self, name, environment, reward_var, epsilon=0.5, policy=Policy.DEAF):
+  def __init__(self, name, environment, epsilon=0.05, policy=Policy.DEAF):
     self.name = name
     self.environment = environment
-    self.reward_var = reward_var
+    self.reward_var = self.environment.reward_node
     self.epsilon = epsilon
     self.policy = policy
     self.friends = {}
     self.action_vars = self.environment.action_nodes
     self.knowledge = Knowledge(self.environment.cgm, self.environment.domains, self.action_vars)
     self.action_domains = util.only_specified_keys(self.environment.domains, self.action_vars)
+    self.recent = None
 
   def act(self):
     givens = self.environment.pre.sample()
     choice = self.choose(givens)
     givens |= choice[1]
-    self.knowledge.add_obs(self.environment.post.sample(givens)) \
+    env_act_feedback = self.environment.post.sample(givens)
+    self.knowledge.add_obs(env_act_feedback) \
         if choice[0] == Datatype.OBS \
-        else self.knowledge.add_exp(self.environment.post.sample(givens))
+        else self.knowledge.add_exp(env_act_feedback)
+    self.recent = env_act_feedback
 
   def choose(self, givens={}):
     if random.random() < self.epsilon:
@@ -45,8 +48,20 @@ class Agent:
       else self.random_action()
 
   def optimal_choice(self, givens={}):
+    my_data = self.knowledge.get_useful_data()
+    
+    if self.policy == Policy.NAIVE:
+      for f in self.friends:
+        my_data.extend(self.friends[f])
+    
+    if self.policy == Policy.SENSITIVE:
+      friends_divs = self.divergences_from_friends()
+      for f in friends_divs:
+        if True not in friends_divs[f].values():
+          my_data.extend(self.friends[f])
+    
     expected_values = util.expected_vals(
-        self.knowledge.get_useful_data(), self.action_vars, self.reward_var, givens)
+        my_data, self.action_vars, self.reward_var, givens)
     return util.dict_from_hash(util.max_key(expected_values)) if expected_values\
       else self.random_action()
 
@@ -55,11 +70,11 @@ class Agent:
 
   def encounter(self, other):
     if self.policy == Policy.DEAF: return
-    friend_data = other.knowledge.get_useful_data()
+    # friend_data = other.recent#other.knowledge.get_useful_data()
     if other.name not in self.friends:
       self.friends[other.name] = []
-    if friend_data:
-      self.friends[other.name].append(friend_data[-1])
+    if other.recent:
+      self.friends[other.name].append(other.recent)
 
   def divergence_from_other(self, other_data):
     divergence = {}
@@ -103,8 +118,8 @@ if __name__ == "__main__":
       "Z": discrete_model(["X"], {(0,): [0.75, 0.25], (1,): [0.25, 0.75]}),
       "Y": discrete_model(["W", "Z"], {(0, 0): [1, 0], (0, 1): [1, 0], (1, 0): [1, 0], (1, 1): [0, 1]})
   })
-  agent0 = Agent("zero", environment, "Y")
-  agent1 = Agent("one", environment, "Y")
+  agent0 = Agent("zero", environment)
+  agent1 = Agent("one", environment)
   # print(agent0.optimal_choice())
   # print(agent0.experiment())
   # print(agent0.knowledge.model.get_node_distributions())
