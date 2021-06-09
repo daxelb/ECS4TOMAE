@@ -1,5 +1,5 @@
 import numpy as np
-import util
+import gutil
 
 class AssignmentModel:
     """
@@ -66,7 +66,7 @@ def discrete_model(parents, lookup_table):
     outputs = np.arange(output_length)
     ps = [np.array(w) / sum(w) for w in weights]
 
-    domain = list(range(len(util.first_value(lookup_table))))
+    domain = list(range(len(gutil.first_value(lookup_table))))
 
     def model(**kwargs):
         a = tuple([kwargs[p] for p in parents])

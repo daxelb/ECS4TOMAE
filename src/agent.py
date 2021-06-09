@@ -1,6 +1,7 @@
 # from causal_graph import CausalGraph
 from knowledge import Knowledge
 import util
+import gutil
 import random
 from environment import Environment
 from assignment_models import AssignmentModel, discrete_model
@@ -62,11 +63,11 @@ class Agent:
     
     expected_values = util.expected_vals(
         my_data, self.action_vars, self.reward_var, givens)
-    return util.dict_from_hash(util.max_key(expected_values)) if expected_values\
+    return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values\
       else self.random_action()
 
   def random_action(self):
-    return random.choice(util.permutations(domains))
+    return random.choice(gutil.permutations(self.action_domains))
 
   def encounter(self, other):
     if self.policy == Policy.DEAF: return

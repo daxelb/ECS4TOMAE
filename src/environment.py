@@ -2,12 +2,11 @@
 # from his public repository, causalgraphicalmodels
 # The code has been imported and modified into this project for ease/consistency
 
-import numpy as np
 import inspect
-import networkx as nx
 import os
 import util
 import math
+import gutil
 
 from scm import StructuralCausalModel
 from cgm import CausalGraph
@@ -67,13 +66,13 @@ class Environment:
         
         self.feature_nodes = []
         [self.feature_nodes.extend(self.cgm.get_parents(n)) for n in self.action_nodes]
-        util.remove_dupes(self.feature_nodes)
+        gutil.remove_dupes(self.feature_nodes)
         self.action_rewards = self.get_action_rewards()
   
     def get_action_rewards(self, iterations=825):
       act_feat_nodes = self.action_nodes + self.feature_nodes
-      util.remove_dupes(act_feat_nodes)
-      perms = util.permutations(util.only_specified_keys(self.domains, act_feat_nodes))
+      gutil.remove_dupes(act_feat_nodes)
+      perms = gutil.permutations(util.only_specified_keys(self.domains, act_feat_nodes))
       action_rewards = []
       for p in perms:
         action_reward = [p,0]
@@ -112,7 +111,7 @@ class Environment:
                         vars=variables))
 
     def __hash__(self):
-        return hash(util.dict_to_tuple_list(self._assignment))
+        return hash(gutil.dict_to_tuple_list(self._assignment))
 
     def __eq__(self, other):
         for key in self._assignment:

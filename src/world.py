@@ -5,6 +5,7 @@ from assignment_models import AssignmentModel, discrete_model, random_model
 import numpy as np
 import random
 import util
+import gutil
 from enums import Policy, Result
 
 class World:
@@ -63,14 +64,14 @@ class World:
       if a.policy == Policy.DEAF: continue
       for f in self.agents:
         if a == f: continue
-        correct = util.num_matches(
+        correct = gutil.num_matches(
           a.divergent_nodes()[f.name],
           self.cdn[a.name][f.name]
         )
         perc_correct = correct / (len(self.cdn) - 1)
         total_correct += correct
         percent_correct[a.name] = perc_correct
-    percent_correct["total"] = total_correct / ((len(self.cdn) - 1) * len(self.cdn) * len(util.first_value(util.first_value(self.cdn))))
+    percent_correct["total"] = total_correct / ((len(self.cdn) - 1) * len(self.cdn) * len(gutil.first_value(gutil.first_value(self.cdn))))
     return percent_correct
   
   def get_cum_regret(self):
@@ -91,11 +92,11 @@ class World:
       if dep_var== Result.PERC_CORR and a.policy == Policy.DEAF: continue
       plt.plot(
         np.arange(len(self.episodes)),
-        np.array(util.list_from_dicts(self.episodes, dep_var, a.name)),
+        np.array(gutil.list_from_dicts(self.episodes, dep_var, a.name)),
         label=a.name
       )
     plt.xlabel("Iterations")
-    plt.ylabel(str(dep_var))
+    plt.ylabel(dep_var.value)
     plt.legend()
     plt.show()
     return
@@ -105,11 +106,11 @@ class World:
       raise KeyError("Total is not tracked in the input dep_var, {}".format(dep_var))
     plt.plot(
         np.arange(len(self.episodes)),
-        np.array(util.list_from_dicts(self.episodes, dep_var, "total")),
+        np.array(gutil.list_from_dicts(self.episodes, dep_var, "total")),
         label="total"
     )
     plt.xlabel("Iterations")
-    plt.ylabel(str(dep_var))
+    plt.ylabel(dep_var.value)
     plt.show()
     return
   
@@ -118,15 +119,15 @@ class World:
     for a in self.agents:
       if a.policy not in policies:
           policies[a.policy] = []
-      policies[a.policy].append(util.list_from_dicts(self.episodes, dep_var, a.name))
+      policies[a.policy].append(gutil.list_from_dicts(self.episodes, dep_var, a.name))
     for p in policies:
       plt.plot(
         np.arange(len(self.episodes)),
-        np.array(util.avg_list(policies[p])),
+        np.array(gutil.avg_list(policies[p])),
         label=p
       )
     plt.xlabel("Iterations")
-    plt.ylabel(str(dep_var))
+    plt.ylabel(dep_var.value)
     plt.legend()
     plt.show()
     return
