@@ -69,7 +69,7 @@ class Environment:
         gutil.remove_dupes(self.feature_nodes)
         self.action_rewards = self.get_action_rewards()
   
-    def get_action_rewards(self, iterations=825):
+    def get_action_rewards(self, iterations=750):
       act_feat_nodes = self.action_nodes + self.feature_nodes
       gutil.remove_dupes(act_feat_nodes)
       perms = gutil.permutations(gutil.only_given_keys(self.domains, act_feat_nodes))

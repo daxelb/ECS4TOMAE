@@ -21,10 +21,11 @@ class World:
     self.episodes.append(new_data)
 
   def run(self, episodes=250):
-    for _ in range(episodes):
+    for i in range(episodes):
       self.act()
       self.encounter_all()
       self.update_episode_data()
+      gutil.printProgressBar(i+1, episodes)
     return
 
   def act(self):
@@ -49,6 +50,7 @@ class World:
   def get_correct_div_nodes(self):
     correct_div_nodes = {}
     for a in self.agents:
+      if a.policy in [Policy.DEAF, Policy.NAIVE]: continue
       correct_div_nodes[a.name] = {}
       for f in self.agents:
         if a == f: continue
@@ -61,24 +63,24 @@ class World:
     percent_correct = {}
     total_correct = 0
     for a in self.agents:
-      if a.policy == Policy.DEAF: continue
+      if a.policy in [Policy.DEAF, Policy.NAIVE]: continue
       for f in self.agents:
         if a == f: continue
         correct = gutil.num_matches(
-          a.divergent_nodes()[f.name],
+          a.friend_divergence[f.name],
           self.cdn[a.name][f.name]
         )
         perc_correct = correct / (len(self.cdn) - 1)
         total_correct += correct
         percent_correct[a.name] = perc_correct
-    percent_correct["total"] = total_correct / ((len(self.cdn) - 1) * len(self.cdn) * len(gutil.first_value(gutil.first_value(self.cdn))))
+    percent_correct["total"] = total_correct / (len(self.cdn) * (len(self.agents) - 1) * len(gutil.first_value(gutil.first_value(self.cdn))))
     return percent_correct
   
   def get_cum_regret(self):
     cum_regret = {}
     cum_regret["total"] = 0
     for a in self.agents:
-      recent = a.recent
+      recent = a.get_data()[-1]
       rew_received = recent[a.reward_var]
       rew_optimal = a.environment.optimal_reward(gutil.only_given_keys(recent, a.environment.feature_nodes))
       curr_regret = self.episodes[-1][Result.CUM_REGRET][a.name] if self.episodes else 0
@@ -89,7 +91,7 @@ class World:
 
   def plot_agent(self, dep_var):
     for a in self.agents:
-      if dep_var== Result.PERC_CORR and a.policy == Policy.DEAF: continue
+      if dep_var == Result.PERC_CORR and a.policy in [Policy.DEAF, Policy.NAIVE] : continue
       plt.plot(
         np.arange(len(self.episodes)),
         np.array(gutil.list_from_dicts(self.episodes, dep_var, a.name)),
@@ -102,7 +104,7 @@ class World:
     return
     
   def plot_total(self, dep_var):
-    if "total" not in self.episodes[dep_var]:
+    if "total" not in self.episodes[0][dep_var]:
       raise KeyError("Total is not tracked in the input dep_var, {}".format(dep_var))
     plt.plot(
         np.arange(len(self.episodes)),
@@ -147,13 +149,21 @@ if __name__ == "__main__":
   z5["Z"] = discrete_model(("X"), {(0,): (0.8, 0.2), (1,): (0.5, 0.5)})
 
   agents = [
-    Agent("zero", Environment(baseline), policy=Policy.NAIVE),
-    Agent("one", Environment(baseline), policy=Policy.SENSITIVE),
-    Agent("two", Environment(baseline)),
-    Agent("three", Environment(w1)),
-    Agent("four", Environment(w1)),
-    Agent("five", Environment(w1)) 
+    Agent("00", Environment(baseline), policy=Policy.DEAF),
+    Agent("01", Environment(baseline), policy=Policy.DEAF),
+    Agent("02", Environment(baseline), policy=Policy.NAIVE),
+    Agent("03", Environment(baseline), policy=Policy.NAIVE),
+    Agent("04", Environment(baseline), policy=Policy.SENSITIVE),
+    Agent("05", Environment(baseline), policy=Policy.SENSITIVE),
+    Agent("06", Environment(z5), policy=Policy.DEAF),
+    Agent("07", Environment(z5), policy=Policy.DEAF),
+    Agent("08", Environment(z5), policy=Policy.NAIVE),
+    Agent("09", Environment(z5), policy=Policy.NAIVE),
+    Agent("10", Environment(z5), policy=Policy.SENSITIVE),
+    Agent("11", Environment(z5), policy=Policy.SENSITIVE)
   ]
   world = World(agents)
-  world.run(50)
+  world.run(200)
+  world.plot_agent(Result.PERC_CORR)
+  world.plot_total(Result.PERC_CORR)
   world.plot_policy(Result.CUM_REGRET)

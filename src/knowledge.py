@@ -5,34 +5,41 @@ class Knowledge():
     self.model = environment.cgm
     self.domains = environment.domains
     self.action_nodes = environment.action_nodes
+    self.samples = []
     self.obs = list()
     self.exp = list()
 
-  def add_sample(self, dataset, sample):
-    if len(self.model.observed_variables) != len(sample):
-      print("Error adding sample to agent's dataset.")
-    # if sample is a list, format correctly as dict
-    if type(sample) is list:
-      sample = dict(zip(self.model.observed_variables, sample))
-    dataset.append(sample)
-  
-  def add_obs(self, sample):
-    self.add_sample(self.obs, sample)
-  
-  def add_exp(self, sample):
-    self.add_sample(self.exp, sample)
+  def add_sample(self, sample):
+    self.samples.append(sample)
 
+  # def add_sample(self, dataset, sample):
+  #   if len(self.model.observed_variables) != len(sample):
+  #     print("Error adding sample to agent's dataset.")
+  #   # if sample is a list, format correctly as dict
+  #   if type(sample) is list:
+  #     sample = dict(zip(self.model.observed_variables, sample))
+  #   dataset.append(sample)
+  
+  # def add_obs(self, sample):
+  #   self.add_sample(self.obs, sample)
+  
+  # def add_exp(self, sample):
+  #   self.add_sample(self.exp, sample)
+  
+  # def get_useful_data(self):
+  #   """
+  #   Returns any data in the model that satisfied do(action_nodes)
+  #   """
+  #   return self.obs + self.exp if self.obs_is_useful() else self.exp
+
+  # def obs_is_useful(self):
+  #   for var in self.action_nodes:
+  #     if self.model.has_latent_parents(var):
+  #       return False
+  #   return True
+  
   def get_useful_data(self):
-    """
-    Returns any data in the model that satisfied do(action_nodes)
-    """
-    return self.obs + self.exp if self.obs_is_useful() else self.exp
-
-  def obs_is_useful(self):
-    for var in self.action_nodes:
-      if self.model.has_latent_parents(var):
-        return False
-    return True
+    return self.samples
 
   def get_model_dist(self):
     """
