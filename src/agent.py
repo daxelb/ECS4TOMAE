@@ -9,9 +9,10 @@ import numpy as np
 from enums import Datatype, Policy
 
 DIV_NODE_CONF = 0.07
-SAMPS_NEEDED = 12
+SAMPS_NEEDED = 20
+DIV_EPS_DEC_SLOWNESS = 2.25
 
-fclass Agent:
+class Agent:
   def __init__(self, name, environment, epsilon=0.1, policy=Policy.DEAF):
     self.name = name
     self.environment = environment
@@ -107,7 +108,7 @@ fclass Agent:
   def update_friend_divergence(self):
     for f in self.friends:
       friend_data = self.friends[f]
-      div_epsilon = SAMPS_NEEDED/len(friend_data)
+      div_epsilon = (SAMPS_NEEDED * DIV_EPS_DEC_SLOWNESS)/(len(friend_data) - SAMPS_NEEDED + SAMPS_NEEDED * DIV_EPS_DEC_SLOWNESS)
       if div_epsilon > 1: continue
       for node in self.friend_divergence[f]:
         if self.friend_divergence[f][node] == False:
