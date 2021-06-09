@@ -59,7 +59,7 @@ class Environment:
 
         pre_nodes = []
         [pre_nodes.extend(self.cgm.get_ancestors(v)) for v in self.action_nodes]
-        self.pre = StructuralCausalModel(util.only_specified_keys(self._assignment, pre_nodes))
+        self.pre = StructuralCausalModel(gutil.only_given_keys(self._assignment, pre_nodes))
         post_ass = self._assignment.copy()
         [post_ass.update({n: AssignmentModel(self.cgm.get_parents(n), None, self.domains[n])}) for n in pre_nodes]
         self.post = StructuralCausalModel(post_ass)
@@ -72,7 +72,7 @@ class Environment:
     def get_action_rewards(self, iterations=825):
       act_feat_nodes = self.action_nodes + self.feature_nodes
       gutil.remove_dupes(act_feat_nodes)
-      perms = gutil.permutations(util.only_specified_keys(self.domains, act_feat_nodes))
+      perms = gutil.permutations(gutil.only_given_keys(self.domains, act_feat_nodes))
       action_rewards = []
       for p in perms:
         action_reward = [p,0]
@@ -85,7 +85,7 @@ class Environment:
     def optimal_action_rewards(self, givens={}):
       action_rewards = []
       for tup in self.action_rewards:
-        action_rewards.append((util.only_specified_keys(tup[0], self.action_nodes), tup[1]))
+        action_rewards.append((gutil.only_given_keys(tup[0], self.action_nodes), tup[1]))
         for key in givens:
           if tup[0][key] != givens[key]:
             action_rewards = action_rewards[:-1]

@@ -19,9 +19,9 @@ class Agent:
     self.epsilon = epsilon
     self.policy = policy
     self.friends = {}
-    self.action_vars = self.environment.action_nodes
-    self.knowledge = Knowledge(self.environment.cgm, self.environment.domains, self.action_vars)
-    self.action_domains = util.only_specified_keys(self.environment.domains, self.action_vars)
+    self.action_nodes = self.environment.action_nodes
+    self.knowledge = Knowledge(self.environment)
+    self.action_domains = gutil.only_given_keys(self.environment.domains, self.action_nodes)
     self.recent = None
 
   def act(self):
@@ -43,7 +43,7 @@ class Agent:
 
   def experiment(self, givens={}):
     reward_vals = util.reward_vals(
-      self.knowledge.get_useful_data(), self.action_vars, self.reward_var, givens)
+      self.knowledge.get_useful_data(), self.action_nodes, self.reward_var, givens)
     unexplored = [util.dict_from_hash(e) for e in util.hashes_from_domain(self.action_domains) if e not in reward_vals.keys()]
     return random.choice(unexplored) if unexplored\
       else self.random_action()
@@ -62,7 +62,7 @@ class Agent:
           my_data.extend(self.friends[f])
     
     expected_values = util.expected_vals(
-        my_data, self.action_vars, self.reward_var, givens)
+        my_data, self.action_nodes, self.reward_var, givens)
     return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values\
       else self.random_action()
 
@@ -80,7 +80,7 @@ class Agent:
   def divergence_from_other(self, other_data):
     divergence = {}
     for node in self.knowledge.model.get_observable():
-      if node in self.action_vars: continue
+      if node in self.action_nodes: continue
       divergence[node] = self.knowledge.kl_divergence_of_node(node, other_data)
     return divergence
 

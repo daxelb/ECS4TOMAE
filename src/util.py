@@ -53,8 +53,7 @@ def reward_vals(dataset, action_vars, reward_var, givens={}):
   """
   reward_vals = dict()
   for sample in gutil.only_dicts_with_givens(dataset, givens):
-    key = hash_from_dict(
-        only_specified_keys(sample, action_vars))
+    key = hash_from_dict(gutil.only_given_keys(sample, action_vars))
     if key not in reward_vals:
       reward_vals[key] = list()
     reward_vals[key].append(sample[reward_var])
@@ -118,18 +117,6 @@ def kl_divergence(domains, P_data, Q_data, query, e, log_base=math.e):
         Px[i][1] * math.log(Px[i][1] / Qx[i][1], log_base)
   return res
 
-def only_specified_keys(dictionary, keys):
-  """
-  Outputs a dictionary with the key:values of an
-  original dictionary, but only with items whose
-  keys are specified as a parameter.
-  """
-  res = dict(dictionary)
-  for key in dictionary:
-    if key not in keys:
-      del res[key]
-  return res
-
 def query_combos(domains, Q):
   """
   Used when a query contains unassigned/unspecified variables.
@@ -179,13 +166,10 @@ def prob_with_unassigned(domains, dataset, Q, e={}):
   probs = list()
   Q_and_e = {**Q, **e}
   for q in query_combos(domains, Q_and_e):
-    new_e = only_specified_keys(q, e.keys())
-    assignment = only_specified_keys(q, [q for q in Q_and_e if Q_and_e[q] == None])
+    new_e = gutil.only_given_keys(q, e.keys())
+    assignment = gutil.only_given_keys(q, [q for q in Q_and_e if Q_and_e[q] == None])
     prob_new_e = uncond_prob(dataset, new_e)
     if not prob_new_e:
-      # print(uncond_prob(dataset, only_specified_keys(
-      #     q, [q for q in Q_and_e if q not in new_e])), uncond_prob(dataset, q), uncond_prob(dataset, new_e))
-      # print(only_specified_keys(q, [q for q in Q_and_e if q not in new_e]), q, new_e)
       return None
     probs.append((assignment, uncond_prob(dataset, q) / prob_new_e))
   return probs

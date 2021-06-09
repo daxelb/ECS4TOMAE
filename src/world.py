@@ -80,7 +80,7 @@ class World:
     for a in self.agents:
       recent = a.recent
       rew_received = recent[a.reward_var]
-      rew_optimal = a.environment.optimal_reward(util.only_specified_keys(recent, a.environment.feature_nodes))
+      rew_optimal = a.environment.optimal_reward(gutil.only_given_keys(recent, a.environment.feature_nodes))
       curr_regret = self.episodes[-1][Result.CUM_REGRET][a.name] if self.episodes else 0
       new_regret = curr_regret + (rew_optimal - rew_received)
       cum_regret[a.name] = new_regret

@@ -1,10 +1,10 @@
 import util
 
 class Knowledge():
-  def __init__(self, model, domains, action_vars):
-    self.model = model
-    self.domains = domains
-    self.action_vars = action_vars
+  def __init__(self, environment):
+    self.model = environment.cgm
+    self.domains = environment.domains
+    self.action_nodes = environment.action_nodes
     self.obs = list()
     self.exp = list()
 
@@ -24,12 +24,12 @@ class Knowledge():
 
   def get_useful_data(self):
     """
-    Returns any data in the model that satisfied do(action_vars)
+    Returns any data in the model that satisfied do(action_nodes)
     """
     return self.obs + self.exp if self.obs_is_useful() else self.exp
 
   def obs_is_useful(self):
-    for var in self.action_vars:
+    for var in self.action_nodes:
       if self.model.has_latent_parents(var):
         return False
     return True
@@ -64,6 +64,6 @@ class Knowledge():
     Returns KL Divergence of the conditional probability of a given node in the model
     between this useful data and another dataset.
     """
-    if node in self.action_vars:
+    if node in self.action_nodes:
       print("S-nodes cannot be inputs into action nodes.")
     return self.kl_divergence_of_query(self.get_node_dist(node), other_data)

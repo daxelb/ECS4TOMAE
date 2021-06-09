@@ -145,3 +145,15 @@ def dict_from_tuples(tuples):
   for tup in tuples:
     res[tup[0]] = tup[1]
   return res
+
+def only_given_keys(dictionary, keys):
+  """
+  Outputs a dictionary with the key:values of an
+  original dictionary, but only with items whose
+  keys are specified as a parameter.
+  """
+  res = dict(dictionary)
+  for key in dictionary:
+    if key not in keys:
+      del res[key]
+  return res
