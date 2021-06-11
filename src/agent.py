@@ -111,9 +111,9 @@ class Agent:
       div_epsilon = (SAMPS_NEEDED * DIV_EPS_DEC_SLOWNESS)/(len(friend_data) - SAMPS_NEEDED + SAMPS_NEEDED * DIV_EPS_DEC_SLOWNESS)
       if div_epsilon > 1: continue
       for node in self.friend_divergence[f]:
-        # if self.friend_divergence[f][node] == False:
-        #   if random.random() >= div_epsilon:
-        #     continue
+        if self.friend_divergence[f][node] == False:
+          if random.random() >= div_epsilon:
+            continue
         node_div = self.knowledge.kl_divergence_of_node(node, friend_data)
         if node_div != None and node_div < DIV_NODE_CONF:
           self.friend_divergence[f][node] = False
