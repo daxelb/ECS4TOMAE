@@ -5,12 +5,12 @@ import gutil
 import random
 from enums import Datatype, Policy
 
-DIV_NODE_CONF = 0.055
+DIV_NODE_CONF = 0.1
 SAMPS_NEEDED = 15
-DIV_EPS_DEC_SLOWNESS = 2
+DIV_EPS_DEC_SLOWNESS = 1.5
 
 class Agent:
-  def __init__(self, name, environment, epsilon=0.05, policy=Policy.DEAF):
+  def __init__(self, name, environment, epsilon=0.1, policy=Policy.DEAF):
     self.name = name
     self.environment = environment
     self.reward_var = self.environment.reward_node
@@ -72,8 +72,8 @@ class Agent:
     self.friends[other.name] = []
     self.friend_divergence[other.name] = {}
     for node in self.knowledge.model.get_observable():
-      if node in self.action_nodes: continue
-      self.friend_divergence[other.name][node] = True
+      if node not in self.action_nodes:
+        self.friend_divergence[other.name][node] = True
 
   def encounter(self, other):
     if self.policy == Policy.DEAF: return

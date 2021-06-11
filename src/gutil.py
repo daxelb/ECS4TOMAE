@@ -158,6 +158,13 @@ def only_given_keys(dictionary, keys):
       del res[key]
   return res
 
+def avg(lst):
+  """
+  Returns the average/mean/expected value of a list
+  of numbers
+  """
+  return sum(lst) / len(lst)
+
 # Author: greenstick (on StackOverflow and GitHub)
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 50, fill = '█', printEnd = "\r"):
     """
@@ -180,3 +187,5 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     # Print New Line on Complete
     if iteration == total: 
         print()
+
+  

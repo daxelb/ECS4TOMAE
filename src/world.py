@@ -55,12 +55,14 @@ class World:
         if a == f: continue
         correct_div_nodes[a.name][f.name] = {}
         for node, assignment in a.environment._assignment.items():
-          correct_div_nodes[a.name][f.name][node] = assignment != f.environment._assignment[node]
+          if node not in a.action_nodes:
+            correct_div_nodes[a.name][f.name][node] = assignment != f.environment._assignment[node]
     return correct_div_nodes
 
   def get_perc_correct(self):
     percent_correct = {}
-    total_correct = 0
+    # total_correct = 0
+    total_correct = []
     for a in self.agents:
       if a.policy in [Policy.DEAF, Policy.NAIVE]: continue
       for f in self.agents:
@@ -69,10 +71,16 @@ class World:
           a.friend_divergence[f.name],
           self.cdn[a.name][f.name]
         )
-        perc_correct = correct / (len(self.cdn) - 1)
-        total_correct += correct
+        # print(self.cdn)
+        # print(len(gutil.first_value(gutil.first_value(self.cdn))))
+        perc_correct = correct / (len(self.cdn[a.name][f.name]))
+        total_correct.append(perc_correct)
+        # total_correct += correct
         percent_correct[a.name] = perc_correct
-    percent_correct["total"] = total_correct / ((len(self.cdn)) * (len(self.agents)-1) * len(gutil.first_value(gutil.first_value(self.cdn))))
+    # print((len(gutil.first_value(self.cdn)),len(self.cdn),len(gutil.first_value(gutil.first_value(self.cdn)))))
+    # percent_correct["total"] = total_correct / (len(gutil.first_value(self.cdn)) * len(self.cdn) * len(gutil.first_value(gutil.first_value(self.cdn))))
+    percent_correct["total"] = gutil.avg(total_correct)
+    # print(percent_correct["total"])
     return percent_correct
   
   def get_cum_regret(self):
@@ -167,7 +175,7 @@ if __name__ == "__main__":
     Agent("14", Environment(z5), policy=Policy.SENSITIVE),
   ]
   world = World(agents)
-  world.run(250)
-#   world.plot_agent(Result.PERC_CORR)
+  world.run(220)
+  world.plot_agent(Result.PERC_CORR)
   world.plot_total(Result.PERC_CORR)
   world.plot_policy(Result.CUM_REGRET)

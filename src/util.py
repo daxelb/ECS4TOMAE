@@ -72,7 +72,7 @@ def expected_vals_from_rewards(dictionary):
   """
   expected_vals = {}
   for key in dictionary:
-    expected_vals[key] = avg(dictionary[key])
+    expected_vals[key] = gutil.avg(dictionary[key])
   return expected_vals
 
 def expected_vals(dataset, action_vars, reward_var, givens={}):
@@ -82,13 +82,6 @@ def expected_vals(dataset, action_vars, reward_var, givens={}):
   methods.
   """
   return expected_vals_from_rewards(reward_vals(dataset, action_vars, reward_var, givens))
-
-def avg(lst):
-  """
-  Returns the average/mean/expected value of a list
-  of numbers
-  """
-  return sum(lst) / len(lst)
 
 def kl_divergence(domains, P_data, Q_data, query, e, log_base=math.e):
   """
