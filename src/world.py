@@ -19,11 +19,16 @@ class World:
     new_data[Result.CUM_REGRET] = self.get_cum_regret()
     self.episodes.append(new_data)
 
+  def run_once(self):
+    self.act()
+    self.encounter_all()
+    self.update_episode_data()
+    return
+    
+
   def run(self, episodes=250):
     for i in range(episodes):
-      self.act()
-      self.encounter_all()
-      self.update_episode_data()
+      self.run_once()
       gutil.printProgressBar(i+1, episodes)
     return
 
@@ -148,6 +153,9 @@ class World:
     plt.legend()
     plt.show()
     return
+  
+  def __copy__(self):
+    return World(list(self.agents))
 
 if __name__ == "__main__":
   baseline = {

@@ -19,3 +19,8 @@ Some things to test:
         of the form P(Y|do(X), W)
 
     Environments change sometime during testing? -- Don't know how to test
+
+
+Notes w/ Dr. Forney 6/11:
+- How many agents and
+- Gibb's Sampling
