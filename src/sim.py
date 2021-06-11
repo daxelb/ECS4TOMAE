@@ -19,7 +19,7 @@ class Sim:
       world = self.world.__copy__()
       for j in range(self.num_episodes):
         world.run_once()
-        gutil.printProgressBar(i+(j/self.num_episodes), self.num_trials)
+        gutil.printProgressBar(i+((j+1)/self.num_episodes), self.num_trials)
       self.trials.append(world.episodes)
     return
   
@@ -41,8 +41,6 @@ class Sim:
     plt.legend()
     plt.show()
     return
-    
-    
 
 if __name__ == "__main__":
   baseline = {
