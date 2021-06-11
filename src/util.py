@@ -1,41 +1,50 @@
 import math
 import gutil
 
-def get_nodes_from_edges(obs_edges, latent_edges=None):
-  edges = obs_edges
-  if latent_edges:
-    edges.extend(e for e in latent_edges if e not in edges)
-  nodes = list()
-  for tup in edges:
-    for i in range(len(tup)):
-      if tup[i] not in nodes:
-        nodes.append(tup[i])
-  return nodes
-
 def hash_from_dict(dictionary):
-  hashable = ""
+  """
+  Creates a hashable string from a dictionary
+  that maps values to their assignments.
+  Ex:
+  dictionary={"A": 1, "B": 5, "C": 1}
+    => "A=1,B=5,C=1"
+  """
+  hashstring = ""
   for i, key in enumerate(dictionary.keys()):
-    hashable += str(key) + "=" + str(dictionary[key])
+    hashstring += str(key) + "=" + str(dictionary[key])
     if i < len(dictionary.keys()) - 1:
-      hashable += ","
-  return hashable
+      hashstring += ","
+  return hashstring
 
 def hashes_from_domain(domain_dict):
+  """
+  Creates a list of hashstrings representing variable
+  assignments from their possible values in a domain.
+  Ex:
+  domain_dict={"A": [0,1], "B": [0,1,2]}
+    => ["A=0,B=0", "A=0,B=1", "A=0,B=2", "A=1,B=0", "A=1,B=1", "A=1,B=2"]
+  """
   return [hash_from_dict(d) for d in gutil.permutations(domain_dict)]
 
-def dict_from_hash(hash_string):
+def dict_from_hash(hashstring):
+  """
+  From a hashstring (like one created from hash_from_dict),
+  creates and returns a dictionary mapping variables to their
+  assignments.
+  Ex:
+  hashstring="A=0,B=1"
+    => {"A": 0, "B": 1}
+  """
   res = dict()
   key_bool = True
-  key = ""
-  val = ""
-  for char in hash_string:
+  key = val = ""
+  for char in hashstring:
     if char == '=':
       key_bool = False
     elif char == ',':
       key_bool = True
       res[key] = int(float(val))
-      key = ""
-      val = ""
+      key = val = ""
     else:
       if key_bool:
         key += char

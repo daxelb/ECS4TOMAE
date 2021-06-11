@@ -14,7 +14,7 @@ from assignment_models import AssignmentModel, discrete_model, random_model
 
 
 class Environment:
-    def __init__(self, assignment, reward_node="Y"):
+    def __init__(self, assignment, rew_var="Y"):
         """
         Creates StructuralCausalModel from assignment of the form
         { variable: Function(parents) }
@@ -22,8 +22,8 @@ class Environment:
         self.domains = {}
         self._assignment = assignment.copy()
         nodes = list(assignment.keys())
-        self.action_nodes = []
-        self.reward_node = reward_node
+        self.act_vars = []
+        self.rew_var = rew_var
         set_nodes = []
         edges = []
 
@@ -34,7 +34,7 @@ class Environment:
             elif isinstance(model, AssignmentModel):
                 self.domains[node] = model.domain
                 if model.model == None:
-                    self.action_nodes.append(node)
+                    self.act_vars.append(node)
                 edges.extend([
                     (parent, node)
                     for parent in model.parents
@@ -58,26 +58,26 @@ class Environment:
         self.cgm = CausalGraph(nodes=nodes, edges=edges, set_nodes=set_nodes)
 
         pre_nodes = []
-        [pre_nodes.extend(self.cgm.get_ancestors(v)) for v in self.action_nodes]
+        [pre_nodes.extend(self.cgm.get_ancestors(v)) for v in self.act_vars]
         self.pre = StructuralCausalModel(gutil.only_given_keys(self._assignment, pre_nodes))
         post_ass = self._assignment.copy()
         [post_ass.update({n: AssignmentModel(self.cgm.get_parents(n), None, self.domains[n])}) for n in pre_nodes]
         self.post = StructuralCausalModel(post_ass)
         
         self.feature_nodes = []
-        [self.feature_nodes.extend(self.cgm.get_parents(n)) for n in self.action_nodes]
+        [self.feature_nodes.extend(self.cgm.get_parents(n)) for n in self.act_vars]
         gutil.remove_dupes(self.feature_nodes)
         self.action_rewards = self.get_action_rewards()
   
     def get_action_rewards(self, iterations=750):
-      act_feat_nodes = self.action_nodes + self.feature_nodes
+      act_feat_nodes = self.act_vars + self.feature_nodes
       gutil.remove_dupes(act_feat_nodes)
       perms = gutil.permutations(gutil.only_given_keys(self.domains, act_feat_nodes))
       action_rewards = []
       for p in perms:
         action_reward = [p,0]
         for _ in range(iterations):
-          action_reward[1] += self.post.sample(p)[self.reward_node]
+          action_reward[1] += self.post.sample(p)[self.rew_var]
         action_reward[1] /= iterations
         action_rewards.append(tuple(action_reward))
       return action_rewards
@@ -85,7 +85,7 @@ class Environment:
     def optimal_action_rewards(self, givens={}):
       action_rewards = []
       for tup in self.action_rewards:
-        action_rewards.append((gutil.only_given_keys(tup[0], self.action_nodes), tup[1]))
+        action_rewards.append((gutil.only_given_keys(tup[0], self.act_vars), tup[1]))
         for key in givens:
           if tup[0][key] != givens[key]:
             action_rewards = action_rewards[:-1]
@@ -105,19 +105,21 @@ class Environment:
       return self.optimal_action_rewards(givens)[0][1]
 
     def __repr__(self):
-        variables = ", ".join(map(str, sorted(self.cgm.dag.nodes())))
-        return ("{classname}({vars})"
-                .format(classname=self.__class__.__name__,
-                        vars=variables))
+      variables = ", ".join(map(str, sorted(self.cgm.dag.nodes())))
+      return ("{classname}({vars})"
+          .format(classname=self.__class__.__name__,
+              vars=variables))
 
     def __hash__(self):
-        return hash(gutil.dict_to_tuple_list(self._assignment))
+      return hash(gutil.dict_to_tuple_list(self._assignment))
 
     def __eq__(self, other):
-        for key in self._assignment:
-            if self._assignment[key] != other._assignment[key]:
-                return False
-        return True
+      if isinstance(other, self.__class__) or self.rew_var != other.rew_var:
+        return False
+      for key in self._assignment:
+        if self._assignment[key] != other._assignment[key]:
+          return False
+      return True
 
 if __name__ == "__main__":
     os.environ["PATH"] += os.pathsep + \

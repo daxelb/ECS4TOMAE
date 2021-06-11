@@ -13,13 +13,13 @@ class Agent:
   def __init__(self, name, environment, epsilon=0.1, policy=Policy.DEAF):
     self.name = name
     self.environment = environment
-    self.reward_var = self.environment.reward_node
     self.epsilon = epsilon
     self.policy = policy
+    self.rew_var = self.environment.rew_var
     self.friends = {}
-    self.action_nodes = self.environment.action_nodes
+    self.act_vars = self.environment.act_vars
     self.knowledge = Knowledge(self.environment)
-    self.action_domains = gutil.only_given_keys(self.environment.domains, self.action_nodes)
+    self.act_doms = gutil.only_given_keys(self.environment.domains, self.act_vars)
     self.friend_divergence = {}
     # self.recent = None
 
@@ -43,8 +43,8 @@ class Agent:
 
   def experiment(self, givens={}):
     reward_vals = util.reward_vals(
-      self.knowledge.get_useful_data(), self.action_nodes, self.reward_var, givens)
-    unexplored = [util.dict_from_hash(e) for e in util.hashes_from_domain(self.action_domains) if e not in reward_vals.keys()]
+      self.knowledge.get_useful_data(), self.act_vars, self.rew_var, givens)
+    unexplored = [util.dict_from_hash(e) for e in util.hashes_from_domain(self.act_doms) if e not in reward_vals.keys()]
     return random.choice(unexplored) if unexplored\
       else self.random_action()
 
@@ -61,18 +61,18 @@ class Agent:
           my_data.extend(self.friends[f])
     
     expected_values = util.expected_vals(
-        my_data, self.action_nodes, self.reward_var, givens)
+        my_data, self.act_vars, self.rew_var, givens)
     return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values\
       else self.random_action()
 
   def random_action(self):
-    return random.choice(gutil.permutations(self.action_domains))
+    return random.choice(gutil.permutations(self.act_doms))
 
   def add_friend(self, other):
     self.friends[other.name] = []
     self.friend_divergence[other.name] = {}
     for node in self.knowledge.model.get_observable():
-      if node not in self.action_nodes:
+      if node not in self.act_vars:
         self.friend_divergence[other.name][node] = True
 
   def encounter(self, other):
@@ -98,7 +98,7 @@ class Agent:
   # def divergence_from_other(self, other_data):
   #   divergence = {}
   #   for node in self.knowledge.model.get_observable():
-  #     if node in self.action_nodes: continue
+  #     if node in self.act_vars: continue
   #     divergence[node] = self.knowledge.kl_divergence_of_node(node, other_data)
   #   return divergence
 
@@ -122,4 +122,7 @@ class Agent:
     return hash(self.name)
 
   def __eq__(self, other):
-    return self.__class__ == other.__class__ and self.name == other.name and self.environment == other.environment and self.reward_var == other.reward_var
+    return isinstance(other, self.__class__) \
+        and self.name == other.name \
+        and self.environment == other.environment \
+        and self.rew_var == other.rew_var

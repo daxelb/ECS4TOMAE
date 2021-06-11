@@ -86,4 +86,4 @@ class StructuralCausalModel:
     """
     new_assignment = self.assignment.copy()
     new_assignment[node] = None
-    return CausalGraph(new_assignment)
+    return StructuralCausalModel(new_assignment)

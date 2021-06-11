@@ -55,7 +55,7 @@ class World:
         if a == f: continue
         correct_div_nodes[a.name][f.name] = {}
         for node, assignment in a.environment._assignment.items():
-          if node not in a.action_nodes:
+          if node not in a.act_vars:
             correct_div_nodes[a.name][f.name][node] = assignment != f.environment._assignment[node]
     return correct_div_nodes
 
@@ -88,7 +88,7 @@ class World:
     cum_regret["total"] = 0
     for a in self.agents:
       recent = a.get_data()[-1]
-      rew_received = recent[a.reward_var]
+      rew_received = recent[a.rew_var]
       rew_optimal = a.environment.optimal_reward(gutil.only_given_keys(recent, a.environment.feature_nodes))
       curr_regret = self.episodes[-1][Result.CUM_REGRET][a.name] if self.episodes else 0
       new_regret = curr_regret + (rew_optimal - rew_received)

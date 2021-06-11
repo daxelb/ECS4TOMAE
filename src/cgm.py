@@ -6,13 +6,12 @@ import networkx as nx
 import graphviz
 from itertools import combinations, chain
 from collections import Iterable
-from util import get_nodes_from_edges
 
 class CausalGraph:
   """
   Causal Graphical Models
   """
-  def __init__(self, edges, nodes=None, latent_edges=None, set_nodes=None):
+  def __init__(self, nodes, edges, latent_edges=None, set_nodes=None):
     """
     Create CausalGraph
 
@@ -26,8 +25,6 @@ class CausalGraph:
 
     set_nodes: list[node:str] or None
     """
-    if nodes is None:
-      nodes = get_nodes_from_edges(edges, latent_edges)
     if set_nodes is None:
       self.set_nodes = frozenset()
     else:
