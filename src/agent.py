@@ -7,12 +7,12 @@ from enums import Datatype, Policy
 # DIV_NODE_CONF = 0.09
 # SAMPS_NEEDED = 15
 # DIV_EPS_DEC_SLOWNESS = 1.75
-DIV_NODE_CONF = 0.05
+DIV_NODE_CONF = 0.06
 SAMPS_NEEDED = 15
-DIV_EPS_DEC_SLOWNESS = 2.75
+DIV_EPS_DEC_SLOWNESS = 2.5
 
 class Agent:
-  def __init__(self, name, environment, epsilon=0.1, policy=Policy.DEAF):
+  def __init__(self, name, environment, epsilon=0.06, policy=Policy.DEAF):
     self.name = name
     self.environment = environment
     self.epsilon = epsilon

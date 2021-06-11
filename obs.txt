@@ -1,6 +1,8 @@
 Sensitive > Naive:
     - Always better when episodes => infinity
     - Sensitive better w/ bigger discrepancy between environments (and choices)
+    - if a discrepancy between distributions in the model are very slim, then the naive agent
+    is the best (at least at first) since it is getting so many bonus datapoints
 
 Sensitive > Deaf:
     For Sensitive Policy to be better than Deaf, the Sensitive Policy must be able
