@@ -5,12 +5,12 @@ import gutil
 import random
 from enums import Datatype, Policy
 
-# DIV_NODE_CONF = 0.09
-# SAMPS_NEEDED = 15
-# DIV_EPS_DEC_SLOWNESS = 1.75
-DIV_NODE_CONF = 0.08
-SAMPS_NEEDED = 0
-DIV_EPS_DEC_SLOWNESS = 10
+DIV_NODE_CONF = 0.09
+SAMPS_NEEDED = 15
+DIV_EPS_DEC_SLOWNESS = 1.75
+# DIV_NODE_CONF = 0.08
+# SAMPS_NEEDED = 0
+# DIV_EPS_DEC_SLOWNESS = 10
 
 class Agent:
   def __init__(self, name, environment, epsilon=0.1, policy=Policy.DEAF):

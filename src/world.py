@@ -30,23 +30,34 @@ class World:
   def act(self):
     [a.act() for a in self.agents]
     return
-  
-  def get_friends(self, agent):
-    return [f for f in self.agents if f != agent]
 
   def encounter_all(self):
+    """
+    An encountering policy in which the agent
+    encounters (and potentially communicates with)
+    all agents in the world.
+    """
     for a in self.agents:
-      [a.encounter(f) for f in self.get_friends(a)]
+      [a.encounter(f) for f in self.agents if a != f]
     return
     
   def encounter_one(self):
+    """
+    An encountering policy where agents
+    encounter (and potentially communicate w/)
+    a single agent, chosen at random, rather than
+    (above) all agents.
+    """
     for a in self.agents:
-      friends = self.get_friends(a)
-      if not friends: return False
-      a.encounter(random.choice(friends))
-    return True
+      a.encounter(random.choice([f for f in self.agents if f != a]))
+    return
     
   def get_correct_div_nodes(self):
+    """
+    Returns a 3-layer dictionary which
+    identifies the correct location of divergent
+    nodes between two environments.
+    """
     correct_div_nodes = {}
     for a in self.agents:
       if a.policy in [Policy.DEAF, Policy.NAIVE]: continue
@@ -55,11 +66,16 @@ class World:
         if a == f: continue
         correct_div_nodes[a.name][f.name] = {}
         for node, assignment in a.environment._assignment.items():
-          if node not in a.act_vars:
-            correct_div_nodes[a.name][f.name][node] = assignment != f.environment._assignment[node]
+          if node in a.act_vars: continue
+          correct_div_nodes[a.name][f.name][node] = assignment != f.environment._assignment[node]
     return correct_div_nodes
 
   def get_perc_correct(self):
+    """
+    Returns a dict of the percentage of 
+    divergent/not divergent nodes correctly
+    identified by each agent (and the total).
+    """
     percent_correct = gutil.Counter()
     for a in self.agents:
       if a.policy in [Policy.DEAF, Policy.NAIVE]: continue
@@ -72,6 +88,11 @@ class World:
     return percent_correct
   
   def get_cum_regret(self):
+    """
+    Returns a dict of the cumulative 
+    regret of each agent (and total cum. regret)
+    at this episode.
+    """
     cum_regret = gutil.Counter()
     for a in self.agents:
       recent = a.get_data()[-1]

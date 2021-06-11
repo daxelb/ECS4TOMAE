@@ -1,6 +1,5 @@
 import math
 import random
-import numpy as np
 
 def avg_list(lists):
   """
@@ -173,20 +172,19 @@ class Counter(dict):
   def copy(self):
     return Counter(dict.copy(self))
 
-# Author: greenstick (on StackOverflow and GitHub)
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 50, fill = '█', printEnd = "\r"):
     """
     Author: greenstick (Stack Overflow/GitHub)
     Call in a loop to create terminal progress bar
-    @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
-        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    Parameters:
+      iteration   - Required  : current iteration (Int)
+      total       - Required  : total iterations (Int)
+      prefix      - Optional  : prefix string (Str)
+      suffix      - Optional  : suffix string (Str)
+      decimals    - Optional  : positive number of decimals in percent complete (Int)
+      length      - Optional  : character length of bar (Int)
+      fill        - Optional  : bar fill character (Str)
+      printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
     """
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
