@@ -1,0 +1,10 @@
+{
+  "name": "ladder-of-transportability",
+  "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/damianbrowne/ladder-of-transportability"
+  },
+  "author": "Damián Browne",
+  "license": "MIT"
+}
