@@ -165,6 +165,14 @@ def avg(lst):
   """
   return sum(lst) / len(lst)
 
+class Counter(dict):
+  def __getitem__(self, idx):
+    self.setdefault(idx, 0)
+    return dict.__getitem__(self, idx)
+  
+  def copy(self):
+    return Counter(dict.copy(self))
+
 # Author: greenstick (on StackOverflow and GitHub)
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 50, fill = '█', printEnd = "\r"):
     """
