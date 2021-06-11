@@ -60,32 +60,19 @@ class World:
     return correct_div_nodes
 
   def get_perc_correct(self):
-    percent_correct = {}
-    # total_correct = 0
-    total_correct = []
+    percent_correct = gutil.Counter()
     for a in self.agents:
       if a.policy in [Policy.DEAF, Policy.NAIVE]: continue
       for f in self.agents:
         if a == f: continue
-        correct = gutil.num_matches(
-          a.friend_divergence[f.name],
-          self.cdn[a.name][f.name]
-        )
-        # print(self.cdn)
-        # print(len(gutil.first_value(gutil.first_value(self.cdn))))
-        perc_correct = correct / (len(self.cdn[a.name][f.name]))
-        total_correct.append(perc_correct)
-        # total_correct += correct
-        percent_correct[a.name] = perc_correct
-    # print((len(gutil.first_value(self.cdn)),len(self.cdn),len(gutil.first_value(gutil.first_value(self.cdn)))))
-    # percent_correct["total"] = total_correct / (len(gutil.first_value(self.cdn)) * len(self.cdn) * len(gutil.first_value(gutil.first_value(self.cdn))))
-    percent_correct["total"] = gutil.avg(total_correct)
-    # print(percent_correct["total"])
+        correct = gutil.num_matches(a.friend_divergence[f.name], self.cdn[a.name][f.name])
+        perc_corr = correct / (len(self.cdn[a.name]) * len(self.cdn[a.name][f.name]))
+        percent_correct[a.name] += perc_corr
+        percent_correct["total"] += perc_corr/len(self.cdn)
     return percent_correct
   
   def get_cum_regret(self):
-    cum_regret = {}
-    cum_regret["total"] = 0
+    cum_regret = gutil.Counter()
     for a in self.agents:
       recent = a.get_data()[-1]
       rew_received = recent[a.reward_var]
