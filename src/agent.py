@@ -1,16 +1,15 @@
-# from causal_graph import CausalGraph
 from knowledge import Knowledge
 import util
 import gutil
 import random
 from enums import Datatype, Policy
 
-DIV_NODE_CONF = 0.09
+# DIV_NODE_CONF = 0.09
+# SAMPS_NEEDED = 15
+# DIV_EPS_DEC_SLOWNESS = 1.75
+DIV_NODE_CONF = 0.05
 SAMPS_NEEDED = 15
-DIV_EPS_DEC_SLOWNESS = 1.75
-# DIV_NODE_CONF = 0.08
-# SAMPS_NEEDED = 0
-# DIV_EPS_DEC_SLOWNESS = 10
+DIV_EPS_DEC_SLOWNESS = 2.75
 
 class Agent:
   def __init__(self, name, environment, epsilon=0.1, policy=Policy.DEAF):
@@ -24,7 +23,6 @@ class Agent:
     self.knowledge = Knowledge(self.environment)
     self.act_doms = gutil.only_given_keys(self.environment.domains, self.act_vars)
     self.friend_divergence = {}
-    # self.recent = None
 
   def act(self):
     givens = self.environment.pre.sample()
@@ -35,7 +33,6 @@ class Agent:
     # self.knowledge.add_obs(env_act_feedback) \
     #     if choice[0] == Datatype.OBS \
     #     else self.knowledge.add_exp(env_act_feedback)
-    # self.recent = env_act_feedback
 
   def choose(self, givens={}):
     if random.random() < self.epsilon:
@@ -52,7 +49,7 @@ class Agent:
       else self.random_action()
 
   def optimal_choice(self, givens={}):
-    my_data = self.knowledge.samples.copy()
+    my_data = self.get_data().copy()
     
     if self.policy == Policy.NAIVE:
       for f in self.friends:
@@ -92,19 +89,6 @@ class Agent:
   def get_data(self):
     return self.knowledge.samples
 
-  # def divergences_from_friends(self):
-  #   divergences = {}
-  #   for agent in self.friends:
-  #     divergences[agent] = self.divergence_from_other(self.friends[agent])
-  #   return divergences
-
-  # def divergence_from_other(self, other_data):
-  #   divergence = {}
-  #   for node in self.knowledge.model.get_observable():
-  #     if node in self.act_vars: continue
-  #     divergence[node] = self.knowledge.kl_divergence_of_node(node, other_data)
-  #   return divergence
-
   def update_friend_divergence(self):
     for f in self.friends:
       friend_data = self.friends[f]
@@ -117,8 +101,8 @@ class Agent:
         node_div = self.knowledge.kl_divergence_of_node(node, friend_data)
         if node_div != None and node_div < DIV_NODE_CONF:
           self.friend_divergence[f][node] = False
-        # else:
-        #   break
+        else:
+          break
     return
 
   def __hash__(self):
