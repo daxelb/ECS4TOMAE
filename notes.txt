@@ -65,3 +65,22 @@ in their model?
             This agent has at most one node difference between other agents in the system.
                 To get all agents to be able to communicate with all others, there must always be at most
                 1 node difference between agents.
+
+
+
+sID notes:
+- U: set of background/endogenous variables
+- V: set of endogenous variables assumed to be observable
+- Joint probability distribution P(u) over U
+- Pa(Y): set of observable parents of Y, including Y
+- An(Y): set of observable ancestors of Y, including Y
+- De(Y): set of observable descendants of Y, including Y
+- P*: Probability from a different environment
+- G sub(Y): induced subgraph G containing nodes in Y and all arrows between such nodes
+- G sub(line(X) Z): edge subgraph of G where all incoming arrows into X and all outgoing arrows from Z are removed
+- D: G with S nodes pointing to divergent nodes in between G and G*
+  - D = An(Y) if Y is a descendant of all nodes
+  - 
+
+S-node on Z
+P*(Y|do(X), W) = summation over Z [ P(y|do(X),z,w)P*(z|x))]

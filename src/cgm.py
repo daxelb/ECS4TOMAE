@@ -5,13 +5,14 @@
 import networkx as nx
 import graphviz
 from itertools import combinations, chain
-from collections import Iterable
+from collections.abc import Iterable
+import gutil
 
 class CausalGraph:
   """
   Causal Graphical Models
   """
-  def __init__(self, nodes, edges, latent_edges=None, set_nodes=None):
+  def __init__(self, nodes, edges, latent_edges=None, set_nodes=None, s_node_children=set()):
     """
     Create CausalGraph
 
@@ -25,54 +26,60 @@ class CausalGraph:
 
     set_nodes: list[node:str] or None
     """
-    if set_nodes is None:
-      self.set_nodes = frozenset()
-    else:
-      self.set_nodes = frozenset(set_nodes)
-
-    if latent_edges is None:
-      self.latent_edges = frozenset()
-    else:
-      self.latent_edges = frozenset(latent_edges)
+    self.set_nodes = frozenset() if set_nodes is None else frozenset(sorted(set_nodes))
+    self.latent_edges = frozenset() if latent_edges is None else frozenset(sorted(latent_edges))
 
     self.dag = nx.DiGraph()
     self.dag.add_nodes_from(nodes)
     self.dag.add_edges_from(edges)
 
+    s_nodes = []
+    for n in s_node_children:
+      new_node = "Snode_{}".format(n)
+      self.dag.add_node(new_node)
+      self.dag.add_edge(new_node, n)
+      s_nodes.append(new_node)
+    self.s_nodes = sorted(s_nodes)
+
     # Add latent connections to the graph
-    self.observed_variables = frozenset(nodes)
-    self.unobserved_variable_edges = dict()
-    unobserved_variables = []
-    unobserved_variable_counter = 0
+    self.observed_vars = sorted(nodes + s_nodes)
+    self.unobserved_var_edges = dict()
+    unobserved_vars = []
+    unobserved_var_counter = 0
     for n1, n2 in self.latent_edges:
-      new_node = "Unobserved_{}".format(unobserved_variable_counter)
-      unobserved_variable_counter += 1
+      new_node = "UC_{}".format(unobserved_var_counter)
+      unobserved_var_counter += 1
       self.dag.add_node(new_node)
       self.dag.add_edge(new_node, n1)
       self.dag.add_edge(new_node, n2)
-      unobserved_variables.append(new_node)
-      self.unobserved_variable_edges[new_node] = (n1, n2)
-    self.unobserved_variables = frozenset(unobserved_variables)
+      unobserved_vars.append(new_node)
+      self.unobserved_var_edges[new_node] = (n1, n2)
+    self.unobserved = frozenset(sorted(unobserved_vars))
 
     assert nx.is_directed_acyclic_graph(self.dag)
-
-    # for set_node in self.set_nodes:
-      # set nodes cannot have parents
-      # assert not nx.ancestors(self.dag, set_node)
 
     self.graph = self.dag.to_undirected()
 
   def __repr__(self):
-    variables = ", ".join(map(str, sorted(self.observed_variables)))
+    variables = ", ".join(map(str, sorted(self.observed_vars)))
     return ("{classname}({vars})"
         .format(classname=self.__class__.__name__,
             vars=variables))
 
-  def has_latent_parents(self, node):
-    return len(self.do(node).get_parents(node)) == len(self.get_parents(node))
+  # def has_latent_parents(self, node):
+  #   return len(self.do(node).get_parents(node)) == len(self.get_parents(node))
+  
+  def pa(self, node):
+    return sorted([n for n in self.get_parents(node) + [node] if n in self.observed_vars])
+  
+  def an(self, node):
+    return sorted([n for n in self.get_ancestors(node) + [node] if n in self.observed_vars])
+  
+  def de(self, node):
+    return sorted([n for n in self.get_descendants(node) + [node] if n in self.observed_vars])
 
   def get_ancestors(self, node):
-    return self.get_ancestors_helper(self.get_parents(node))
+    return sorted(self.get_ancestors_helper(self.get_parents(node)))
 
   def get_ancestors_helper(self, frontier=[], visited=[]):
     for node in frontier:
@@ -80,9 +87,19 @@ class CausalGraph:
         visited.append(node)
         self.get_ancestors_helper(self.get_parents(node), visited)
     return visited
+  
+  def get_descendants(self, node):
+    return sorted(self.get_descendants_helper(self.get_children(node)))
+  
+  def get_descendants_helper(self, frontier=[], visited=[]):
+    for node in frontier:
+      if node not in visited:
+        visited.append(node)
+        self.get_descendants_helper(self.get_children(node), visited)
+    return visited
 
   def get_observable(self):
-    return sorted(list(self.observed_variables))
+    return sorted(list(self.observed_vars))
 
   def get_parents(self, node):
     return sorted(list(self.dag.predecessors(node)))
@@ -112,17 +129,17 @@ class CausalGraph:
     """
     dot = graphviz.Digraph()
 
-    for node in self.observed_variables:
+    for node in self.observed_vars:
       if node in self.set_nodes:
         dot.node(node, node, {"shape": "ellipse", "peripheries": "2"})
       else:
         dot.node(node, node, {"shape": "ellipse"})
 
     for a, b in self.dag.edges():
-      if a in self.observed_variables and b in self.observed_variables:
+      if a in self.observed_vars and b in self.observed_vars:
         dot.edge(a, b)
 
-    for n, (a, b) in self.unobserved_variable_edges.items():
+    for n, (a, b) in self.unobserved_var_edges.items():
       dot.node(n, _attributes={"shape": "point"})
       dot.edge(n, a, _attributes={"style": "dashed"})
       dot.edge(n, b, _attributes={"style": "dashed"})
@@ -161,30 +178,48 @@ class CausalGraph:
         givens[parent] = None
       product.append((query, givens))
     return product
+  
+  def get_non_s_nodes(self):
+    return [n for n in self.observed_vars if n not in self.s_nodes]
 
+  def get_edges(self):
+    return [
+      (a, b)
+      for a, b in self.dag.edges()
+      if a in self.observed_vars
+      and b in self.observed_vars]
+    
+  def get_latent_edges(self):
+    return [
+      (a, b)
+      for a, b in self.latent_edges
+      if a not in self.set_nodes
+      and b not in self.set_nodes
+    ]
+    
+  def get_s_node_children(self):
+    children = []
+    [children.extend(self.get_children(n)) for n in self.s_nodes]
+    gutil.remove_dupes(children)
+    return sorted(children)
+    
   def do(self, node):
     """
     Apply intervention on node to CGM
     """
-    assert node in self.observed_variables
+    assert node in self.observed_vars
     set_nodes = self.set_nodes | frozenset([node])
-    nodes = self.observed_variables
-    edges = [
-      (a, b)
-      for a, b in self.dag.edges()
-      if b != node
-      and a in self.observed_variables
-      and b in self.observed_variables
-    ]
-    latent_edges = [
-      (a, b)
-      for a, b in self.latent_edges
-      if a not in set_nodes
-      and b not in set_nodes
-    ]
+    edges = [e for e in self.get_edges() if e[1] != node]
+    latent_edges = [e for e in self.get_latent_edges() if e[0] != node and e[1] != node]
     return CausalGraph(
-      nodes=nodes, edges=edges,
-      latent_edges=latent_edges, set_nodes=set_nodes)
+      nodes=self.get_non_s_nodes(), edges=edges,
+      latent_edges=latent_edges, set_nodes=set_nodes, s_node_children=self.get_s_node_children())
+
+  def selection_diagram(self, s_node_children):
+    return CausalGraph(
+      nodes=self.get_non_s_nodes(), edges=self.get_edges(),
+      latent_edges=self.get_latent_edges(), set_nodes=self.set_nodes,
+      s_node_children=s_node_children)
 
   def _check_d_separation(self, path, zs=None):
     """
@@ -231,9 +266,9 @@ class CausalGraph:
     Is x d-separated from y, conditioned on zs?
     """
     zs = _variable_or_iterable_to_set(zs)
-    assert x in self.observed_variables
-    assert y in self.observed_variables
-    assert all([z in self.observed_variables for z in zs])
+    assert x in self.observed_vars
+    assert y in self.observed_vars
+    assert all([z in self.observed_vars for z in zs])
 
     paths = nx.all_simple_paths(self.graph, x, y)
     return all(self._check_d_separation(path, zs) for path in paths)
@@ -244,13 +279,12 @@ class CausalGraph:
     implied by the graph structure.
     """
     conditional_independences = []
-    for x, y in combinations(self.observed_variables, 2):
-      remaining_variables = set(self.observed_variables) - {x, y}
+    for x, y in combinations(self.observed_vars, 2):
+      remaining_variables = set(self.observed_vars) - {x, y}
       for cardinality in range(len(remaining_variables) + 1):
         for z in combinations(remaining_variables, cardinality):
           if self.is_d_separated(x, y, frozenset(z)):
             conditional_independences.append((x, y, set(z)))
-
     return conditional_independences
 
   def get_all_backdoor_paths(self, x, y):
@@ -289,8 +323,8 @@ class CausalGraph:
     """
     z = _variable_or_iterable_to_set(z)
 
-    assert x in self.observed_variables
-    assert y in self.observed_variables
+    assert x in self.observed_vars
+    assert y in self.observed_vars
     assert x not in z
     assert y not in z
 
@@ -332,11 +366,11 @@ class CausalGraph:
     -------
     condition set: frozenset[frozenset[variables]]
     """
-    assert x in self.observed_variables
-    assert y in self.observed_variables
+    assert x in self.observed_vars
+    assert y in self.observed_vars
 
     possible_adjustment_variables = (
-      set(self.observed_variables)
+      set(self.observed_vars)
       - {x} - {y}
       - set(nx.descendants(self.dag, x))
     )
@@ -425,11 +459,11 @@ class CausalGraph:
     -------
     condition set: frozenset[frozenset[variables]]
     """
-    assert x in self.observed_variables
-    assert y in self.observed_variables
+    assert x in self.observed_vars
+    assert y in self.observed_vars
 
     possible_adjustment_variables = (
-      set(self.observed_variables)
+      set(self.observed_vars)
       - {x} - {y}
     )
 
@@ -441,6 +475,62 @@ class CausalGraph:
       ])
 
     return valid_adjustment_sets
+  
+  def is_directly_transportable(self, y, zs=[]):
+    if len(self.s_nodes) == 0:
+      return True
+    do_set_nodes = self.do_set_nodes()
+    for s_node in self.s_nodes:
+      if not do_set_nodes.is_d_separated(s_node, y, zs + list(self.set_nodes)):
+        return False
+    return True
+  
+  def get_adjustment_sets(self, x, y, zs):
+    if len(zs) > 0:
+      return self.get_all_backdoor_adjustment_sets(x, y)
+    return frozenset(sorted(list(self.get_all_backdoor_adjustment_sets(x,y)) + list(self.get_all_frontdoor_adjustment_sets(x,y))))
+  
+  def is_trivially_transportable(self, x, y, zs=set()):
+    for s in self.get_adjustment_sets(x, y, zs):
+      if zs.issubset(s):
+        return True
+    return False
+  
+  def shortest_triv_transp_adj_set(self, x, y, zs=set()):
+    shortest = None
+    shortest_set_size = float('inf')
+    for s in self.get_adjustment_sets(x, y, zs):
+        if zs.issubset(s) and len(s) < shortest_set_size:
+          shortest = s
+          shortest_set_size = len(s)
+    return shortest
+  
+  def triv_transp_adj_formula(self, x, y, zs=set()):
+    ss = [v for v in self.shortest_triv_transp_adj_set(x,y,zs) if v not in zs]
+    prob_query = [[{y: None}, {x: None}]]
+    if len(ss) > 0:
+      prob_query.append([dict(), dict()])
+      for z in zs:
+        prob_query[1][1][z] = None
+      for s in ss:
+        prob_query[0][1][s] = None
+        prob_query[1][0][s] = None
+    for z in zs:
+      prob_query[0][1][z] = None
+    return prob_query
+  
+  def do_set_nodes(self):
+    new_model = self.__copy__()
+    for node in self.set_nodes:
+      new_model = new_model.do(node)
+    return new_model
+      
+  def __copy__(self):
+    return CausalGraph(
+        nodes=self.get_non_s_nodes(), edges=self.get_edges(),
+        latent_edges=self.get_latent_edges(), set_nodes=self.set_nodes,
+        s_node_children=self.get_s_node_children())
+    
 
 def _variable_or_iterable_to_set(x):
   """
@@ -477,3 +567,15 @@ def _powerset(iterable):
   """
   s = list(iterable)
   return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
+
+if __name__ == "__main__":
+  nodes = ["W", "X", "Y", "Z", "C"]
+  edges = [("W","X"),("W", "Y"), ("X", "Z"), ("Z", "Y"), ("C", "Y")]
+  model = CausalGraph(nodes, edges, set_nodes=["X"])
+  bias_model = model.selection_diagram(["C"])
+  # print(bias_model.is_directly_transportable("Y", ["W"]))
+  print(bias_model.get_all_backdoor_adjustment_sets("X", "Y"))
+  # print(bias_model.get_all_frontdoor_adjustment_sets("X", "Y"))
+  print(bias_model.is_directly_transportable("Y", ["W"]))
+  print(bias_model.is_trivially_transportable("X", "Y", {"W"}))
+  print(bias_model.triv_transp_adj_formula("X", "Y", {"W"}))

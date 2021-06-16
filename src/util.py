@@ -182,8 +182,7 @@ def prob(dataset, Q, e={}):
   are assigned, returns the conditional probability 
   calculated from the dataset.
   """
-  if has_unassigned(Q) or has_unassigned(Q):
-    print("All variables should have assignments to use util.prob(). Try util.prob_with_unassigned(), instead.")
+  assert not (has_unassigned(Q) or has_unassigned(e))
   return uncond_prob(dataset, {**Q, **e}) / uncond_prob(dataset, e)
 
 def uncond_prob(dataset, Q):
@@ -250,7 +249,7 @@ def parse_query(str_query):
         elif len(e_var):
           new_p[1][e_var] = None if e_val == "" else float(e_val) if int(
               float(e_val)) != float(e_val) else int(float(e_val))
-        parsed.append(tuple(new_p))
+        parsed.append(new_p)
         Q_var = Q_val = e_var = e_val = ""
         new_p = [{}, {}]
       elif char == ',':
