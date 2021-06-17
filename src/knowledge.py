@@ -6,8 +6,8 @@ class Knowledge():
     self.domains = environment.domains
     self.act_vars = environment.act_vars
     self.samples = []
-    self.obs = list()
-    self.exp = list()
+    # self.obs = list()
+    # self.exp = list()
 
   def add_sample(self, sample):
     self.samples.append(sample)

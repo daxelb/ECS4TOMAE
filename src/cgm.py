@@ -488,15 +488,17 @@ class CausalGraph:
   def get_adjustment_sets(self, x, y, zs):
     if len(zs) > 0:
       return self.get_all_backdoor_adjustment_sets(x, y)
-    return frozenset(sorted(list(self.get_all_backdoor_adjustment_sets(x,y)) + list(self.get_all_frontdoor_adjustment_sets(x,y))))
+    return set(list(self.get_all_backdoor_adjustment_sets(x,y)) + list(self.get_all_frontdoor_adjustment_sets(x,y)))
   
   def is_trivially_transportable(self, x, y, zs=set()):
+    zs = set(zs)
     for s in self.get_adjustment_sets(x, y, zs):
       if zs.issubset(s):
         return True
     return False
   
   def shortest_triv_transp_adj_set(self, x, y, zs=set()):
+    zs = set(zs)
     shortest = None
     shortest_set_size = float('inf')
     for s in self.get_adjustment_sets(x, y, zs):
@@ -505,7 +507,7 @@ class CausalGraph:
           shortest_set_size = len(s)
     return shortest
   
-  def triv_transp_adj_formula(self, x, y, zs=set()):
+  def triv_transp_adj_formula(self, x, y, zs):
     ss = [v for v in self.shortest_triv_transp_adj_set(x,y,zs) if v not in zs]
     prob_query = [[{y: None}, {x: None}]]
     if len(ss) > 0:
@@ -518,6 +520,20 @@ class CausalGraph:
     for z in zs:
       prob_query[0][1][z] = None
     return prob_query
+  
+  def direct_transp_adj_formula(self, x, y, zs):
+    prob_query = [[{y: None}, {x: None}]]
+    for z in zs:
+      prob_query[0][1][z] = None
+    return prob_query
+    
+  
+  def get_transport_formula(self, x, y, zs=set()):
+    if self.is_directly_transportable(y, zs):
+      return self.direct_transp_adj_formula(x,y,zs)
+    if self.is_trivially_transportable(x, y, zs):
+      return self.triv_transp_adj_formula(x, y, zs)
+    return None
   
   def do_set_nodes(self):
     new_model = self.__copy__()

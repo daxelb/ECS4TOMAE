@@ -95,7 +95,6 @@ class Environment:
       for tup in action_rewards:
         best = [tup] if tup[1] > best_rew else best + [tup] if tup[1] == best_rew else best
         best_rew = max(best_rew, tup[1])
-        
       return best
     
     def optimal_actions(self, givens={}):
@@ -103,6 +102,9 @@ class Environment:
     
     def optimal_reward(self, givens={}):
       return self.optimal_action_rewards(givens)[0][1]
+    
+    def selection_diagram(self, s_node_children):
+      return self.cgm.selection_diagram(s_node_children)
 
     def __repr__(self):
       variables = ", ".join(map(str, sorted(self.cgm.dag.nodes())))

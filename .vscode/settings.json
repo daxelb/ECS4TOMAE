@@ -2,5 +2,6 @@
   "[python]": {
     "editor.tabSize": 2,
   },
-  "editor.insertSpaces": true
+  "editor.insertSpaces": true,
+  "python.pythonPath": "C:\\Program Files\\Python\\Python39\\python.exe"
 }

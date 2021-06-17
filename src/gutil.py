@@ -125,11 +125,12 @@ def only_dicts_with_givens(dicts, assignments={}):
   """
   if not assignments:
     return dicts
-  res = list(dicts)
+  res = dicts.copy()
   for d in dicts:
     for a in assignments:
       if d[a] != assignments[a]:
         res.remove(d)
+        break
   return res
 
 def num_matches(dict1, dict2):
@@ -156,6 +157,17 @@ def only_given_keys(dictionary, keys):
     if key not in keys:
       del res[key]
   return res
+
+def is_entry_in_dicts(dicts, entry):
+  for d in dicts:
+    for i in range(len(d)):
+      key = list(d.keys())[i]
+      if i == len(d) - 1:
+        if d[key] == entry[key]:
+          return True
+      if d[key] != entry[key]:
+        break
+  return False
 
 def avg(lst):
   """

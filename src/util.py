@@ -208,6 +208,17 @@ def uncond_prob(dataset, Q):
     count += consistent
   return count / total
 
+def apply_assignments_to_query(query, assignments):
+  """
+  query: [Q, e]
+  assignments: dictionary mapping var_names:value_assignment
+  """
+  ass_query = list(query)
+  for partial_query in ass_query:
+    for key in partial_query:
+      partial_query[key] = assignments[key]
+  return tuple(ass_query)
+
 def split_query(str_query):
   """
   Helper method that splits a probability distribution
@@ -276,3 +287,20 @@ def parse_query(str_query):
           else:
             e_var += char
   return parsed
+
+def product_of_queries(dataset, queries):
+  product = 1
+  for factor in queries:
+    print(factor)
+    product *= prob(dataset, factor[0], factor[1])
+  return product
+
+def apply_assignments_to_queries(queries, assignments):
+  assigned_queries = queries.copy()
+  for query in assigned_queries:
+    query = apply_assignments_to_query(query, assignments)
+  return assigned_queries
+
+def compute_query_product(dataset, queries, assignments):
+  query_factors = apply_assignments_to_queries(queries, assignments)
+  return product_of_queries(dataset, query_factors)

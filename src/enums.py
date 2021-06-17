@@ -8,7 +8,7 @@ class Policy(Enum):
   DEAF = 0
   NAIVE = 1
   SENSITIVE = 2
-  TRANSPORT = 3
+  ADJUST = 3
   
 class Result(Enum):
   CUM_REGRET = "Cumulative Regret"
