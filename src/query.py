@@ -1,7 +1,8 @@
+import putil
 import util
 import gutil
-from collections.abc import MutableSequence
-from copy import deepcopy
+from collections.abc import MutableSequence, Iterable
+import copy
 
 class Queries(MutableSequence):
   def __init__(self, data=None):
@@ -10,32 +11,49 @@ class Queries(MutableSequence):
 
   def remove_dupes(self):
     gutil.remove_dupes(self._list)
-    
-  def sum_over_unassigned(self, domains):
-    domains = gutil.only_given_keys(domains, )
-    return Summation(permutations)
   
   def get_unassigned(self):
-    unassigned = set()
-    for q in self._list:
+    unassigned = {}
+    for q in self.unpack():
       if isinstance(q, Query):
         unassigned.update(q.get_unassigned())
     return unassigned
   
   def over_unassigned(self):
-    unassigned = self.get_unassigned()
-    self.over_unassigned_helper(unassigned, self.copy())
+    return self.over_unassigned_helper(self.get_unassigned(), self)
   
   def over_unassigned_helper(self, unassigned, assignments):
-    var_to_assign = unassigned.pop()
-    for a in assignments:
-      var_domain = 
-      new_a = Queries([a])
-      a = new_a
-    unassigned = self.get_unassigned()
-    
-  def assignment_options(self, domain):
-    return
+    if not unassigned:
+      return assignments
+    var = list(unassigned.keys())[0]
+    dom = unassigned.pop(var)
+    new_assignments = Queries()
+    for a in dom:
+      new_assignments.append(assignments.deepcopy().assign(var, a))
+    return self.over_unassigned_helper(unassigned, new_assignments)
+  
+  def assign(self, var, ass):
+    for q in self:
+      if isinstance(q, Queries):
+        q = q.assign(var, ass)
+      elif isinstance(q, Query):
+        if var in q.Q:
+          q.Q[var] = ass
+        if var in q.e:
+          q.e[var] = ass
+    return self
+  
+  def unpack(self):
+    new_self = self.__copy__()
+    for i in range(len(self._list)):
+      q = new_self._list[i]
+      if isinstance(q, Queries):
+        new_self._list.pop(i)
+        q = q.unpack()
+        for j in range(len(q)):
+          new_self._list.insert(i + j, q[j])
+        return new_self.unpack()
+    return new_self
     
   def __repr__(self):
     return "<{0} {1}>".format(self.__class__.__name__, self._list)
@@ -53,13 +71,19 @@ class Queries(MutableSequence):
     self._list[i] = val
     
   def __str__(self):
-    return str(self._list)
+    s = "["
+    for i, e in enumerate(self._list):
+      s += str(e)
+      s += ", " if i < len(self._list) - 1 else "]"
+    if isinstance(self, (Product, Summation)):
+      return "<{}: {}>".format(self.__class__.__name__, s)
+    return "<{}>".format(s)
   
   def __copy__(self):
-    return Queries(self._list)
+    return self.__class__((self._list))
   
-  def __deepcopy__(self):
-    return Queries(deepcopy(self._list))
+  def deepcopy(self):
+    return self.__class__((copy.deepcopy(self._list)))
 
   def insert(self, i, val):
     self._list.insert(i, val)
@@ -76,26 +100,30 @@ class Queries(MutableSequence):
   
 class Product(Queries):
   def __init__(self, data=None):
-    super().__init__(data)
+    if isinstance(data, Queries):
+      super().__init__(data._list)
+    else:
+      super().__init__(data)
     
   def solve(self, data):
-    assert all(isinstance(q, (Query, int, float)) for q in self._list)
+    assert all(isinstance(q, (Product, Summation, Query, int, float)) for q in self._list)
     product = 1
     for q in self._list:
-      product *= q.solve(data) if isinstance(q, Query) else q
+      product *= q if isinstance(q, int, float) else q.solve(data)
     return product
 
 class Summation(Queries):
   def __init__(self, data=None):
-    super().__init__(data)
+    if isinstance(data, Queries):
+      super().__init__(data._list)
+    else:
+      super().__init__(data)
     
   def solve(self, data):
-    assert all(isinstance(q, (Query, int, float)) for q in self._list)
     summation = 0
     for q in self._list:
-      summation += q.solve(data) if isinstance(q, Query) else q
+      summation += q if isinstance(q, int, float) else q.solve(data)
     return summation
-  
 
 class Query:
   def __init__(self, Q, e={}):
@@ -106,19 +134,22 @@ class Query:
   def get_assignments(self):
     assignments = {}
     for var, ass in self.Qe.items():
-      if ass is not None:
+      if not isinstance(ass, Iterable):
         assignments |= {var: ass}
     return assignments
   
-  def get_unassigned(self):
+  def get_unassigned_vars(self):
     unassigned = set()
     for var, ass in self.Qe.items():
-      if ass is None:
+      if isinstance(ass, Iterable):
         unassigned.add(var)
-    return unassigned
+    return sorted(unassigned)
+  
+  def get_unassigned(self):
+    return gutil.only_given_keys(self.Qe, self.get_unassigned_vars())
   
   def solve(self, data):
-    return util.prob(data, self.Q, self.e)
+    return putil.prob(data, self.Q, self.e)
   
   def as_tup(self):
     return (self.Q, self.e)
@@ -145,8 +176,8 @@ class Query:
         
   
 if __name__ == "__main__":
-  q = Query({"Y": 1}, {"X": None, "W":1})
-  q1 = Query({"Y": 1}, {"X": None, "Z": None})
+  q = Query({"Y": 1}, {"X": (0,1), "W":1})
+  q1 = Query({"Y": 1}, {"X": (0,1), "Z": (0,1)})
   # queries = {q, q1}
   # print(queries)
   # print(q.as_tup())
@@ -156,9 +187,16 @@ if __name__ == "__main__":
   # print(q)
   # print(q1)
   # print(q.__hash__())
-  qs = Summation([q, q1])
+  qs = Product([q1, q])
+  # print(q.get_unassigned())
   # print(list(qs.__iter__()))
   # data = [{"X": 1, "Y": 0, "W": 1}]
   # print(qs.solve(data))
-  print(qs.get_unassigned())
+  # print(qs.get_unassigned())
+  so = Summation(qs.over_unassigned())
+  # print(so)
+  for q in so:
+    print(q)
+  # print(qs.over_unassigned())
+  # print(qs.unpack())
   

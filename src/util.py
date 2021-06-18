@@ -1,5 +1,6 @@
 import math
 import gutil
+from collections.abc import Iterable
 
 def hash_from_dict(dictionary):
   """
@@ -12,7 +13,7 @@ def hash_from_dict(dictionary):
   hashstring = ""
   for i, key in enumerate(dictionary.keys()):
     hashstring += str(key)
-    if dictionary[key] is not None:
+    if not isinstance(dictionary[key], Iterable):
       hashstring += "=" + str(dictionary[key])
     if i < len(dictionary.keys()) - 1:
       hashstring += ","

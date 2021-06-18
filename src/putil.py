@@ -57,6 +57,13 @@ def product(data, queries):
     product *= prob(data, query[0], query[1])
   return product
     
+    
+def prob_from_cpts2(data, model, query):
+  num = query.Qe
+  for node in query.Qe:
+    for pa in model.pa(node):
+      cpt = model.get_node_dist(pa)
+
 def prob_from_cpts(data, model, query):
   eqn = [[],[]]
   num = {**query[0], **query[1]}
