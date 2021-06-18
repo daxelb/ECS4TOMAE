@@ -1,18 +1,19 @@
 from knowledge import Knowledge
 import util
 import gutil
+import putil
 import random
 from enums import Datatype, Policy
 
 # DIV_NODE_CONF = 0.09
 # SAMPS_NEEDED = 15
 # DIV_EPS_DEC_SLOWNESS = 1.75
-DIV_NODE_CONF = 0.06
-SAMPS_NEEDED = 10
-DIV_EPS_DEC_SLOWNESS = 2.5
+DIV_NODE_CONF = 0.075
+SAMPS_NEEDED = 12
+DIV_EPS_DEC_SLOWNESS = 5
 
 class Agent:
-  def __init__(self, name, environment, epsilon=0.01, policy=Policy.DEAF):
+  def __init__(self, name, environment, epsilon=0.001, policy=Policy.DEAF):
     self.name = name
     self.environment = environment
     self.epsilon = epsilon
@@ -119,65 +120,7 @@ class Agent:
           weight = action_rewards[act][rew][0][i] / weight_total
           reward_prob += action_rewards[act][rew][1][i] * weight
         weighted_act_rew[act] += reward_prob * float(rew.split("=",1)[1])
-    # print(weighted_act_rew)
     return util.dict_from_hash(gutil.max_key(weighted_act_rew)) if weighted_act_rew else self.random_action()
-        
-    # my_expected_vals = util.expected_vals(self.get_data(), self.act_vars, self.rew_var, givens)
-    # # print(my_expected_vals)
-    # action_rewards = {}
-    # for action in gutil.permutations(self.act_doms):
-    #   action_hash = util.hash_from_dict(action)
-    #   if action_hash not in my_expected_vals:
-    #     return None
-    #   action_rewards[action_hash] = {"exp_rew": [my_expected_vals[action_hash]], "weights": [len(self.get_data())]}
-    # for f in self.friends:
-    #   # transport formula currently only supports one choice node, so if
-    #   # there are multiple choice nodes in the future, these methods must be updated
-    #   transport_formula = self.transport_formula(f, givens)
-    #   if transport_formula is None: continue
-    #   if len(transport_formula) > 1:
-    #     S_keys = [key for key in transport_formula[1][0]] 
-    #     S_domains = gutil.only_given_keys(self.knowledge.domains, S_keys)
-    #   # print(self.name, f, transport_formula)
-    #   for action in gutil.permutations(self.act_doms):
-    #     exp_rew_of_action = 0
-    #     for rew in self.knowledge.domains[self.rew_var]:
-    #       if len(transport_formula) > 1:
-    #         summation_over_S = 0
-    #         for S_assignments in gutil.permutations(S_domains):
-    #           assignments = {**action, **{self.rew_var: rew}, **S_assignments, **givens}
-    #           query_factors = util.apply_assignments_to_queries(transport_formula, assignments)
-    #           product = 1
-    #           for factor in query_factors:
-    #             if not gutil.only_dicts_with_givens(self.friends[f], factor[1]):
-    #               break
-    #             product *= util.prob(self.friends[f], factor[0], factor[1])
-    #           summation_over_S += product
-    #       else:
-    #         assignments = {**action, **{self.rew_var: rew}, **givens}
-    #         product = 1
-    #         query_factors = util.apply_assignments_to_queries(transport_formula, assignments)
-    #         for factor in query_factors:
-    #           if not gutil.only_dicts_with_givens(self.friends[f], factor[1]):
-    #               continue
-    #           product *= util.prob(self.friends[f], factor[0], factor[1])
-    #         summation_over_S = product
-    #       exp_rew_of_action += rew * summation_over_S
-    #     action_hash = util.hash_from_dict(action)
-    #     action_rewards[action_hash]["exp_rew"].append(exp_rew_of_action)
-    #     action_rewards[action_hash]["weights"].append(len(self.friends[f]))
-      
-    # exp_vals = {}
-    # for action in action_rewards:
-    #   exp_vals[action] = 0
-    #   for i in range(len(action_rewards[action]["weights"])):
-    #     exp_vals[action] += \
-    #         (action_rewards[action]["weights"][i] / sum(action_rewards[action]["weights"])) \
-    #         * action_rewards[action]["exp_rew"][i]
-            
-    # return util.dict_from_hash(gutil.max_key(exp_vals))
-    
-  # def query_product(self, query_factors, )
 
   def random_action(self):
     return random.choice(gutil.permutations(self.act_doms))

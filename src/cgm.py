@@ -7,6 +7,7 @@ import graphviz
 from itertools import combinations, chain
 from collections.abc import Iterable
 import gutil
+import util
 
 class CausalGraph:
   """
@@ -493,7 +494,7 @@ class CausalGraph:
   def is_trivially_transportable(self, x, y, zs=set()):
     zs = set(zs)
     for s in self.get_adjustment_sets(x, y, zs):
-      if zs.issubset(s):
+      if zs.issubset(s) and len(s) > 1 and s.issubset(set(self.get_non_s_nodes())):
         return True
     return False
   
@@ -502,9 +503,9 @@ class CausalGraph:
     shortest = None
     shortest_set_size = float('inf')
     for s in self.get_adjustment_sets(x, y, zs):
-        if zs.issubset(s) and len(s) < shortest_set_size:
-          shortest = s
-          shortest_set_size = len(s)
+      if zs.issubset(s) and len(s) < shortest_set_size and len(s) > 1 and s.issubset(set(self.get_non_s_nodes())):
+        shortest = s
+        shortest_set_size = len(s)
     return shortest
   
   def triv_transp_adj_formula(self, x, y, zs):
@@ -540,6 +541,24 @@ class CausalGraph:
     for node in self.set_nodes:
       new_model = new_model.do(node)
     return new_model
+  
+  def get_model_dist(self):
+    """
+    Returns a parsed version of the model's joint prob. dist.
+    """
+    return util.parse_query(self.get_distribution())
+
+  def get_node_dist(self, node):
+    """
+    Get's the conditional probability distribution
+    for a node in the model.
+    Ex: A -> B <- C
+    => P(B|A,C) (but in the standard format of
+    the program)
+    """
+    for dist in self.get_model_dist():
+      if node in dist[0].keys():
+        return dist
       
   def __copy__(self):
     return CausalGraph(

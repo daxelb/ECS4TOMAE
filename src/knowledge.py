@@ -1,4 +1,9 @@
 import util
+from gutil import permutations, only_given_keys
+import gutil
+from assignment_models import AssignmentModel, discrete_model, random_model
+from environment import Environment
+import copy
 
 class Knowledge():
   def __init__(self, environment):
@@ -41,24 +46,6 @@ class Knowledge():
   def get_useful_data(self):
     return self.samples
 
-  def get_model_dist(self):
-    """
-    Returns a parsed version of the model's joint prob. dist.
-    """
-    return util.parse_query(self.model.get_distribution())
-
-  def get_node_dist(self, node):
-    """
-    Get's the conditional probability distribution
-    for a node in the model.
-    Ex: A -> B <- C
-    => P(B|A,C) (but in the standard format of
-    the program)
-    """
-    for dist in self.get_model_dist():
-      if node in dist[0].keys():
-        return dist
-
   def kl_divergence_of_query(self, query, other_data):
     """
     Returns the KL Divergence of a query between this (self) dataset
@@ -71,6 +58,17 @@ class Knowledge():
     Returns KL Divergence of the conditional probability of a given node in the model
     between this useful data and another dataset.
     """
-    if node in self.act_vars:
-      print("S-nodes cannot be inputs into action nodes.")
-    return self.kl_divergence_of_query(self.get_node_dist(node), other_data)
+    assert node not in self.act_vars
+    return self.kl_divergence_of_query(self.model.get_node_dist(node), other_data)
+
+        # shared_items = {k: query2[k] for k in query1 if k in query2 and query1[k] == query2[k]}
+        # print(len(shared_items))
+
+if __name__ == "__main__":
+  k = Knowledge(Environment({
+    "W": random_model((0.5, 0.5)),
+    "X": AssignmentModel(("W"), None, (0, 1)),
+    "Z": discrete_model(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+    "Y": discrete_model(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
+  }))
+  print(k.query_as_cpts(({"Y": 1}, {"X": 0})))

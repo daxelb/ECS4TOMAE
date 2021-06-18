@@ -11,7 +11,9 @@ def hash_from_dict(dictionary):
   """
   hashstring = ""
   for i, key in enumerate(dictionary.keys()):
-    hashstring += str(key) + "=" + str(dictionary[key])
+    hashstring += str(key)
+    if dictionary[key] is not None:
+      hashstring += "=" + str(dictionary[key])
     if i < len(dictionary.keys()) - 1:
       hashstring += ","
   return hashstring
@@ -303,4 +305,15 @@ def apply_assignments_to_queries(queries, assignments):
 
 def compute_query_product(dataset, queries, assignments):
   query_factors = apply_assignments_to_queries(queries, assignments)
-  return product_of_queries(dataset, query_factors)
+  return product_of_queries(dataset, query_factors)\
+
+def remove_dup_queries(queries):
+  # res = queries.copy()
+  for i in range(len(queries)):
+    for j in range(i+1, len(queries)):
+      if queries[i] == queries[j]:
+        queries[i] = None
+  for e in queries:
+    if e is None:
+      queries.remove(e)
+  return True

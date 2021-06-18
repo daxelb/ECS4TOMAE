@@ -124,9 +124,7 @@ class Environment:
       return True
 
 if __name__ == "__main__":
-    os.environ["PATH"] += os.pathsep + \
-        'C:/Program Files/Graphviz/bin/'
-    domains = {"W": (0,1), "X": (0,1), "Z": (0,1), "Y": (0,1)}
+    # domains = {"W": (0,1), "X": (0,1), "Z": (0,1), "Y": (0,1)}
     universal_model = Environment({
     "W": random_model((0.5, 0.5)),
     "X": AssignmentModel(("W"), None, (0, 1)),
