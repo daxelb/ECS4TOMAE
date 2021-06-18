@@ -1,9 +1,9 @@
+from queries import Quotient, Summation, Product
+from query import Query
 import util
-from gutil import permutations, only_given_keys
 import gutil
 from assignment_models import AssignmentModel, discrete_model, random_model
 from environment import Environment
-import copy
 
 class Knowledge():
   def __init__(self, environment):
@@ -11,40 +11,66 @@ class Knowledge():
     self.domains = environment.domains
     self.act_vars = environment.act_vars
     self.samples = []
-    # self.obs = list()
-    # self.exp = list()
+
+  def get_useful_data(self):
+    return self.samples
+  
+  def get_observable(self):
+    return sorted(list(self.domains.keys()))
+  
+  def get_missing(self, dict):
+    return [v for v in self.get_observable() if v not in dict.keys()]
+  
+  def domains_of_missing(self, query):
+    return gutil.only_given_keys(self.domains, self.get_missing(query))
 
   def add_sample(self, sample):
     self.samples.append(sample)
 
-  # def add_sample(self, dataset, sample):
-  #   if len(self.model.observed_variables) != len(sample):
-  #     print("Error adding sample to agent's dataset.")
-  #   # if sample is a list, format correctly as dict
-  #   if type(sample) is list:
-  #     sample = dict(zip(self.model.observed_variables, sample))
-  #   dataset.append(sample)
+  def get_dist(self, node=None):
+    return self.model.get_dist(node).apply_domains(self.domains)
   
-  # def add_obs(self, sample):
-  #   self.add_sample(self.obs, sample)
-  
-  # def add_exp(self, sample):
-  #   self.add_sample(self.exp, sample)
-  
-  # def get_useful_data(self):
-  #   """
-  #   Returns any data in the model that satisfied do(act_vars)
-  #   """
-  #   return self.obs + self.exp if self.obs_is_useful() else self.exp
-
-  # def obs_is_useful(self):
-  #   for var in self.act_vars:
-  #     if self.model.has_latent_parents(var):
-  #       return False
-  #   return True
-  
-  def get_useful_data(self):
-    return self.samples
+  def prob_from_cpts(self, query):
+    dist = Summation(Product([
+        q for q in 
+        self.get_dist().apply_domains(self.domains).apply_domains(query.get_assignments()) 
+        if gutil.first_key(q.Q) in self.model.an(query.Q_and_e().keys())
+    ]).over(self.domains_of_missing(query.Q_and_e())))
+    # print(self.model.get_ancestors(query.e.keys()))
+    dist2 = Summation(Product([
+        q for q in 
+        self.get_dist().apply_domains(self.domains).apply_domains(query.get_assignments()) 
+        if gutil.first_key(q.Q) in self.model.an(query.e.keys())
+    ]).over(self.domains_of_missing(query.e)))
+    
+    dist2 = Summation(dist2)
+    
+    for d in dist:
+      print(d)
+    print()
+    for d in dist2:
+      print(d)
+    print()
+    print(dist)
+    # print(dist)
+    # print(self.domains_of_missing(query.Q_and_e()))
+    # eqn = Quotient() # [[],[]]
+    # Summation(self.get_dist().over(self.domains_of_missing(query)))
+    # nume = {**query[0], **query[1]}
+    # denom = query[1]
+    # for node in num:
+    #   for pa in self.model.pa(node):
+    #     cpt = self.model.get_dist(pa)
+    #     for e in cpt:
+    #       for key in e:
+    #         if key in num:
+    #           e[key] = num[key]
+    #     cpt = tuple(cpt)
+    #     if node in query[1]:
+    #       eqn[1].append(cpt)
+    #     eqn[0].append(cpt)
+    # [util.remove_dup_queries(e) for e in eqn]
+    # return summation(data, product(over_unassigned(eqn[0]))) / summation(data, product(over_unassigned(eqn[1])))
 
   def kl_divergence_of_query(self, query, other_data):
     """
@@ -61,9 +87,6 @@ class Knowledge():
     assert node not in self.act_vars
     return self.kl_divergence_of_query(self.model.get_node_dist(node), other_data)
 
-        # shared_items = {k: query2[k] for k in query1 if k in query2 and query1[k] == query2[k]}
-        # print(len(shared_items))
-
 if __name__ == "__main__":
   k = Knowledge(Environment({
     "W": random_model((0.5, 0.5)),
@@ -71,4 +94,6 @@ if __name__ == "__main__":
     "Z": discrete_model(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
     "Y": discrete_model(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
   }))
-  print(k.query_as_cpts(({"Y": 1}, {"X": 0})))
+  # print(k.get_dist())
+  # print(k.get_distribution("Y"))
+  print(k.prob_from_cpts(Query({"Y": 0}, ["X"])))

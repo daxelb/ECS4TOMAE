@@ -21,16 +21,21 @@ def first_value(dictionary):
   """
   return list(dictionary.values())[0]
 
+def first_key(dictionary):
+  """
+  Returns the key of the first entry in a dictionary.
+  """
+  return list(dictionary.keys())[0]
+
 def remove_dupes(lst):
   """
   Removes duplicates from an input list and updates it.
-  Returns True if duplicates were removed, else False.
+  Returns the list with removed duplicates.
   """
   no_dupes = []
   [no_dupes.append(e) for e in lst if e not in no_dupes]
-  elements_were_removed = len(no_dupes) == len(lst)
   lst = no_dupes
-  return elements_were_removed 
+  return lst 
 
 def list_from_dicts(list_of_dicts, prim_key, sec_key=None):
   """

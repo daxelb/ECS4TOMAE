@@ -1,8 +1,10 @@
 digraph {
+	W [label=W shape=ellipse]
+	X [label=X peripheries=2 shape=ellipse]
 	Y [label=Y shape=ellipse]
-	X [label=X shape=ellipse]
-	X -> Y
-	Unobserved_0 [shape=point]
-	Unobserved_0 -> X [style=dashed]
-	Unobserved_0 -> Y [style=dashed]
+	Z [label=Z shape=ellipse]
+	W -> X
+	W -> Y
+	X -> Z
+	Z -> Y
 }
