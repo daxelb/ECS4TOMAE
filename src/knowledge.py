@@ -3,9 +3,9 @@ import util
 import gutil
 import random
 
-DIV_NODE_CONF = 0.05
-SAMPS_NEEDED = 15
-DIV_EPS_DEC_SLOWNESS = 2
+DIV_NODE_CONF = 0.075
+SAMPS_NEEDED = 20
+DIV_EPS_DEC_SLOWNESS = 1.75
 
 class Knowledge():
   def __init__(self, environment, agent):
