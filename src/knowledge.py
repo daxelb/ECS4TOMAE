@@ -28,49 +28,24 @@ class Knowledge():
     self.samples.append(sample)
 
   def get_dist(self, node=None):
-    return self.model.get_dist(node).apply_domains(self.domains)
+    return self.model.get_dist(node).assign(self.domains)
   
-  def prob_from_cpts(self, query):
-    dist = Summation(Product([
-        q for q in 
-        self.get_dist().apply_domains(self.domains).apply_domains(query.get_assignments()) 
-        if gutil.first_key(q.Q) in self.model.an(query.Q_and_e().keys())
-    ]).over(self.domains_of_missing(query.Q_and_e())))
-    # print(self.model.get_ancestors(query.e.keys()))
-    dist2 = Summation(Product([
-        q for q in 
-        self.get_dist().apply_domains(self.domains).apply_domains(query.get_assignments()) 
-        if gutil.first_key(q.Q) in self.model.an(query.e.keys())
-    ]).over(self.domains_of_missing(query.e)))
-    
-    dist2 = Summation(dist2)
-    
-    for d in dist:
-      print(d)
-    print()
-    for d in dist2:
-      print(d)
-    print()
-    print(dist)
-    # print(dist)
-    # print(self.domains_of_missing(query.Q_and_e()))
-    # eqn = Quotient() # [[],[]]
-    # Summation(self.get_dist().over(self.domains_of_missing(query)))
-    # nume = {**query[0], **query[1]}
-    # denom = query[1]
-    # for node in num:
-    #   for pa in self.model.pa(node):
-    #     cpt = self.model.get_dist(pa)
-    #     for e in cpt:
-    #       for key in e:
-    #         if key in num:
-    #           e[key] = num[key]
-    #     cpt = tuple(cpt)
-    #     if node in query[1]:
-    #       eqn[1].append(cpt)
-    #     eqn[0].append(cpt)
-    # [util.remove_dup_queries(e) for e in eqn]
-    # return summation(data, product(over_unassigned(eqn[0]))) / summation(data, product(over_unassigned(eqn[1])))
+  def query_from_cpts(self, query):
+    """
+    Returns the input query in terms
+    of the model's CPTs.
+    """
+    numerator = Summation(Product([
+          q for q in 
+          self.get_dist().assign(self.domains).assign(query.get_assignments()) 
+          if gutil.first_key(q.Q) in self.model.an(query.Q_and_e().keys())
+        ]).over(self.domains_of_missing(query.Q_and_e())))
+    denominator = Summation(Product([
+          q for q in 
+          self.get_dist().assign(self.domains).assign(query.get_assignments()) 
+          if gutil.first_key(q.Q) in self.model.an(query.e.keys())
+        ]).over(self.domains_of_missing(query.e)))
+    return Quotient(numerator, denominator)
 
   def kl_divergence_of_query(self, query, other_data):
     """
@@ -96,4 +71,4 @@ if __name__ == "__main__":
   }))
   # print(k.get_dist())
   # print(k.get_distribution("Y"))
-  print(k.prob_from_cpts(Query({"Y": 0}, ["X"])))
+  print(k.query_from_cpts(Query({"Y": 0}, ["X"])))

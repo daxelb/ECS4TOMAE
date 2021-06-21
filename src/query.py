@@ -39,21 +39,30 @@ class Query:
   def get_unassigned(self):
     return gutil.only_given_keys(self.Q_and_e(), self.get_unassigned_vars())
   
+  def contains(self, var):
+    return var in self.Q_and_e()
+  
   def all_assigned(self):
     return len(self.get_unassigned()) == 0
   
   def solve(self, data):
     return putil.prob(data, self.Q, self.e)
   
-  def assign(self, var, ass):
+  def assign(self, var_or_dict, ass=None):
+    if ass is None:
+      return self.assign_many(var_or_dict)
+    else:
+      return self.assign_one(var_or_dict, ass)
+  
+  def assign_one(self, var, ass):
     if var in self.Q:
       self.Q[var] = ass
     if var in self.e:
       self.e[var] = ass
       
-  def apply_domains(self, domains):
+  def assign_many(self, domains):
     for var, ass in domains.items():
-      self.assign(var, ass)
+      self.assign_one(var, ass)
     return self
   
   def as_tup(self):

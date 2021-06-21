@@ -31,8 +31,21 @@ class Queries(MutableSequence):
         unassigned.update(q.get_unassigned())
     return unassigned
   
+  def contains(self, var):
+    for q in self:
+      if is_Q(q) and q.contains(var):
+        return True
+    return False
+  
+  def included_domains(self, domains):
+    included = {}
+    for var in domains:
+      if self.contains(var):
+        included[var] = domains[var]
+    return included
+  
   def over(self, domains):
-    return self.over_helper(domains, self)
+    return self.over_helper(self.included_domains(domains), self)
   
   def over_unassigned(self):
     return self.over_helper(self.get_unassigned(), self)
@@ -44,19 +57,25 @@ class Queries(MutableSequence):
     dom = unassigned.pop(var)
     new_assignments = Queries()
     for a in dom:
-      new_assignments.append(assignments.deepcopy().assign(var, a))
+      new_assignments.append(assignments.deepcopy().assign_one(var, a))
     return self.over_helper(unassigned, new_assignments)
   
-  def assign(self, var, ass):
+  def assign(self, var_or_dict, ass=None):
+    if ass is None:
+      return self.assign_many(var_or_dict)
+    else:
+      return self.assign_one(var_or_dict, ass)
+  
+  def assign_one(self, var, ass):
     for q in self:
       if is_Q(q):
-        q = q.assign(var, ass)
+        q = q.assign_one(var, ass)
     return self
       
-  def apply_domains(self, domains):
+  def assign_many(self, ass_dict):
     for q in self:
       if is_Q(q):
-        q = q.apply_domains(domains)
+        q = q.assign_many(ass_dict)
     return self
   
   def unpack(self):
@@ -119,11 +138,10 @@ class Summation(Queries):
     if isinstance(data, Queries):
       data = data._list
     super().__init__(data)
-    new = self._list.copy()
-    for q in new:
+    for i, q in enumerate(self._list):
       if isinstance(q, Queries) and not isinstance(q, Product):
-        q = Summation(q)
-    self._list = new
+        self._list[i] = Summation(q)
+        
     
   def solve(self, data):
     summation = 0
@@ -136,6 +154,9 @@ class Product(Queries):
     if isinstance(data, Queries):
       data = data._list
     super().__init__(data)
+    for i, q in enumerate(self._list):
+      if isinstance(q, Queries) and not isinstance(q, Summation):
+        self._list[i] = Product(q)
     
   def solve(self, data):
     assert all(isinstance(q, (Product, Summation, Query, int, float)) for q in self._list)
@@ -154,19 +175,28 @@ class Quotient():
   def solve(self, data):
     return self.nume.solve(data) if is_Q(self.nume) else self.nume \
         / self.denom.solve(data) if is_Q(self.denom) else self.denom
+        
+  def contains(self, var):
+    return self.nume.contains(var) or self.denom.contains(var)
   
-  def assign(self, var, ass):
+  def assign(self, dict_or_var, assignment=None):
+    if assignment is None:
+      return self.assign_many(dict_or_var)
+    else:
+      return self.assign_one(dict_or_var, assignment)
+  
+  def assign_one(self, var, ass):
     if is_Q(self.nume):
-      self.nume.assign(var, ass)
+      self.nume.assign_one(var, ass)
     if is_Q(self.denom):
-      self.denom.assign(var, ass)
+      self.denom.assign_one(var, ass)
     return self
     
-  def apply_domains(self, domains):
+  def assign_many(self, ass_dict):
     if is_Q(self.nume):
-      self.nume.apply_domains(domains)
+      self.nume.assign_many(ass_dict)
     if is_Q(self.denom):
-      self.denom.apply_domains(domains)
+      self.denom.assign_many(ass_dict)
     return self
     
   def __repr__(self):
@@ -179,12 +209,12 @@ if __name__ == "__main__":
   q = Query({"Y": 1}, {"X": 0, "Z":1, "S":None})
   q1 = Query({"S": None}, {"Z": 1})
   qs = Product([q1, q])
-  qs.apply_domains({"S": (0,1)})
+  qs.assign_many({"S": (0,1)})
   # data = [{"X": 1, "Y": 0, "W": 1}]
   # print(qs.solve(data))
   so = Summation(qs.over_unassigned())
   quo = Quotient(qs, so)
   # print(quo)
-  print(Summation(qs.over({"X": (0,1)})))
+  print(Summation(qs.over({"X": (0,1), "R": (0,1)})))
   # print(so)
   
