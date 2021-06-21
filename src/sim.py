@@ -23,7 +23,7 @@ class Sim:
       self.trials.append(world.episodes)
     return
   
-  def plot_policy(self, dep_var):
+  def plot_policy(self, dep_var, filename):
     policies = {}
     for trial_episode in self.trials:
       for a in self.world.agents:
@@ -39,7 +39,8 @@ class Sim:
     plt.xlabel("Iterations")
     plt.ylabel(dep_var.value)
     plt.legend()
-    plt.show()
+    plt.savefig(filename)
+    # plt.show()
     return
 
 if __name__ == "__main__":
@@ -60,16 +61,15 @@ if __name__ == "__main__":
   reversed_y = dict(baseline)
   reversed_y["Y"] = discrete_model(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
 
-  agents = [
-    Agent("00", Environment(baseline), policy=Policy.DEAF),
-    # Agent("01", Environment(baseline), policy=Policy.NAIVE),
-    # Agent("02", Environment(baseline), policy=Policy.SENSITIVE),
-    Agent("03", Environment(baseline), policy=Policy.ADJUST),
-    Agent("04", Environment(reversed_z), policy=Policy.DEAF),
-    # Agent("05", Environment(reversed_z), policy=Policy.NAIVE),
-    # Agent("06", Environment(reversed_z), policy=Policy.SENSITIVE),
-    # Agent("07", Environment(reversed_z), policy=Policy.ADJUST),
-  ]
-  sim = Sim(World(agents), 250, 5)
-  sim.run()
-  sim.plot_policy(Result.CUM_REGRET)
+  for pol in [Policy.DEAF, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST]:
+    agents = [
+      Agent("00", Environment(baseline), policy=pol),
+      Agent("01", Environment(w1), policy=pol),
+      Agent("02", Environment(w9), policy=pol),
+      Agent("03", Environment(z5), policy=pol),
+      Agent("04", Environment(reversed_z), policy=pol),
+      Agent("05", Environment(reversed_y), policy=pol),
+    ]
+    sim = Sim(World(agents), 240, 12)
+    sim.run()
+  sim.plot_policy(Result.CUM_REGRET, "../output/6agent-240-allEnvDiff.png")
