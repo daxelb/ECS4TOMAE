@@ -1,4 +1,4 @@
-from knowledge import KnowledgeAdjust, KnowledgeDeaf, KnowledgeNaive, KnowledgeSensitive
+from knowledge import KnowledgeAdjust, Knowledge, KnowledgeNaive, KnowledgeSensitive
 import util
 import gutil
 import random
@@ -23,7 +23,7 @@ class Agent:
     self.act_vars = self.environment.act_vars
     
     if policy == Policy.DEAF:
-      self.knowledge = KnowledgeDeaf(self.environment, self)
+      self.knowledge = Knowledge(self.environment, self)
     elif policy == Policy.NAIVE:
       self.knowledge = KnowledgeNaive(self.environment, self)
     elif policy == Policy.SENSITIVE:

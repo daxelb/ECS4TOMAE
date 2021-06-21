@@ -46,7 +46,7 @@ if __name__ == "__main__":
   baseline = {
     "W": random_model((0.4, 0.6)),
     "X": AssignmentModel(("W"), None, (0, 1)),
-    "Z": discrete_model(("X"), {(0,): (0.9, 0.1), (1,): (0.1, 0.9)}),
+    "Z": discrete_model(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
     "Y": discrete_model(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
   }
   w1 = dict(baseline)
@@ -56,23 +56,20 @@ if __name__ == "__main__":
   z5 = dict(baseline)
   z5["Z"] = discrete_model(("X"), {(0,): (0.9, 0.1), (1,): (0.5, 0.5)})
   reversed_z = dict(baseline)
-  reversed_z["Z"] = discrete_model(("X"), {(0,): (0.1, 0.9), (1,): (0.9, 0.1)})
+  reversed_z["Z"] = discrete_model(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
   reversed_y = dict(baseline)
   reversed_y["Y"] = discrete_model(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
 
   agents = [
-    Agent("01", Environment(baseline), policy=Policy.ADJUST),
-    Agent("02", Environment(w1), policy=Policy.ADJUST),
-    Agent("03", Environment(w9), policy=Policy.ADJUST),
-    Agent("04", Environment(z5), policy=Policy.ADJUST),
-    Agent("05", Environment(reversed_z), policy=Policy.ADJUST),
-    Agent("06", Environment(reversed_y), policy=Policy.ADJUST),
-    # Agent("04", Environment(baseline), policy=Policy.ADJUST),
-    # Agent("05", Environment(reversed_y), policy=Policy.DEAF),
-    # Agent("06", Environment(reversed_y), policy=Policy.NAIVE),
-    # Agent("07", Environment(reversed_y), policy=Policy.SENSITIVE),
-    # Agent("08", Environment(reversed_y), policy=Policy.ADJUST),
+    Agent("00", Environment(baseline), policy=Policy.DEAF),
+    # Agent("01", Environment(baseline), policy=Policy.NAIVE),
+    # Agent("02", Environment(baseline), policy=Policy.SENSITIVE),
+    Agent("03", Environment(baseline), policy=Policy.ADJUST),
+    Agent("04", Environment(reversed_z), policy=Policy.DEAF),
+    # Agent("05", Environment(reversed_z), policy=Policy.NAIVE),
+    # Agent("06", Environment(reversed_z), policy=Policy.SENSITIVE),
+    # Agent("07", Environment(reversed_z), policy=Policy.ADJUST),
   ]
-  sim = Sim(World(agents), 250, 3)
+  sim = Sim(World(agents), 250, 20)
   sim.run()
   sim.plot_policy(Result.CUM_REGRET)

@@ -7,6 +7,7 @@ from environment import Environment
 from enums import Policy
 
 DIV_NODE_CONF = 0.05
+SAMPS_NEEDED = 15
 
 class Knowledge():
   def __init__(self, environment, agent):
@@ -55,30 +56,10 @@ class Knowledge():
           if gutil.first_key(q.Q) in self.model.an(query.e.keys())
         ]).over(self.domains_of_missing(query.e)))
     return Quotient(numerator, denominator)
-
-  def kl_divergence_of_query(self, query, other_data):
-    """
-    Returns the KL Divergence of a query between this (self) dataset
-    and another dataset (presumably, another agent's useful_data)
-    """
-    return util.kl_divergence(self.domains, self.my_data(), other_data, query[0], query[1])
-
-  def kl_divergence_of_node(self, node, other_data):
-    """
-    Returns KL Divergence of the conditional probability of a given node in the model
-    between this useful data and another dataset.
-    """
-    assert node not in self.act_vars
-    return self.kl_divergence_of_query(self.model.get_node_dist(node), other_data)
   
-class KnowledgeDeaf(Knowledge):
-  def __init__(self, *args):
-    super().__init__(*args)
-    
   def optimal_choice(self, givens={}):
     expected_values = util.expected_vals(self.my_data(), self.act_vars, self.rew_var, givens)
     return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values else None
-
 class KnowledgeNaive(Knowledge):
   def __init__(self, *args):
     super().__init__(*args)
@@ -110,6 +91,21 @@ class KnowledgeSensitive(Knowledge):
     if agent not in self.divergence:
       self.divergence[agent] = gutil.Counter()
     self.update_divergence(agent)
+    
+  def kl_divergence_of_query(self, query, other_data):
+    """
+    Returns the KL Divergence of a query between this (self) dataset
+    and another dataset (presumably, another agent's useful_data)
+    """
+    return util.kl_divergence(self.domains, self.my_data(), other_data, query[0], query[1])
+
+  def kl_divergence_of_node(self, node, other_data):
+    """
+    Returns KL Divergence of the conditional probability of a given node in the model
+    between this useful data and another dataset.
+    """
+    assert node not in self.act_vars
+    return self.kl_divergence_of_query(self.model.get_node_dist(node), other_data)
 
   def update_divergence(self, agent):
     for node in self.divergence[agent]:
@@ -139,6 +135,9 @@ class KnowledgeAdjust(KnowledgeSensitive):
     return self.selection_diagram(agent).get_transport_formula(self.act_vars[0], self.rew_var, list(givens)).assign(self.domains).assign(givens)
     
   def optimal_choice(self, givens={}):
+    if len(self.my_data()) < SAMPS_NEEDED:
+      return Knowledge.optimal_choice(self, givens)
+    
     action_rewards = {}
     for action in gutil.permutations(self.act_doms):
       act_hash = util.hash_from_dict(action)
@@ -147,6 +146,8 @@ class KnowledgeAdjust(KnowledgeSensitive):
         action_rewards[act_hash][util.hash_from_dict(rew)] = [[],[]]
     
     for agent, data in self.samples.items():
+      if len(data) < SAMPS_NEEDED:
+        continue
       transport_formula = self.transport_formula(agent, givens)
       if not transport_formula:
         continue
