@@ -1,13 +1,11 @@
 from queries import Quotient, Summation, Product
-from query import Query
 import util
 import gutil
-from assignment_models import AssignmentModel, discrete_model, random_model
-from environment import Environment
-from enums import Policy
+import random
 
 DIV_NODE_CONF = 0.05
 SAMPS_NEEDED = 15
+DIV_EPS_DEC_SLOWNESS = 2
 
 class Knowledge():
   def __init__(self, environment, agent):
@@ -108,7 +106,10 @@ class KnowledgeSensitive(Knowledge):
     return self.kl_divergence_of_query(self.model.get_node_dist(node), other_data)
 
   def update_divergence(self, agent):
+    div_epsilon = (SAMPS_NEEDED * DIV_EPS_DEC_SLOWNESS)/(len(self.samples[agent]) - SAMPS_NEEDED + SAMPS_NEEDED * DIV_EPS_DEC_SLOWNESS)
     for node in self.divergence[agent]:
+      if random.random() >= div_epsilon and self.is_divergent_dict(agent)[node] == False:
+        continue
       self.divergence[agent][node] = self.knowledge.kl_divergence_of_node(node, self.samples[agent])
       
   def is_divergent_dict(self, agent):

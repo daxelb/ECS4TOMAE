@@ -70,6 +70,6 @@ if __name__ == "__main__":
     # Agent("06", Environment(reversed_z), policy=Policy.SENSITIVE),
     # Agent("07", Environment(reversed_z), policy=Policy.ADJUST),
   ]
-  sim = Sim(World(agents), 250, 20)
+  sim = Sim(World(agents), 250, 5)
   sim.run()
   sim.plot_policy(Result.CUM_REGRET)
