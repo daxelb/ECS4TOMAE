@@ -4,7 +4,7 @@
 
 import networkx as nx
 import graphviz
-from itertools import combinations, chain
+from itertools import combinations, chain, zip_longest
 from collections.abc import Iterable
 from queries import Product
 from query import Query
@@ -498,25 +498,21 @@ class CausalGraph:
         shortest_set_size = len(s)
     return shortest
   
-  def triv_transp_adj_formula(self, x, y, zs):
+  def direct_adj_formula(self, x, y, zs):
+    return Query(y, [x] + zs)
+  
+  def trivial_adj_formula(self, x, y, zs):
     ss = [v for v in self.shortest_triv_transp_adj_set(x,y,zs) if v not in zs]
     prob_query = Product(Query(y, ss + list(zs) + [x])) #[[{y: None}, {x: None}]]
     if len(ss) > 0:
       prob_query.append(Query(ss, zs))
     return prob_query
   
-  def direct_transp_adj_formula(self, x, y, zs):
-    prob_query = [[{y: None}, {x: None}]]
-    for z in zs:
-      prob_query[0][1][z] = None
-    return prob_query
-    
-  
   def get_transport_formula(self, x, y, zs=set()):
     if self.is_directly_transportable(y, zs):
-      return self.direct_transp_adj_formula(x,y,zs)
+      return self.direct_adj_formula(x,y,zs)
     if self.is_trivially_transportable(x, y, zs):
-      return self.triv_transp_adj_formula(x, y, zs)
+      return self.trivial_adj_formula(x, y, zs)
     return None
   
   def do_set_nodes(self):

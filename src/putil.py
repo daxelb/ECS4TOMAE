@@ -7,7 +7,6 @@ def prob(dataset, Q, e={}):
   are assigned, returns the conditional probability 
   calculated from the dataset.
   """
-  assert not (get_unassigned(Q) or get_unassigned(e))
   return uncond_prob(dataset, {**Q, **e}) / uncond_prob(dataset, e)
 
 def uncond_prob(dataset, Q):
@@ -23,6 +22,8 @@ def uncond_prob(dataset, Q):
   if not Q:
     return 1.0
   total = len(dataset)
+  if not total:
+    return None
   count = 0
   for i in range(total):
     consistent = True

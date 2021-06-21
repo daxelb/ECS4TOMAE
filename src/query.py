@@ -46,6 +46,7 @@ class Query:
     return len(self.get_unassigned()) == 0
   
   def solve(self, data):
+    assert not len(self.get_unassigned())
     return putil.prob(data, self.Q, self.e)
   
   def assign(self, var_or_dict, ass=None):

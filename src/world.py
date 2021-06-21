@@ -85,8 +85,9 @@ class World:
     for a in self.agents:
       if a.policy in [Policy.DEAF, Policy.NAIVE]: continue
       for f in self.agents:
-        if a == f: continue
-        correct = gutil.num_matches(a.friend_divergence[f.name], self.cdn[a.name][f.name])
+        if a == f:
+          continue
+        correct = gutil.num_matches(a.knowledge.is_divergent_dict(f), self.cdn[a.name][f.name])
         perc_corr = correct / (len(self.cdn[a.name]) * len(self.cdn[a.name][f.name]))
         percent_correct[a.name] += perc_corr
         percent_correct["total"] += perc_corr/len(self.cdn)
@@ -100,7 +101,7 @@ class World:
     """
     cum_regret = gutil.Counter()
     for a in self.agents:
-      recent = a.get_data()[-1]
+      recent = a.get_recent()
       rew_received = recent[a.rew_var]
       rew_optimal = a.environment.optimal_reward(gutil.only_given_keys(recent, a.environment.feature_nodes))
       curr_regret = self.episodes[-1][Result.CUM_REGRET][a.name] if self.episodes else 0

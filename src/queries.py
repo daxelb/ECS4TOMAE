@@ -141,7 +141,6 @@ class Summation(Queries):
     for i, q in enumerate(self._list):
       if isinstance(q, Queries) and not isinstance(q, Product):
         self._list[i] = Summation(q)
-        
     
   def solve(self, data):
     summation = 0
