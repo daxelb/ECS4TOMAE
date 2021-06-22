@@ -6,6 +6,7 @@ from enums import Policy, Result
 import gutil
 import matplotlib.pyplot as plt
 import numpy as np
+import multiprocessing as mp
 
 class Sim:
   def __init__(self, world, num_episodes, num_trials):
@@ -22,8 +23,17 @@ class Sim:
         gutil.printProgressBar(i+((j+1)/self.num_episodes), self.num_trials)
       self.trials.append(world.episodes)
     return
+
+  def get_policy_data(self, dep_var):
+    policies = {}
+    for trial in self.trials:
+      for a in self.world.agents:
+        if a.policy not in policies:
+          policies[a.policy] = []
+        policies[a.policy].append(gutil.list_from_dicts(trial, dep_var, a.name))
+    return policies
   
-  def plot_policy(self, dep_var, filename):
+  def plot_policy(self, dep_var):
     policies = {}
     for trial_episode in self.trials:
       for a in self.world.agents:
@@ -39,11 +49,45 @@ class Sim:
     plt.xlabel("Iterations")
     plt.ylabel(dep_var.value)
     plt.legend()
-    plt.savefig(filename)
-    # plt.show()
+    plt.show()
     return
+  
+  def simulate(self, results, index, dep_var):
+    sim = self.__copy__()
+    sim.run()
+    results[index] = sim.get_policy_data(dep_var)
 
-if __name__ == "__main__":
+  def multithreaded_sim(self, dep_var, show=False):
+    num_threads = mp.cpu_count()
+    jobs = []
+    results = mp.Manager().list([None] * num_threads)
+    for i in range(num_threads):
+      job = mp.Process(target=self.simulate,args=(results, i, dep_var))
+      jobs.append(job)
+      job.start()
+    [job.join() for job in jobs]
+    policies = {}
+    for res in results:
+      for p in res:
+        if p not in policies:
+          policies[p] = []
+        policies[p].extend(res[p])
+    for p in policies:
+      plt.plot(
+          np.arange(len(policies[p][0])),
+          np.array(gutil.avg_list(policies[p])),
+          label=p
+      )
+    plt.xlabel("Iterations")
+    plt.ylabel(dep_var.value)
+    plt.legend()
+    if show:
+      plt.show()
+
+  def __copy__(self):
+    return Sim(self.world, self.num_episodes, self.num_trials)
+
+if __name__ == "__main__":  
   baseline = {
     "W": RandomModel((0.4, 0.6)),
     "X": ActionModel(("W"), (0, 1)),
@@ -63,13 +107,13 @@ if __name__ == "__main__":
 
   for pol in [Policy.DEAF, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST]:
     agents = [
-      Agent("00", Environment(baseline), policy=pol),
-      Agent("01", Environment(w1), policy=pol),
-      Agent("02", Environment(w9), policy=pol),
-      Agent("03", Environment(z5), policy=pol),
-      Agent("04", Environment(reversed_z), policy=pol),
-      Agent("05", Environment(reversed_y), policy=pol),
+        Agent("00", Environment(baseline), policy=pol),
+        Agent("01", Environment(w1), policy=pol),
+        Agent("02", Environment(w9), policy=pol),
+        Agent("03", Environment(z5), policy=pol),
+        Agent("04", Environment(reversed_z), policy=pol),
+        Agent("05", Environment(reversed_y), policy=pol),
     ]
-    sim = Sim(World(agents), 240, 12)
-    sim.run()
-  sim.plot_policy(Result.CUM_REGRET, "../output/6agent-240-allEnvDiff.png")
+    sim = Sim(World(agents), 10, 1)
+    sim.multithreaded_sim(Result.CUM_REGRET)
+  plt.savefig("./output/{}agent-{}ep-{}n".format(len(agents), sim.num_episodes, sim.num_episodes * mp.cpu_count()))

@@ -4,13 +4,6 @@ import gutil
 import random
 from enums import Datatype, Policy
 
-# DIV_NODE_CONF = 0.09
-# SAMPS_NEEDED = 15
-# DIV_EPS_DEC_SLOWNESS = 1.75
-# DIV_NODE_CONF = 0.075
-# SAMPS_NEEDED = 12
-# DIV_EPS_DEC_SLOWNESS = 5
-
 class Agent:
   def __init__(self, name, environment, epsilon=0.05, policy=Policy.DEAF):
     self.name = name
@@ -19,7 +12,6 @@ class Agent:
     self.policy = policy
     self.rew_var = self.environment.rew_var
     self.rew_dom = gutil.only_given_keys(self.environment.domains, [self.rew_var])
-    self.friends = {}
     self.act_vars = self.environment.act_vars
     
     if policy == Policy.DEAF:
@@ -62,6 +54,9 @@ class Agent:
 
   def __hash__(self):
     return hash(self.name)
+  
+  def __reduce__(self):
+    return (self.__class__, (self.name, self.environment, self.epsilon, self.policy))
 
   def __eq__(self, other):
     return isinstance(other, self.__class__) \
