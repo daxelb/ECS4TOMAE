@@ -4,7 +4,7 @@ import gutil
 import random
 
 DIV_NODE_CONF = 0.07
-SAMPS_NEEDED = 20
+SAMPS_NEEDED = 15
 DIV_EPS_DEC_SLOWNESS = 2
 
 class Knowledge():

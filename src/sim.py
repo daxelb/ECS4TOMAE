@@ -109,11 +109,10 @@ if __name__ == "__main__":
     agents = [
         Agent("00", Environment(baseline), policy=pol),
         Agent("01", Environment(w1), policy=pol),
-        Agent("02", Environment(w9), policy=pol),
-        Agent("03", Environment(z5), policy=pol),
-        Agent("04", Environment(reversed_z), policy=pol),
-        Agent("05", Environment(reversed_y), policy=pol),
+        Agent("01", Environment(z5), policy=pol),
+        Agent("02", Environment(reversed_z), policy=pol),
+        Agent("03", Environment(reversed_y), policy=pol),
     ]
-    sim = Sim(World(agents), 10, 1)
+    sim = Sim(World(agents), 225, 5)
     sim.multithreaded_sim(Result.CUM_REGRET)
-  plt.savefig("./output/{}agent-{}ep-{}n".format(len(agents), sim.num_episodes, sim.num_episodes * mp.cpu_count()))
+  plt.savefig("../output/{}agent-{}ep-{}n".format(len(agents), sim.num_episodes, sim.num_trials * mp.cpu_count()))
