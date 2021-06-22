@@ -1,5 +1,5 @@
 from world import World
-from assignment_models import AssignmentModel, discrete_model, random_model
+from assignment_models import ActionModel, DiscreteModel, RandomModel
 from agent import Agent
 from environment import Environment
 from enums import Policy, Result
@@ -45,21 +45,21 @@ class Sim:
 
 if __name__ == "__main__":
   baseline = {
-    "W": random_model((0.4, 0.6)),
-    "X": AssignmentModel(("W"), None, (0, 1)),
-    "Z": discrete_model(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
-    "Y": discrete_model(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
+    "W": RandomModel((0.4, 0.6)),
+    "X": ActionModel(("W"), (0, 1)),
+    "Z": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+    "Y": DiscreteModel(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
   }
   w1 = dict(baseline)
-  w1["W"] = random_model((0.1, 0.9))
+  w1["W"] = RandomModel((0.1, 0.9))
   w9 = dict(baseline)
-  w9["W"] = random_model((0.9, 0.1))
+  w9["W"] = RandomModel((0.9, 0.1))
   z5 = dict(baseline)
-  z5["Z"] = discrete_model(("X"), {(0,): (0.9, 0.1), (1,): (0.5, 0.5)})
+  z5["Z"] = DiscreteModel(("X"), {(0,): (0.9, 0.1), (1,): (0.5, 0.5)})
   reversed_z = dict(baseline)
-  reversed_z["Z"] = discrete_model(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
+  reversed_z["Z"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
   reversed_y = dict(baseline)
-  reversed_y["Y"] = discrete_model(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
+  reversed_y["Y"] = DiscreteModel(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
 
   for pol in [Policy.DEAF, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST]:
     agents = [

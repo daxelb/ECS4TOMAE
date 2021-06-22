@@ -5,7 +5,7 @@ import inspect
 import networkx as nx
 
 from cgm import CausalGraph
-from assignment_models import AssignmentModel
+from assignment_models import ActionModel, AssignmentModel
 
 class StructuralCausalModel:
   def __init__(self, assignment):
@@ -70,8 +70,8 @@ class StructuralCausalModel:
     for node in nx.topological_sort(self.cgm.dag):
       c_model = self.assignment[node]
 
-      if c_model.model is None:
-          samples[node] = set_values[node]
+      if isinstance(c_model, ActionModel):
+        samples[node] = set_values[node]
       else:
         parent_samples = {
           parent: samples[parent]
