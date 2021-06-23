@@ -4,7 +4,7 @@ import gutil
 import random
 
 DIV_NODE_CONF = 0.07
-SAMPS_NEEDED = 15
+SAMPS_NEEDED = 100
 DIV_EPS_DEC_SLOWNESS = 2
 
 class Knowledge():
@@ -77,6 +77,9 @@ class KnowledgeSensitive(Knowledge):
     super().__init__(*args)
     self.divergence = {self.agent: gutil.Counter()}
     
+  def div_nodes(self, agent):
+    return [node for node, divergence in self.divergence[agent].items() if divergence > DIV_NODE_CONF]
+    
   def sensitive_data(self):
     data = []
     for a in self.divergence:
@@ -86,8 +89,6 @@ class KnowledgeSensitive(Knowledge):
 
   def add_sample(self, agent, sample):
     super().add_sample(agent, sample)
-    if agent not in self.divergence:
-      self.divergence[agent] = gutil.Counter()
     self.update_divergence(agent)
     
   def kl_divergence_of_query(self, query, other_data):
@@ -106,10 +107,15 @@ class KnowledgeSensitive(Knowledge):
     return self.kl_divergence_of_query(self.model.get_node_dist(node), other_data)
 
   def update_divergence(self, agent):
-    div_epsilon = (SAMPS_NEEDED * DIV_EPS_DEC_SLOWNESS)/(len(self.samples[agent]) - SAMPS_NEEDED + SAMPS_NEEDED * DIV_EPS_DEC_SLOWNESS)
+    if agent not in self.divergence:
+      self.divergence[agent] = gutil.Counter()
+    if agent == self.agent:
+      return
+    
+    # div_epsilon = (SAMPS_NEEDED * DIV_EPS_DEC_SLOWNESS)/(len(self.samples[agent]) - SAMPS_NEEDED + SAMPS_NEEDED * DIV_EPS_DEC_SLOWNESS)
+    # if random.random() >= div_epsilon and self.is_divergent_dict(agent)[node] == False:
+    #   continue
     for node in self.divergence[agent]:
-      if random.random() >= div_epsilon and self.is_divergent_dict(agent)[node] == False:
-        continue
       self.divergence[agent][node] = self.knowledge.kl_divergence_of_node(node, self.samples[agent])
       
   def is_divergent_dict(self, agent):
@@ -118,8 +124,7 @@ class KnowledgeSensitive(Knowledge):
       divergent[node] = self.divergence[agent][node] < DIV_NODE_CONF
     return divergent
     
-  def div_nodes(self, agent):
-    return [node for node, divergence in self.divergence[agent].items() if divergence > DIV_NODE_CONF]
+
       
   def optimal_choice(self, givens={}):
     expected_values = util.expected_vals(self.sensitive_data(), self.act_vars, self.rew_var, givens)
@@ -147,8 +152,6 @@ class KnowledgeAdjust(KnowledgeSensitive):
         action_rewards[act_hash][util.hash_from_dict(rew)] = [[],[]]
     
     for agent, data in self.samples.items():
-      if len(data) < SAMPS_NEEDED:
-        continue
       transport_formula = self.transport_formula(agent, givens)
       if not transport_formula:
         continue
