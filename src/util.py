@@ -108,14 +108,10 @@ def kl_divergence(domains, P_data, Q_data, query, e, log_base=math.e):
   """
   Px = prob_with_unassigned(domains, P_data, query, e)
   Qx = prob_with_unassigned(domains, Q_data, query, e)
-  if Px == None or Qx == None:
-    # print("Insufficient data to compute probabilities in KL Divergence")
-    return None
+  assert Px is not None and Qx is not None
   res = 0
   for i in range(len(Px)):
-    if Px[i][0] != Qx[i][0]:
-      print("Assignments of P and Q are unmated in kl_divergence() method")
-      return
+    assert Px[i][0] == Qx[i][0]
     res += 0 if Qx[i][1] == Px[i][1] else \
         math.inf if Qx[i][1] == 0 else \
         -math.inf if Px[i][1] == 0 else \

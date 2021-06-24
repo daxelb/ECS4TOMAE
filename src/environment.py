@@ -116,9 +116,14 @@ class Environment:
       return hash(gutil.dict_to_tuple_list(self._assignment))
 
     def __eq__(self, other):
-      return isinstance(other, self.__class__) \
-          and self.rew_var != other.rew_var \
-          and self._assignment == other._assignment
+      if not isinstance(other, self.__class__) \
+          or self.rew_var != other.rew_var \
+          or self._assignment.keys() != other._assignment.keys():
+        return False
+      for var in self._assignment:
+        if self._assignment[var] != other._assignment[var]:
+          return False
+      return True
 
 if __name__ == "__main__":
     # domains = {"W": (0,1), "X": (0,1), "Z": (0,1), "Y": (0,1)}

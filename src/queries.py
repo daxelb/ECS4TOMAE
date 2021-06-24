@@ -145,7 +145,7 @@ class Summation(Queries):
   def solve(self, data):
     summation = 0
     for q in self._list:
-      summation += q if isinstance(q, int, float) else q.solve(data)
+      summation += q.solve(data) if is_Q(q) else q
     return summation
 
 class Product(Queries):
@@ -158,10 +158,10 @@ class Product(Queries):
         self._list[i] = Product(q)
     
   def solve(self, data):
-    assert all(isinstance(q, (Product, Summation, Query, int, float)) for q in self._list)
+    assert all(is_Q(q) or is_num(q) for q in self._list)
     product = 1
     for q in self._list:
-      product *= q if isinstance(q, int, float) else q.solve(data)
+      product *= q.solve(data) if is_Q(q) else q
     return product
   
 class Quotient():

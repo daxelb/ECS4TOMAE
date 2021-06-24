@@ -8,7 +8,6 @@ class AssignmentModel:
     """
     def __init__(self, parents, domain):
         self.parents = parents
-        # self.model = model
         self.domain = domain
 
     def __call__(self, *args, **kwargs):
@@ -18,17 +17,19 @@ class AssignmentModel:
     def __repr__(self):
         return "AssignmentModel({})".format(",".join(self.parents))
 
-    def __eq__(self, other):
-        return isinstance(other, AssignmentModel) and self.parents == other.parents and self.model == other.model and self.domain == other.domain
-
 class RandomModel(AssignmentModel):
   def __init__(self, probs):
     self._probs = probs
     self.domain = list(range(len(probs)))
-    self.parents = []
+    self.parents = tuple()
 
   def model(self, **kwargs):
     return np.random.choice(self.domain, p=self._probs)
+  
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) \
+        and set(self.domain) == set(other.domain) \
+        and self._probs == other._probs
     
 class DiscreteModel(AssignmentModel):
   def __init__(self, parents, lookup_table):
@@ -55,11 +56,28 @@ class DiscreteModel(AssignmentModel):
       raise ValueError(
           "It looks like an input was provided which doesn't have a lookup.")
     return int(b)
+  
+  def __eq__(self, other):
+    if len(self._ps) != len(other._ps):
+      return False
+    for i in range(len(self._ps)):
+      for j in range(len(self._ps[i])):
+        if self._ps[i][j] != other._ps[i][j]:
+          return False
+    return isinstance(other, self.__class__) \
+        and (set(self.domain) == set(other.domain)) \
+        and (set(self.parents) == set(other.parents)) \
+        and (set(self._inputs) == set(other._inputs)) \
+        and (set(self._outputs) == set(other._outputs))
 
 class ActionModel(AssignmentModel):
   def __init__(self, parents, domain):
-    self.parents = parents
-    self.domain = domain
+    super().__init__(parents, domain)
 
   def model(self, **kwargs):
     return None
+  
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) \
+        and set(self.domain) == set(other.domain) \
+        and set(self.parents) == set(other.parents)

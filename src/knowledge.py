@@ -4,7 +4,7 @@ import gutil
 import random
 
 DIV_NODE_CONF = 0.07
-SAMPS_NEEDED = 100
+SAMPS_NEEDED = 20
 DIV_EPS_DEC_SLOWNESS = 2
 
 class Knowledge():
@@ -58,6 +58,7 @@ class Knowledge():
   def optimal_choice(self, givens={}):
     expected_values = util.expected_vals(self.my_data(), self.act_vars, self.rew_var, givens)
     return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values else None
+
 class KnowledgeNaive(Knowledge):
   def __init__(self, *args):
     super().__init__(*args)
@@ -77,26 +78,27 @@ class KnowledgeSensitive(Knowledge):
     super().__init__(*args)
     self.divergence = {self.agent: gutil.Counter()}
     
-  def div_nodes(self, agent):
-    return [node for node, divergence in self.divergence[agent].items() if divergence > DIV_NODE_CONF]
-    
-  def sensitive_data(self):
-    data = []
-    for a in self.divergence:
-      if not self.div_nodes(a):
-        data.extend(self.samples[a])
-    return data
-
   def add_sample(self, agent, sample):
     super().add_sample(agent, sample)
     self.update_divergence(agent)
+
+  def div_nodes(self, agent):
+    return [node for node, divergence in self.divergence[agent].items() if abs(divergence) > DIV_NODE_CONF]
+    
+  def sensitive_data(self):
+    data = []
+    for agent, agent_data in self.samples.items():
+      if not self.div_nodes(agent):
+        data.extend(agent_data)
+    return data
     
   def kl_divergence_of_query(self, query, other_data):
     """
     Returns the KL Divergence of a query between this (self) dataset
     and another dataset (presumably, another agent's useful_data)
     """
-    return util.kl_divergence(self.domains, self.my_data(), other_data, query[0], query[1])
+    
+    return util.kl_divergence(self.domains, self.my_data(), other_data, query.Q, query.e)
 
   def kl_divergence_of_node(self, node, other_data):
     """
@@ -106,25 +108,33 @@ class KnowledgeSensitive(Knowledge):
     assert node not in self.act_vars
     return self.kl_divergence_of_query(self.model.get_node_dist(node), other_data)
 
+  def get_non_action_nodes(self):
+    return [node for node in self.model.get_observable() if node not in self.act_vars]
+
   def update_divergence(self, agent):
     if agent not in self.divergence:
-      self.divergence[agent] = gutil.Counter()
-    if agent == self.agent:
+      self.add_agent_divergence(agent)
+    if len(self.samples[agent])  < SAMPS_NEEDED or agent == self.agent:
       return
-    
-    # div_epsilon = (SAMPS_NEEDED * DIV_EPS_DEC_SLOWNESS)/(len(self.samples[agent]) - SAMPS_NEEDED + SAMPS_NEEDED * DIV_EPS_DEC_SLOWNESS)
-    # if random.random() >= div_epsilon and self.is_divergent_dict(agent)[node] == False:
-    #   continue
-    for node in self.divergence[agent]:
-      self.divergence[agent][node] = self.knowledge.kl_divergence_of_node(node, self.samples[agent])
+    for node in self.get_non_action_nodes():
+      self.divergence[agent][node] = self.kl_divergence_of_node(node, self.samples[agent])
+
+  def add_agent_divergence(self, agent):
+    self.divergence[agent] = {}
+    if agent == self.agent:
+      self.assign_divergence(agent, 0)
+    else:
+      self.assign_divergence(agent, 1)
+      
+  def assign_divergence(self, agent, assignment):
+    for node in self.get_non_action_nodes():
+      self.divergence[agent][node] = assignment
       
   def is_divergent_dict(self, agent):
     divergent = {}
     for node in self.divergence[agent]:
-      divergent[node] = self.divergence[agent][node] < DIV_NODE_CONF
+      divergent[node] = abs(self.divergence[agent][node]) > DIV_NODE_CONF
     return divergent
-    
-
       
   def optimal_choice(self, givens={}):
     expected_values = util.expected_vals(self.sensitive_data(), self.act_vars, self.rew_var, givens)

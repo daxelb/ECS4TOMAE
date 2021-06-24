@@ -69,7 +69,6 @@ class CausalGraph:
         .format(classname=self.__class__.__name__,
             vars=variables))
     
-    
   def get_observable(self):
     return sorted(list(self.observed_vars))
 
@@ -110,10 +109,6 @@ class CausalGraph:
   def de(self, node):
     return self.get_descendants(node).union(node)
 
-
-
-
-
   def get_exogenous(self):
     return {n for n in self.dag.nodes if not self.get_parents(n)}
 
@@ -122,6 +117,10 @@ class CausalGraph:
 
   def get_leaves(self):
     return {n for n in self.dag.nodes if not self.get_children(n)}
+  
+  def get_unset_nodes(self):
+    return {n for n in self.dag.nodes if n not in self.set_nodes}
+    
 
   def draw_model(self, v=True):
     self.draw().render('output/causal-model.gv', view=v)

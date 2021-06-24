@@ -188,6 +188,14 @@ class Counter(dict):
   
   def copy(self):
     return Counter(dict.copy(self))
+  
+class CounterOne(dict):
+  def __getitem__(self, idx):
+    self.setdefault(idx, 1)
+    return dict.__getitem__(self, idx)
+  
+  def copy(self):
+    return CounterOne(dict.copy(self))
 
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 50, fill = '█', printEnd = "\r"):
     """
