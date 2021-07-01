@@ -108,7 +108,8 @@ def kl_divergence(domains, P_data, Q_data, query, e, log_base=math.e):
   """
   Px = prob_with_unassigned(domains, P_data, query, e)
   Qx = prob_with_unassigned(domains, Q_data, query, e)
-  assert Px is not None and Qx is not None
+  if Px is None or Qx is None:
+    return None
   res = 0
   for i in range(len(Px)):
     assert Px[i][0] == Qx[i][0]
@@ -182,7 +183,10 @@ def prob(dataset, Q, e={}):
   calculated from the dataset.
   """
   assert not (has_unassigned(Q) or has_unassigned(e))
-  return uncond_prob(dataset, {**Q, **e}) / uncond_prob(dataset, e)
+  prob_e = uncond_prob(dataset, e)
+  if prob_e == 0:
+    return None
+  return uncond_prob(dataset, {**Q, **e}) / prob_e
 
 def uncond_prob(dataset, Q):
   """

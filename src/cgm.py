@@ -6,8 +6,7 @@ import networkx as nx
 import graphviz
 from itertools import combinations, chain, zip_longest
 from collections.abc import Iterable
-from queries import Product
-from query import Query
+from query import Query, Product
 import gutil
 import util
 
@@ -509,7 +508,7 @@ class CausalGraph:
   
   def get_transport_formula(self, x, y, zs=set()):
     if self.is_directly_transportable(y, zs):
-      return self.direct_adj_formula(x,y,zs)
+      return Product(self.direct_adj_formula(x,y,zs))
     if self.is_trivially_transportable(x, y, zs):
       return self.trivial_adj_formula(x, y, zs)
     return None
@@ -567,19 +566,7 @@ if __name__ == "__main__":
   nodes = ["W", "X", "Y", "Z"]
   edges = [("W","X"),("W", "Y"), ("X", "Z"), ("Z", "Y")]
   model = CausalGraph(nodes, edges, set_nodes=["X"])
+  # print(model.get_all_backdoor_adjustment_sets("Y", "X", "Z"))
+  # print(model.get_all_backdoor_paths("Y", "Z"))
   bias_model = model.selection_diagram(["Z"])
-  # print(bias_model.is_directly_transportable("Y", ["W"]))
-  # print(bias_model.get_all_backdoor_adjustment_sets("X", "Y"))
-  # print(bias_model.get_all_frontdoor_adjustment_sets("X", "Y"))
-  # print(bias_model.is_directly_transportable("Y", ["W"]))
-  # print(bias_model.is_trivially_transportable("X", "Y", {"W"}))
-  # print(bias_model.triv_transp_adj_formula("X", "Y", {"W"}))
-  # model.draw_model()
-  # print(model.get_dist())
-  # print(model.get_dist("Y"))
-  # print(model.de("X"))
-  # print(model.get_ancestors(["X", "Y"]))
-  # print(model.get_leaves())
-  # print(model.get_exogenous())
-  # print(model.get_endogenous())
   print(model.get_children(["X", "Z"]))

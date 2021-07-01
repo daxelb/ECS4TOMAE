@@ -106,14 +106,15 @@ if __name__ == "__main__":
   reversed_y["Y"] = DiscreteModel(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
 
   # Policy.DEAF, Policy.NAIVE,
-  for pol in [Policy.DEAF, Policy.SENSITIVE, Policy.ADJUST]:
+  # Policy.DEAF, Policy.SENSITIVE,
+  for pol in [Policy.ADJUST]:
     agents = [
         Agent("00", Environment(baseline), policy=pol),
         Agent("01", Environment(baseline), policy=pol),
         Agent("02", Environment(reversed_z), policy=pol),
         Agent("03", Environment(reversed_z), policy=pol),
     ]
-    sim = Sim(World(agents), 225, 1)
+    sim = Sim(World(agents), 200, 1)
     sim.multithreaded_sim(Result.CUM_REGRET)
   plt.show()
   # plt.savefig("../output/{}agent-{}ep-{}n".format(len(agents), sim.num_episodes, sim.num_trials * mp.cpu_count()))
