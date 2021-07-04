@@ -4,9 +4,11 @@
 
 import networkx as nx
 import graphviz
-from itertools import combinations, chain
+from itertools import combinations, chain, zip_longest
 from collections.abc import Iterable
+from query import Query, Product
 import gutil
+import util
 
 class CausalGraph:
   """
@@ -65,62 +67,61 @@ class CausalGraph:
     return ("{classname}({vars})"
         .format(classname=self.__class__.__name__,
             vars=variables))
-
-  # def has_latent_parents(self, node):
-  #   return len(self.do(node).get_parents(node)) == len(self.get_parents(node))
-  
-  def pa(self, node):
-    return sorted([n for n in self.get_parents(node) + [node] if n in self.observed_vars])
-  
-  def an(self, node):
-    return sorted([n for n in self.get_ancestors(node) + [node] if n in self.observed_vars])
-  
-  def de(self, node):
-    return sorted([n for n in self.get_descendants(node) + [node] if n in self.observed_vars])
-
-  def get_ancestors(self, node):
-    return sorted(self.get_ancestors_helper(self.get_parents(node)))
-
-  def get_ancestors_helper(self, frontier=[], visited=[]):
-    for node in frontier:
-      if node not in visited:
-        visited.append(node)
-        self.get_ancestors_helper(self.get_parents(node), visited)
-    return visited
-  
-  def get_descendants(self, node):
-    return sorted(self.get_descendants_helper(self.get_children(node)))
-  
-  def get_descendants_helper(self, frontier=[], visited=[]):
-    for node in frontier:
-      if node not in visited:
-        visited.append(node)
-        self.get_descendants_helper(self.get_children(node), visited)
-    return visited
-
+    
   def get_observable(self):
     return sorted(list(self.observed_vars))
 
-  def get_parents(self, node):
-    return sorted(list(self.dag.predecessors(node)))
+  def get_parents(self, nodes):
+    if isinstance(nodes, str):
+      return set(self.dag.predecessors(nodes))
+    parents = set()
+    [parents.update(self.dag.predecessors(node)) for node in nodes]
+    return parents
 
-  def get_children(self, node):
-    return sorted(list(self.dag.successors(node)))
+  def get_children(self, nodes):
+    if isinstance(nodes, str):
+      return set(self.dag.successors(nodes))
+    children = set()
+    [children.update(self.dag.successors(node)) for node in nodes]
+    return children
+  
+  def get_ancestors(self, nodes):
+    if isinstance(nodes, str):
+      return nx.ancestors(self.dag, nodes)
+    ancestors = set()
+    [ancestors.update(nx.ancestors(self.dag, node)) for node in nodes]
+    return ancestors
+  
+  def get_descendants(self, node):
+    if isinstance(nodes, str):
+      return nx.descendants(self.dag, node)
+    descendants = set()
+    [descendants.update(nx.descendants(self.dag, node)) for node in nodes]
+    return descendants
+  
+  def pa(self, node):
+    return self.get_parents(node).union(node)
+  
+  def an(self, node):
+    return self.get_ancestors(node).union(node)
+  
+  def de(self, node):
+    return self.get_descendants(node).union(node)
 
   def get_exogenous(self):
-    return sorted([n for n in self.dag.nodes if not self.get_parents(n)])
+    return {n for n in self.dag.nodes if not self.get_parents(n)}
 
   def get_endogenous(self):
-    return sorted([n for n in self.dag.nodes if self.get_parents(n)])
+    return {n for n in self.dag.nodes if self.get_parents(n)}
 
   def get_leaves(self):
-    leaves = list()
-    for i in self.dag.nodes:
-      if not len(list(self.dag.successors(i))):
-        leaves.append(i)
-    return leaves
+    return {n for n in self.dag.nodes if not self.get_children(n)}
+  
+  def get_unset_nodes(self):
+    return {n for n in self.dag.nodes if n not in self.set_nodes}
+    
 
-  def draw_model(self, v=False):
+  def draw_model(self, v=True):
     self.draw().render('output/causal-model.gv', view=v)
 
   def draw(self):
@@ -146,38 +147,26 @@ class CausalGraph:
 
     return dot
 
-  def get_distribution(self):
+  def get_dist(self, node=None):
+    return self.get_model_dist() if node is None else self.get_node_dist(node)
+  
+  def get_model_dist(self):
     """
-    Returns a string representing the factorized distribution implied by
-    the CGM.
+    Returns a parsed version of the model's joint prob. dist.
     """
-    products = []
+    product = Product()
     for node in nx.topological_sort(self.dag):
-      if node in self.set_nodes:
-        continue
-
-      parents = list(self.dag.predecessors(node))
-      if not parents:
-        p = "P({})".format(node)
-      else:
-        formatted_parents = []
-        [formatted_parents.append("do({})".format(parent)) for parent in sorted(
-          parents) if parent in self.set_nodes]
-        [formatted_parents.append(str(parent)) for parent in sorted(parents) if parent not in self.set_nodes]
-        p = "P({}|{})".format(node, ",".join(formatted_parents))
-      products.append(p)
-    return "".join(products)
-
-  def get_node_distributions(self):
-    product = []
-    for node in nx.topological_sort(self.dag):
-      parents = self.get_parents(node)
-      query = {node: None}
-      givens = {}
-      for parent in parents:
-        givens[parent] = None
-      product.append((query, givens))
+      product.append(Query(node, self.get_parents(node)))
     return product
+  
+  def get_node_dist(self, node):
+    """
+    Returns conditional probability distribution
+    for a node in the model.
+    Ex: A -> B <- C
+    => <Query: P(B|A,C)>
+    """
+    return Query(node, self.get_parents(node))
   
   def get_non_s_nodes(self):
     return [n for n in self.observed_vars if n not in self.s_nodes]
@@ -493,7 +482,7 @@ class CausalGraph:
   def is_trivially_transportable(self, x, y, zs=set()):
     zs = set(zs)
     for s in self.get_adjustment_sets(x, y, zs):
-      if zs.issubset(s):
+      if zs.issubset(s) and s.issubset(set(self.get_non_s_nodes())):
         return True
     return False
   
@@ -502,37 +491,26 @@ class CausalGraph:
     shortest = None
     shortest_set_size = float('inf')
     for s in self.get_adjustment_sets(x, y, zs):
-        if zs.issubset(s) and len(s) < shortest_set_size:
-          shortest = s
-          shortest_set_size = len(s)
+      if zs.issubset(s) and len(s) < shortest_set_size and s.issubset(set(self.get_non_s_nodes())):
+        shortest = s
+        shortest_set_size = len(s)
     return shortest
   
-  def triv_transp_adj_formula(self, x, y, zs):
-    ss = [v for v in self.shortest_triv_transp_adj_set(x,y,zs) if v not in zs]
-    prob_query = [[{y: None}, {x: None}]]
-    if len(ss) > 0:
-      prob_query.append([dict(), dict()])
-      for z in zs:
-        prob_query[1][1][z] = None
-      for s in ss:
-        prob_query[0][1][s] = None
-        prob_query[1][0][s] = None
-    for z in zs:
-      prob_query[0][1][z] = None
-    return prob_query
+  def direct_adj_formula(self, x, y, zs):
+    return Query(y, [x] + zs)
   
-  def direct_transp_adj_formula(self, x, y, zs):
-    prob_query = [[{y: None}, {x: None}]]
-    for z in zs:
-      prob_query[0][1][z] = None
+  def trivial_adj_formula(self, x, y, zs):
+    ss = [v for v in self.shortest_triv_transp_adj_set(x,y,zs) if v not in zs]
+    prob_query = Product(Query(y, ss + list(zs) + [x])) #[[{y: None}, {x: None}]]
+    if len(ss) > 0:
+      prob_query.append(Query(ss, zs))
     return prob_query
-    
   
   def get_transport_formula(self, x, y, zs=set()):
     if self.is_directly_transportable(y, zs):
-      return self.direct_transp_adj_formula(x,y,zs)
+      return Product(self.direct_adj_formula(x,y,zs))
     if self.is_trivially_transportable(x, y, zs):
-      return self.triv_transp_adj_formula(x, y, zs)
+      return self.trivial_adj_formula(x, y, zs)
     return None
   
   def do_set_nodes(self):
@@ -585,13 +563,10 @@ def _powerset(iterable):
   return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
 if __name__ == "__main__":
-  nodes = ["W", "X", "Y", "Z", "C"]
-  edges = [("W","X"),("W", "Y"), ("X", "Z"), ("Z", "Y"), ("C", "Y")]
+  nodes = ["W", "X", "Y", "Z"]
+  edges = [("W","X"),("W", "Y"), ("X", "Z"), ("Z", "Y")]
   model = CausalGraph(nodes, edges, set_nodes=["X"])
-  bias_model = model.selection_diagram(["C"])
-  # print(bias_model.is_directly_transportable("Y", ["W"]))
-  print(bias_model.get_all_backdoor_adjustment_sets("X", "Y"))
-  # print(bias_model.get_all_frontdoor_adjustment_sets("X", "Y"))
-  print(bias_model.is_directly_transportable("Y", ["W"]))
-  print(bias_model.is_trivially_transportable("X", "Y", {"W"}))
-  print(bias_model.triv_transp_adj_formula("X", "Y", {"W"}))
+  # print(model.get_all_backdoor_adjustment_sets("Y", "X", "Z"))
+  # print(model.get_all_backdoor_paths("Y", "Z"))
+  bias_model = model.selection_diagram(["Z"])
+  print(model.get_children(["X", "Z"]))

@@ -10,7 +10,7 @@ import gutil
 
 from scm import StructuralCausalModel
 from cgm import CausalGraph
-from assignment_models import AssignmentModel, discrete_model, random_model
+from assignment_models import AssignmentModel, ActionModel, DiscreteModel, RandomModel
 
 
 class Environment:
@@ -33,8 +33,8 @@ class Environment:
 
             elif isinstance(model, AssignmentModel):
                 self.domains[node] = model.domain
-                if model.model == None:
-                    self.act_vars.append(node)
+                if isinstance(model, ActionModel):
+                  self.act_vars.append(node)
                 edges.extend([
                     (parent, node)
                     for parent in model.parents
@@ -61,7 +61,7 @@ class Environment:
         [pre_nodes.extend(self.cgm.get_ancestors(v)) for v in self.act_vars]
         self.pre = StructuralCausalModel(gutil.only_given_keys(self._assignment, pre_nodes))
         post_ass = self._assignment.copy()
-        [post_ass.update({n: AssignmentModel(self.cgm.get_parents(n), None, self.domains[n])}) for n in pre_nodes]
+        [post_ass.update({n: ActionModel(self.cgm.get_parents(n), self.domains[n])}) for n in pre_nodes]
         self.post = StructuralCausalModel(post_ass)
         
         self.feature_nodes = []
@@ -116,22 +116,22 @@ class Environment:
       return hash(gutil.dict_to_tuple_list(self._assignment))
 
     def __eq__(self, other):
-      if isinstance(other, self.__class__) or self.rew_var != other.rew_var:
+      if not isinstance(other, self.__class__) \
+          or self.rew_var != other.rew_var \
+          or self._assignment.keys() != other._assignment.keys():
         return False
-      for key in self._assignment:
-        if self._assignment[key] != other._assignment[key]:
+      for var in self._assignment:
+        if self._assignment[var] != other._assignment[var]:
           return False
       return True
 
 if __name__ == "__main__":
-    os.environ["PATH"] += os.pathsep + \
-        'C:/Program Files/Graphviz/bin/'
-    domains = {"W": (0,1), "X": (0,1), "Z": (0,1), "Y": (0,1)}
+    # domains = {"W": (0,1), "X": (0,1), "Z": (0,1), "Y": (0,1)}
     universal_model = Environment({
-    "W": random_model((0.5, 0.5)),
-    "X": AssignmentModel(("W"), None, (0, 1)),
-    "Z": discrete_model(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
-    "Y": discrete_model(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
+    "W": RandomModel((0.5, 0.5)),
+    "X": ActionModel(("W"), (0, 1)),
+    "Z": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+    "Y": DiscreteModel(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
   })
     # print(universal_model.sample({"X": 1}))
     # print(universal_model.cgm.get_ancestors("Y"))

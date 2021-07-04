@@ -1,8 +1,0 @@
-digraph {
-	Y [label=Y shape=ellipse]
-	X [label=X shape=ellipse]
-	X -> Y
-	Unobserved_0 [shape=point]
-	Unobserved_0 -> X [style=dashed]
-	Unobserved_0 -> Y [style=dashed]
-}

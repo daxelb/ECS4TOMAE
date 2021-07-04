@@ -1,5 +1,0 @@
-digraph {
-	X [label=X peripheries=2 shape=ellipse]
-	Y [label=Y shape=ellipse]
-	X -> Y
-}

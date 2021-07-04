@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from agent import Agent
 from environment import Environment
-from assignment_models import AssignmentModel, discrete_model, random_model
+from assignment_models import ActionModel, DiscreteModel, RandomModel
 import numpy as np
 import random
 import gutil
@@ -85,8 +85,9 @@ class World:
     for a in self.agents:
       if a.policy in [Policy.DEAF, Policy.NAIVE]: continue
       for f in self.agents:
-        if a == f: continue
-        correct = gutil.num_matches(a.friend_divergence[f.name], self.cdn[a.name][f.name])
+        if a == f:
+          continue
+        correct = gutil.num_matches(a.knowledge.is_divergent_dict(f), self.cdn[a.name][f.name])
         perc_corr = correct / (len(self.cdn[a.name]) * len(self.cdn[a.name][f.name]))
         percent_correct[a.name] += perc_corr
         percent_correct["total"] += perc_corr/len(self.cdn)
@@ -100,7 +101,7 @@ class World:
     """
     cum_regret = gutil.Counter()
     for a in self.agents:
-      recent = a.get_data()[-1]
+      recent = a.get_recent()
       rew_received = recent[a.rew_var]
       rew_optimal = a.environment.optimal_reward(gutil.only_given_keys(recent, a.environment.feature_nodes))
       curr_regret = self.episodes[-1][Result.CUM_REGRET][a.name] if self.episodes else 0
@@ -159,36 +160,36 @@ class World:
 
 if __name__ == "__main__":
   baseline = {
-    "W": random_model((0.4, 0.6)),
-    "X": AssignmentModel(("W"), None, (0, 1)),
-    "Z": discrete_model(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
-    "Y": discrete_model(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
+    "W": RandomModel((0.4, 0.6)),
+    "X": ActionModel(("W"), (0, 1)),
+    "Z": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+    "Y": DiscreteModel(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
   }
   w1 = dict(baseline)
-  w1["W"] = random_model((0.1, 0.9))
+  w1["W"] = RandomModel((0.1, 0.9))
   w9 = dict(baseline)
-  w9["W"] = random_model((0.9, 0.1))
+  w9["W"] = RandomModel((0.9, 0.1))
   z5 = dict(baseline)
-  z5["Z"] = discrete_model(("X"), {(0,): (0.9, 0.1), (1,): (0.5, 0.5)})
+  z5["Z"] = DiscreteModel(("X"), {(0,): (0.9, 0.1), (1,): (0.5, 0.5)})
   reversed_z = dict(baseline)
-  reversed_z["Z"] = discrete_model(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
+  reversed_z["Z"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
 
   agents = [
     Agent("00", Environment(baseline), policy=Policy.DEAF),
     Agent("01", Environment(baseline), policy=Policy.DEAF),
     Agent("02", Environment(baseline), policy=Policy.NAIVE),
-    Agent("03", Environment(baseline), policy=Policy.NAIVE),
-    Agent("04", Environment(baseline), policy=Policy.SENSITIVE),
-    Agent("05", Environment(baseline), policy=Policy.SENSITIVE),
-    Agent("06", Environment(reversed_z), policy=Policy.DEAF),
-    Agent("07", Environment(reversed_z), policy=Policy.DEAF),
-    Agent("08", Environment(reversed_z), policy=Policy.NAIVE),
-    Agent("09", Environment(reversed_z), policy=Policy.NAIVE),
-    Agent("10", Environment(reversed_z), policy=Policy.SENSITIVE),
-    Agent("11", Environment(reversed_z), policy=Policy.SENSITIVE),
-    Agent("12", Environment(z5), policy=Policy.DEAF),
-    Agent("13", Environment(z5), policy=Policy.NAIVE),
-    Agent("14", Environment(z5), policy=Policy.SENSITIVE),
+    # Agent("03", Environment(baseline), policy=Policy.NAIVE),
+    # Agent("04", Environment(baseline), policy=Policy.SENSITIVE),
+    # Agent("05", Environment(baseline), policy=Policy.SENSITIVE),
+    # Agent("06", Environment(reversed_z), policy=Policy.DEAF),
+    # Agent("07", Environment(reversed_z), policy=Policy.DEAF),
+    # Agent("08", Environment(reversed_z), policy=Policy.NAIVE),
+    # Agent("09", Environment(reversed_z), policy=Policy.NAIVE),
+    # Agent("10", Environment(reversed_z), policy=Policy.SENSITIVE),
+    # Agent("11", Environment(reversed_z), policy=Policy.SENSITIVE),
+    # Agent("12", Environment(z5), policy=Policy.DEAF),
+    # Agent("13", Environment(z5), policy=Policy.NAIVE),
+    # Agent("14", Environment(z5), policy=Policy.SENSITIVE),
   ]
   world = World(agents)
   world.run(220)

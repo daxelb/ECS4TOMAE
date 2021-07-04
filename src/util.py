@@ -1,5 +1,6 @@
 import math
 import gutil
+from collections.abc import Iterable
 
 def hash_from_dict(dictionary):
   """
@@ -11,7 +12,9 @@ def hash_from_dict(dictionary):
   """
   hashstring = ""
   for i, key in enumerate(dictionary.keys()):
-    hashstring += str(key) + "=" + str(dictionary[key])
+    hashstring += str(key)
+    if not isinstance(dictionary[key], Iterable):
+      hashstring += "=" + str(dictionary[key])
     if i < len(dictionary.keys()) - 1:
       hashstring += ","
   return hashstring
@@ -105,14 +108,11 @@ def kl_divergence(domains, P_data, Q_data, query, e, log_base=math.e):
   """
   Px = prob_with_unassigned(domains, P_data, query, e)
   Qx = prob_with_unassigned(domains, Q_data, query, e)
-  if Px == None or Qx == None:
-    # print("Insufficient data to compute probabilities in KL Divergence")
+  if Px is None or Qx is None:
     return None
   res = 0
   for i in range(len(Px)):
-    if Px[i][0] != Qx[i][0]:
-      print("Assignments of P and Q are unmated in kl_divergence() method")
-      return
+    assert Px[i][0] == Qx[i][0]
     res += 0 if Qx[i][1] == Px[i][1] else \
         math.inf if Qx[i][1] == 0 else \
         -math.inf if Px[i][1] == 0 else \
@@ -183,7 +183,10 @@ def prob(dataset, Q, e={}):
   calculated from the dataset.
   """
   assert not (has_unassigned(Q) or has_unassigned(e))
-  return uncond_prob(dataset, {**Q, **e}) / uncond_prob(dataset, e)
+  prob_e = uncond_prob(dataset, e)
+  if prob_e == 0:
+    return None
+  return uncond_prob(dataset, {**Q, **e}) / prob_e
 
 def uncond_prob(dataset, Q):
   """
@@ -303,4 +306,15 @@ def apply_assignments_to_queries(queries, assignments):
 
 def compute_query_product(dataset, queries, assignments):
   query_factors = apply_assignments_to_queries(queries, assignments)
-  return product_of_queries(dataset, query_factors)
+  return product_of_queries(dataset, query_factors)\
+
+def remove_dup_queries(queries):
+  # res = queries.copy()
+  for i in range(len(queries)):
+    for j in range(i+1, len(queries)):
+      if queries[i] == queries[j]:
+        queries[i] = None
+  for e in queries:
+    if e is None:
+      queries.remove(e)
+  return True

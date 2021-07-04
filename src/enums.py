@@ -11,5 +11,5 @@ class Policy(Enum):
   ADJUST = 3
   
 class Result(Enum):
-  CUM_REGRET = "Cumulative Regret"
+  CUM_REGRET = "Pseudo Cumulative Regret"
   PERC_CORR = "% Correct Divergence IDs"
