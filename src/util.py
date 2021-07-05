@@ -188,6 +188,18 @@ def prob(dataset, Q, e={}):
     return None
   return uncond_prob(dataset, {**Q, **e}) / prob_e
 
+def consistent(dataset, Q):
+  """
+  Calculates the number of datapoints in the dataset
+  that are consistent with a probability query.
+  """
+  if not Q:
+    return 1.0
+  count = 0
+  for datapoint in dataset:
+    count += all([Q[key] == datapoint[key] for key in Q])
+  return count
+
 def uncond_prob(dataset, Q):
   """
   Calculates an probability query that excludes
@@ -200,16 +212,7 @@ def uncond_prob(dataset, Q):
   """
   if not Q:
     return 1.0
-  total = len(dataset)
-  count = 0
-  for i in range(total):
-    consistent = True
-    for key in Q:
-      if Q[key] != None and dataset[i][key] != Q[key]:
-        consistent = False
-        break
-    count += consistent
-  return count / total
+  return consistent(dataset, Q) / len(dataset)
 
 def apply_assignments_to_query(query, assignments):
   """
