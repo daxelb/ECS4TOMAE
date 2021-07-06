@@ -107,14 +107,14 @@ if __name__ == "__main__":
 
   # Policy.DEAF, Policy.NAIVE,
   # Policy.DEAF, Policy.SENSITIVE,
-  for pol in [Policy.ADJUST]:
+  for pol in [Policy.DEAF, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST]:
     agents = [
         Agent("00", Environment(baseline), policy=pol),
         Agent("01", Environment(baseline), policy=pol),
         Agent("02", Environment(reversed_z), policy=pol),
         Agent("03", Environment(reversed_z), policy=pol),
     ]
-    sim = Sim(World(agents), 200, 1)
+    sim = Sim(World(agents), 300, 12)
     sim.multithreaded_sim(Result.CUM_REGRET)
   plt.show()
-  # plt.savefig("../output/0702-{}agent-{}ep-{}n".format(len(agents), sim.num_episodes, sim.num_trials * mp.cpu_count()))
+  plt.savefig("../output/0705-{}agent-{}ep-{}n".format(len(agents), sim.num_episodes, sim.num_trials * mp.cpu_count()))
