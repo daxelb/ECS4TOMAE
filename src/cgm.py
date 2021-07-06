@@ -205,6 +205,7 @@ class CausalGraph:
       latent_edges=latent_edges, set_nodes=set_nodes, s_node_children=self.get_s_node_children())
 
   def selection_diagram(self, s_node_children):
+    s_node_children = _variable_or_iterable_to_set(s_node_children)
     return CausalGraph(
       nodes=self.get_non_s_nodes(), edges=self.get_edges(),
       latent_edges=self.get_latent_edges(), set_nodes=self.set_nodes,
@@ -465,12 +466,12 @@ class CausalGraph:
 
     return valid_adjustment_sets
   
-  def is_directly_transportable(self, y, zs=[]):
+  def is_directly_transportable(self, y, zs=set()):
     if len(self.s_nodes) == 0:
       return True
     do_set_nodes = self.do_set_nodes()
     for s_node in self.s_nodes:
-      if not do_set_nodes.is_d_separated(s_node, y, zs + list(self.set_nodes)):
+      if not do_set_nodes.is_d_separated(s_node, y, set(list(zs) + list(self.set_nodes))):
         return False
     return True
   
@@ -480,7 +481,7 @@ class CausalGraph:
     return set(list(self.get_all_backdoor_adjustment_sets(x,y)) + list(self.get_all_frontdoor_adjustment_sets(x,y)))
   
   def is_trivially_transportable(self, x, y, zs=set()):
-    zs = set(zs)
+    zs = _variable_or_iterable_to_set(zs)
     for s in self.get_adjustment_sets(x, y, zs):
       if zs.issubset(s) and s.issubset(set(self.get_non_s_nodes())):
         return True
@@ -497,7 +498,7 @@ class CausalGraph:
     return shortest
   
   def direct_adj_formula(self, x, y, zs):
-    return Query(y, [x] + zs)
+    return Query(y, [x] + list(zs))
   
   def trivial_adj_formula(self, x, y, zs):
     ss = [v for v in self.shortest_triv_transp_adj_set(x,y,zs) if v not in zs]
@@ -512,6 +513,17 @@ class CausalGraph:
     if self.is_trivially_transportable(x, y, zs):
       return self.trivial_adj_formula(x, y, zs)
     return None
+  
+  def from_cpts(self, query):
+    """
+    Returns the input query in terms
+    of the model's CPTs.
+    """
+    return Product([
+        q for q in
+        self.get_dist()
+        if q.contains(query.get_vars())
+      ])
   
   def do_set_nodes(self):
     new_model = self.__copy__()
@@ -565,8 +577,8 @@ def _powerset(iterable):
 if __name__ == "__main__":
   nodes = ["W", "X", "Y", "Z"]
   edges = [("W","X"),("W", "Y"), ("X", "Z"), ("Z", "Y")]
-  model = CausalGraph(nodes, edges, set_nodes=["X"])
+  model = CausalGraph(nodes, edges, set_nodes={"X"})
   # print(model.get_all_backdoor_adjustment_sets("Y", "X", "Z"))
   # print(model.get_all_backdoor_paths("Y", "Z"))
-  bias_model = model.selection_diagram(["Z"])
-  print(model.get_children(["X", "Z"]))
+  bias_model = model.selection_diagram({"Z"})
+  print(model.from_cpts(Query("Y", {"X", "W"})).assign({"X": 1}))

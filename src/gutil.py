@@ -77,12 +77,14 @@ def max_key(dictionary):
   max_val = -math.inf
   keys = []
   for key, val in dictionary.items():
+    if val is None:
+      continue
     if val > max_val:
       max_val = val
       keys = [key]
     elif val == max_val:
       keys.append(key)
-  return random.choice(keys)
+  return random.choice(keys) if keys else None
 
 def permutations(dictionary):
   """

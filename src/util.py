@@ -38,6 +38,10 @@ def dict_from_hash(hashstring):
   hashstring="A=0,B=1"
     => {"A": 0, "B": 1}
   """
+  if hashstring is None:
+    return None
+  if len(hashstring) == 0:
+    return {}
   res = dict()
   key_bool = True
   key = val = ""
@@ -193,8 +197,6 @@ def consistent(dataset, Q):
   Calculates the number of datapoints in the dataset
   that are consistent with a probability query.
   """
-  if not Q:
-    return 1.0
   count = 0
   for datapoint in dataset:
     count += all([Q[key] == datapoint[key] for key in Q])
@@ -213,111 +215,3 @@ def uncond_prob(dataset, Q):
   if not Q:
     return 1.0
   return consistent(dataset, Q) / len(dataset)
-
-def apply_assignments_to_query(query, assignments):
-  """
-  query: [Q, e]
-  assignments: dictionary mapping var_names:value_assignment
-  """
-  ass_query = list(query)
-  for partial_query in ass_query:
-    for key in partial_query:
-      partial_query[key] = assignments[key]
-  return tuple(ass_query)
-
-def split_query(str_query):
-  """
-  Helper method that splits a probability distribution
-  into its single parts.
-
-  Ex:
-  "P(X)P(X|Y)P(X|Y,W)"
-    => ["P(X)", "P(X|Y)", "P(X|Y,W)"]
-  """
-  return ["P"+e for e in str_query.split("P") if e]
-
-def parse_query(str_query):
-  """
-  Parses a (tier-1) probability query into a form
-  that is meaningful and the program can parse.
-
-  Ex:
-  P(X=1)P(Y|X=1)
-    => [({"X": 1}, {}), ({"Y": None}, {"X": 1})]
-  """
-  parsed = []
-  for q in split_query(str_query):
-    query = True
-    assignment = False
-    Q_var = Q_val = e_var = e_val = ""
-    new_p = [{}, {}]
-    for char in q:
-      if char == '(':
-        Q_var = ""
-      elif char == '|':
-        assignment = False
-        new_p[0][Q_var] = None if Q_val == "" else float(Q_val) if int(
-            float(Q_val)) != float(Q_val) else int(float(Q_val))
-        query = False
-      elif char == ')':
-        if query:
-          new_p[0][Q_var] = None if Q_val == "" else float(Q_val) if int(
-              float(Q_val)) != float(Q_val) else int(float(Q_val))
-        elif len(e_var):
-          new_p[1][e_var] = None if e_val == "" else float(e_val) if int(
-              float(e_val)) != float(e_val) else int(float(e_val))
-        parsed.append(new_p)
-        Q_var = Q_val = e_var = e_val = ""
-        new_p = [{}, {}]
-      elif char == ',':
-        assignment = False
-        if query:
-          new_p[0][Q_var] = None if Q_val == "" else float(Q_val) if int(
-              float(Q_val)) != float(Q_val) else int(float(Q_val))
-          Q_var = Q_val = e_var = e_val = ""
-        else:
-          new_p[1][e_var] = None if e_val == "" else float(e_val) if int(
-              float(e_val)) != float(e_val) else int(float(e_val))
-          Q_var = Q_val = e_var = e_val = ""
-      elif char == '=':
-        assignment = True
-      else:
-        if query:
-          if assignment:
-            Q_val += char
-          else:
-            Q_var += char
-        else:
-          if assignment:
-            e_val += char
-          else:
-            e_var += char
-  return parsed
-
-def product_of_queries(dataset, queries):
-  product = 1
-  for factor in queries:
-    print(factor)
-    product *= prob(dataset, factor[0], factor[1])
-  return product
-
-def apply_assignments_to_queries(queries, assignments):
-  assigned_queries = queries.copy()
-  for query in assigned_queries:
-    query = apply_assignments_to_query(query, assignments)
-  return assigned_queries
-
-def compute_query_product(dataset, queries, assignments):
-  query_factors = apply_assignments_to_queries(queries, assignments)
-  return product_of_queries(dataset, query_factors)\
-
-def remove_dup_queries(queries):
-  # res = queries.copy()
-  for i in range(len(queries)):
-    for j in range(i+1, len(queries)):
-      if queries[i] == queries[j]:
-        queries[i] = None
-  for e in queries:
-    if e is None:
-      queries.remove(e)
-  return True

@@ -28,22 +28,32 @@ class Query:
   def get_vars(self):
     return set(self.Q_and_e().keys())
   
-  def get_assignments(self):
+  def query_var(self):
+    assert len(self.Q) == 1
+    return gutil.first_key(self.Q)
+  
+  def get_assignments(self, dictionary=None):
+    if dictionary is None:
+      dictionary = self.Q_and_e()
     assignments = {}
-    for var, ass in self.Q_and_e().items():
-      if not isinstance(ass, Iterable) and ass is not None:
-        assignments |= {var: ass}
+    [assignments.update({var: ass}) for var, ass in dictionary.items() if self.is_assigned(ass)]
     return assignments
+  
+  def is_assigned(self, assignment):
+    return not isinstance(assignment, Iterable) and assignment is not None
   
   def get_unassigned_vars(self):
     unassigned = set()
     for var, ass in self.Q_and_e().items():
       if isinstance(ass, Iterable):
         unassigned.add(var)
-    return sorted(unassigned)
+    return unassigned
   
   def get_unassigned(self):
     return gutil.only_given_keys(self.Q_and_e(), self.get_unassigned_vars())
+  
+  def all_assigned(self):
+    return len(self.get_unassigned()) == 0
   
   def contains_var(self, var):
     return var in self.Q_and_e()
@@ -55,19 +65,22 @@ class Query:
           return True
       return False
     return self.contains_var(el)
-  
-  def all_assigned(self):
-    return len(self.get_unassigned()) == 0
+
+  def num_consistent(self, data):
+    Q_and_e = self.Q_and_e()
+    return sum([all([Q_and_e[var] == dp[var] for var in Q_and_e]) for dp in data])
+
+  def uncomputed_prob(self, data):
+    assert self.all_assigned()
+    return (Query(self.Q_and_e()).num_consistent(data), Query(self.e).num_consistent(data))
   
   def solve(self, data):
-    assert not len(self.get_unassigned())
-    return util.prob(data, self.Q, self.e)
+    assert self.all_assigned()
+    uncomputed = self.uncomputed_prob(data)
+    return None if uncomputed[1] == 0 else uncomputed[0] / uncomputed[1]
   
   def assign(self, var_or_dict, ass=None):
-    if ass is None:
-      return self.assign_many(var_or_dict)
-    else:
-      return self.assign_one(var_or_dict, ass)
+    return self.assign_many(var_or_dict) if ass is None else self.assign_one(var_or_dict, ass)
   
   def assign_one(self, var, ass):
     if var in self.Q:
@@ -79,10 +92,6 @@ class Query:
     for var, ass in domains.items():
       self.assign_one(var, ass)
     return self
-  
-  def query_var(self):
-    assert len(self.Q) == 1
-    return gutil.first_key(self.Q)
   
   def as_tup(self):
     return (self.Q, self.e)
@@ -107,6 +116,9 @@ class Query:
         return False
     return True
   
+  def __nonzero__(self):
+    return len(self.Q_and_e()) == 0
+  
 class Queries(MutableSequence):
   def __init__(self, data=None):
     super(Queries, self).__init__()
@@ -121,10 +133,27 @@ class Queries(MutableSequence):
   def remove_dupes(self):
     assert not isinstance(self, (Summation, Product))
     gutil.remove_dupes(self._list)
-  
-  def get_assignments(self):
+    
+  def Q(self):
+    Q = dict()
+    [Q.update(q.Q) for q in self]
+    return Q
+    
+  def e(self):
+    e = dict()
+    [e.update(q.e) for q in self]
+    return e
+    
+  def Q_and_e(self):
+    Q_and_e = dict()
+    [Q_and_e.update(q.Q_and_e()) for q in self]
+    return Q_and_e
+    
+  def get_assignments(self, dictionary=None):
+    if dictionary is None:
+      dictionary = self.Q_and_e()
     assignments = {}
-    [assignments.update(q.get_assignments) for q in self]
+    [assignments.update(q.get_assignments(dictionary)) for q in self]
     return assignments
 
   def get_unassigned(self):
@@ -132,6 +161,9 @@ class Queries(MutableSequence):
     for q in self:
       unassigned.update(q.get_unassigned())
     return unassigned
+  
+  def all_assigned(self):
+    return len(self.get_unassigned()) == 0
   
   def contains_var(self, var):
     for q in self:
@@ -256,6 +288,16 @@ class Summation(Queries):
       summation += new_add
     return summation
   
+  def uncomputed_prob(self, data):
+    summation = [0,0]
+    for q in self._list:
+      new_add = q.uncomputed_prob(data) if is_Q(q) else q
+      if new_add is None:
+        return None
+      summation[0] += new_add[0]
+      summation[1] += new_add[1]
+    return summation
+  
   def __str__(self):
     if not len(self):
       return "0"
@@ -278,6 +320,16 @@ class Product(Queries):
       if new_mult is None:
         return None
       product *= new_mult
+    return product
+  
+  def uncomputed_prob(self, data):
+    product = [0,0]
+    for q in self._list:
+      new_mult = q.uncomputed_prob(data) if is_Q(q) else q
+      if new_mult is None:
+        return None
+      product[0] *= new_mult[0]
+      product[1] *= new_mult[1]
     return product
     
   def __str__(self):

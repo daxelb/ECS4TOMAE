@@ -127,12 +127,27 @@ class KnowledgeSensitive(Knowledge):
 class KnowledgeAdjust(KnowledgeSensitive):
   def __init__(self, *args):
     super().__init__(*args) 
-
-  def selection_diagram(self, agent):
-    return self.model.selection_diagram(self.div_nodes(agent))
   
   def transport_formula(self, agent, givens):
-    return self.selection_diagram(agent).get_transport_formula(self.act_vars[0], self.rew_var, list(givens)).assign(self.domains).assign(givens)
+    unformatted_tf = self.model.from_cpts(
+        self.model.selection_diagram(
+          self.div_nodes(agent)
+        ).get_transport_formula(
+          self.act_vars[0], self.rew_var, set(givens)
+        )
+      )
+    my_queries = Product()
+    other_queries = Product()
+    div_nodes = self.div_nodes(agent)
+    for q in unformatted_tf:
+      query_var = q.query_var()
+      if query_var in givens or query_var in self.act_vars:
+        continue
+      if query_var in div_nodes:
+        my_queries.append(q)
+      else:
+        other_queries.append(q)
+    return Product([my_queries, other_queries]).assign(self.domains).assign(givens)
   
   def from_cpts(self, query, givens):
     """
@@ -168,6 +183,24 @@ class KnowledgeAdjust(KnowledgeSensitive):
         return None
       summation += sol1 * sol2
     return summation
+  
+  def get_uncomputed_prob_of_tf(self, tf, my_data, other_data):
+    f = tf.deepcopy()
+    summation = [0,0]
+    for summator in gutil.permutations(f.get_unassigned()):
+      f.assign(summator)
+      my_prob = f[0].uncomputed_prob(my_data)
+      other_prob = f[1].uncomputed_prob(other_data)
+      if my_prob is None or other_prob is None:
+        return None
+      summation[0] += my_prob[0] * other_prob[0]
+      summation[1] += my_prob[1] * other_prob[1]
+    return summation
+
+  def get_num_datapoints(self, tf, other):
+    return len(gutil.only_dicts_with_givens(self.my_data(), tf[0].get_assignments(tf[0].e())))\
+      + len(gutil.only_dicts_with_givens(self.samples[other], tf[1].get_assignments(tf[1].e())))
+    
     
   def optimal_choice(self, givens={}):
     if len(self.my_data()) < SAMPS_NEEDED:
@@ -183,23 +216,39 @@ class KnowledgeAdjust(KnowledgeSensitive):
       action_rewards[act_hash] = {}
       for rew in rewards:
         action_rewards[act_hash][util.hash_from_dict(rew)] = [[],[]]
+        # action_rewards[act_hash][util.hash_from_dict(rew)] = [0,0]
     
-    for agent, data in self.samples.items():
+    for other, other_data in self.samples.items():
+      transport_formula = self.transport_formula(other, givens)
       for action in actions:
+        transport_formula.assign(action)
         act_hash = util.hash_from_dict(action)
-        num_datapoints = len(gutil.only_dicts_with_givens(data, givens)) + len(gutil.only_dicts_with_givens(my_data, action))
+        
+        # this is only true for the model we are using with vars W,X,Y,Z and does not always hold.
+        # the formula should be: number of datapoints where conditionals are satisfied for each
+        # part of the transport formula.
+        # Ex: P*(A|B=1) * P(C|A) would be: num*(data B=1) + num(all data)
+        # num_datapoints = len(gutil.only_dicts_with_givens(data, givens)) + len(gutil.only_dicts_with_givens(my_data, action))
+        
+        num_datapoints = self.get_num_datapoints(transport_formula, other)
         if not num_datapoints:
           continue
         # calculating the transport formula with every action and every agent is slow
-        transport_formula = self.formatted_transport_formula(agent, givens, action)
-        for rew in rewards:
-          rew_hash = util.hash_from_dict(rew)
-          transport_formula.assign(rew)
-          tf_sol = self.solve_transport_formula(transport_formula, my_data, data)
+        # transport_formula = self.formatted_transport_formula(agent, givens, action)
+        for reward in rewards:
+          rew_hash = util.hash_from_dict(reward)
+          transport_formula.assign(reward)
+          tf_sol = self.solve_transport_formula(transport_formula, my_data, other_data)
           if tf_sol is None:
             continue
           action_rewards[act_hash][rew_hash][0].append(num_datapoints)
           action_rewards[act_hash][rew_hash][1].append(tf_sol)
+          # action_rewards[act_hash][0].append(gutil.first_value(reward) * tf_sol[0])
+          # action_rewards[act_hash][1] += tf_sol[1]
+    
+    # for act_key in action_rewards:
+    #   denom = action_rewards[act_key][1]
+    #   action_rewards[act_key] = sum(action_rewards[act_key][0]) / denom if denom else None
     
     weighted_act_rew = gutil.Counter()
     for act in action_rewards:
@@ -210,4 +259,4 @@ class KnowledgeAdjust(KnowledgeSensitive):
         for i in range(len(action_rewards[act][rew][0])):
           reward_prob += action_rewards[act][rew][1][i] * (action_rewards[act][rew][0][i] / weight_total)
         weighted_act_rew[act] += reward_prob * float(rew.split("=",1)[1])
-    return util.dict_from_hash(gutil.max_key(weighted_act_rew)) if weighted_act_rew else None
+    return util.dict_from_hash(gutil.max_key(weighted_act_rew))
