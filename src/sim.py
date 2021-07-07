@@ -116,11 +116,11 @@ if __name__ == "__main__":
         Agent("02", Environment(reversed_z), policy=pol),
         Agent("03", Environment(reversed_z), policy=pol),
     ]
-    sim = Sim(World(agents), 200, 1)
+    sim = Sim(World(agents), 300, 12)
     sim.multithreaded_sim(Result.CUM_REGRET)
   time = time.time() - start
   mins = time // 60
   sec = time % 60
   print("Time elapsed = {0}:{1}".format(int(mins), sec))
   plt.show()
-  # plt.savefig("../output/0702-{}agent-{}ep-{}n".format(len(agents), sim.num_episodes, sim.num_trials * mp.cpu_count()))
+  plt.savefig("../output/0705-{}agent-{}ep-{}n".format(len(agents), sim.num_episodes, sim.num_trials * mp.cpu_count()))

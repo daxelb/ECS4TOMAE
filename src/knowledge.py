@@ -2,7 +2,7 @@ from query import Quotient, Summation, Product, Queries, Query
 import util
 import gutil
 
-DIV_NODE_CONF = 0.025
+DIV_NODE_CONF = 0.03
 SAMPS_NEEDED = 25
 
 class Knowledge():
