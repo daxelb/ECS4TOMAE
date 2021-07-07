@@ -1,7 +1,7 @@
 import util
 import gutil
 from collections.abc import MutableSequence, Iterable
-from copy import deepcopy
+from copy import deepcopy, copy
 
 def is_Q(obj):
   return isinstance(obj, (Query, Queries, Quotient))
@@ -45,7 +45,7 @@ class Query:
   def get_unassigned_vars(self):
     unassigned = set()
     for var, ass in self.Q_and_e().items():
-      if isinstance(ass, Iterable):
+      if isinstance(ass, Iterable) or ass is None:
         unassigned.add(var)
     return unassigned
   
@@ -65,6 +65,11 @@ class Query:
           return True
       return False
     return self.contains_var(el)
+  
+  def combos(self, domains):
+    if self.all_assigned():
+      return {self}
+    return {copy(self).assign(combo) for combo in gutil.permutations(domains)}
 
   def num_consistent(self, data):
     Q_and_e = self.Q_and_e()
@@ -96,6 +101,9 @@ class Query:
   def as_tup(self):
     return (self.Q, self.e)
   
+  def __copy__(self):
+    return Query(copy(self.Q), copy(self.e))
+  
   def __hash__(self):
     return hash((tuple(sorted(self.Q.items())),tuple(sorted(self.e.items()))))
   
@@ -108,13 +116,15 @@ class Query:
     return "P({})".format(util.hash_from_dict(self.Q))
   
   def __eq__(self, other):
-    for var in self.Q:
-      if var not in other.Q or self.Q[var] != other.Q[var]:
-        return False
-    for var in self.e:
-      if var not in other.e or self.e[var] != other.e[var]:
-        return False
-    return True
+    return all(var in other.Q and self.Q[var] == other.Q[var] for var in self.Q) \
+       and all(var in other.e and self.e[var] == other.e[var] for var in self.e)
+    # for var in self.Q:
+    #   if var not in other.Q or self.Q[var] != other.Q[var]:
+    #     return False
+    # for var in self.e:
+    #   if var not in other.e or self.e[var] != other.e[var]:
+    #     return False
+    # return True
   
   def __nonzero__(self):
     return len(self.Q_and_e()) == 0
@@ -199,7 +209,7 @@ class Queries(MutableSequence):
     dom = unassigned.pop(var)
     new_assignments = Queries()
     for a in dom:
-      new_assignments.append(assignments.deepcopy().assign_one(var, a))
+      new_assignments.append(deepcopy(assignments).assign_one(var, a))
     return self.over_helper(unassigned, new_assignments)
   
   def assign(self, var_or_dict, ass=None):
@@ -221,7 +231,7 @@ class Queries(MutableSequence):
     return self
   
   def unpack(self):
-    new_self = self.__copy__()
+    new_self = copy(self)
     for i in range(len(self._list)):
       q = new_self._list[i]
       if isinstance(q, Queries):
@@ -251,9 +261,9 @@ class Queries(MutableSequence):
     return "[{}]".format(", ".join([str(e) for e in self._list]))
   
   def __copy__(self):
-    return self.__class__((self._list))
+    return self.__class__(self._list)
   
-  def deepcopy(self):
+  def __deepcopy__(self):
     return self.__class__(deepcopy(self._list))
 
   def insert(self, i, val):
