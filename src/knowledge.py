@@ -78,8 +78,12 @@ class KnowledgeSensitive(Knowledge):
     Returns the KL Divergence of a query between this (self) dataset
     and another dataset (presumably, another agent's useful_data)
     """
-    
-    return util.kl_divergence(self.domains, self.my_data(), other_data, query.Q, query.e)
+    # if len(self.my_data()) == 25:
+    #   print(util.prob_with_unassigned(self.domains, self.my_data(), query.Q, query.e))
+    #   print()
+    #   print(util.prob_with_unassigned2(self.domains, self.my_data(), query))
+    #   exit()
+    return util.kl_divergence(self.domains, self.my_data(), other_data, query)
 
   def kl_divergence_of_node(self, node, other_data):
     """

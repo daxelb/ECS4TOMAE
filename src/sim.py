@@ -7,6 +7,7 @@ import gutil
 import matplotlib.pyplot as plt
 import numpy as np
 import multiprocessing as mp
+import time
 
 class Sim:
   def __init__(self, world, num_episodes, num_trials):
@@ -107,14 +108,19 @@ if __name__ == "__main__":
 
   # Policy.DEAF, Policy.NAIVE,
   # Policy.DEAF, Policy.SENSITIVE,
-  for pol in [Policy.DEAF, Policy.ADJUST]:
+  start = time.time()
+  for pol in [Policy.ADJUST]:
     agents = [
         Agent("00", Environment(baseline), policy=pol),
         Agent("01", Environment(baseline), policy=pol),
         Agent("02", Environment(reversed_z), policy=pol),
         Agent("03", Environment(reversed_z), policy=pol),
     ]
-    sim = Sim(World(agents), 200, 4)
+    sim = Sim(World(agents), 200, 1)
     sim.multithreaded_sim(Result.CUM_REGRET)
+  time = time.time() - start
+  mins = time // 60
+  sec = time % 60
+  print("Time elapsed = {0}:{1}".format(int(mins), sec))
   plt.show()
   # plt.savefig("../output/0702-{}agent-{}ep-{}n".format(len(agents), sim.num_episodes, sim.num_trials * mp.cpu_count()))

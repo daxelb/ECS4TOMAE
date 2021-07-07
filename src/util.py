@@ -99,7 +99,7 @@ def expected_vals(dataset, action_vars, reward_var, givens={}):
   """
   return expected_vals_from_rewards(reward_vals(dataset, action_vars, reward_var, givens))
 
-def kl_divergence(domains, P_data, Q_data, query, e, log_base=math.e):
+def kl_divergence(domains, P_data, Q_data, query, log_base=math.e):
   """
   Calculates kl_divergence between two probability distributions.
 
@@ -110,17 +110,17 @@ def kl_divergence(domains, P_data, Q_data, query, e, log_base=math.e):
   By default, the log_base is e to measure information in nats. A log_base
   of 2 would measure information in bits.
   """
-  Px = prob_with_unassigned(domains, P_data, query, e)
-  Qx = prob_with_unassigned(domains, Q_data, query, e)
+  Px = prob_with_unassigned(domains, P_data, query)
+  Qx = prob_with_unassigned(domains, Q_data, query)
   if Px is None or Qx is None:
     return None
   res = 0
   for i in range(len(Px)):
     assert Px[i][0] == Qx[i][0]
-    res += 0 if Qx[i][1] == Px[i][1] else \
-        math.inf if Qx[i][1] == 0 else \
-        -math.inf if Px[i][1] == 0 else \
-        Px[i][1] * math.log(Px[i][1] / Qx[i][1], log_base)
+    res +=  0 if Qx[i][1] == Px[i][1] else \
+            math.inf if Qx[i][1] == 0 else \
+            -math.inf if Px[i][1] == 0 else \
+            Px[i][1] * math.log(Px[i][1] / Qx[i][1], log_base)
   return res
 
 def query_combos(domains, Q):
@@ -157,27 +157,36 @@ def has_unassigned(Q):
       return True
   return False
 
-def prob_with_unassigned(domains, dataset, Q, e={}):
-  """
-  For unassigned variables, calculates the conditional
-  probability query for all possible assignment values.
+# def prob_with_unassigned(domains, dataset, Q, e={}):
+#   """
+#   For unassigned variables, calculates the conditional
+#   probability query for all possible assignment values.
 
-  Returns a list of tuples where the first element is
-  the assigned values of the unspecified variables (as
-  a dictionary) and the second element is the calculated
-  probability.
-  """
-  if not has_unassigned(Q) and not has_unassigned(e):
-    return prob(dataset, Q, e)
-  probs = list()
-  Q_and_e = {**Q, **e}
-  for q in query_combos(domains, Q_and_e):
-    new_e = gutil.only_given_keys(q, e.keys())
-    assignment = gutil.only_given_keys(q, [q for q in Q_and_e if Q_and_e[q] == None])
-    prob_new_e = uncond_prob(dataset, new_e)
-    if not prob_new_e:
+#   Returns a list of tuples where the first element is
+#   the assigned values of the unspecified variables (as
+#   a dictionary) and the second element is the calculated
+#   probability.
+#   """
+#   if not has_unassigned(Q) and not has_unassigned(e):
+#     return prob(dataset, Q, e)
+#   probs = list()
+#   Q_and_e = {**Q, **e}
+#   for q in query_combos(domains, Q_and_e):
+#     new_e = gutil.only_given_keys(q, e.keys())
+#     assignment = gutil.only_given_keys(q, [q for q in Q_and_e if Q_and_e[q] == None])
+#     prob_new_e = uncond_prob(dataset, new_e)
+#     if not prob_new_e:
+#       return None
+#     probs.append((assignment, uncond_prob(dataset, q) / prob_new_e))
+#   return probs
+
+def prob_with_unassigned(domains, dataset, query):
+  probs = []
+  for query_combo in query.combos(domains):
+    new_prob = (query_combo, query_combo.solve(dataset))
+    if new_prob[1] is None:
       return None
-    probs.append((assignment, uncond_prob(dataset, q) / prob_new_e))
+    probs.append(new_prob)
   return probs
 
 def prob(dataset, Q, e={}):
