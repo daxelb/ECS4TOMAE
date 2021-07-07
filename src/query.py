@@ -263,7 +263,8 @@ class Queries(MutableSequence):
   def __copy__(self):
     return self.__class__(self._list)
   
-  def __deepcopy__(self):
+  # try to get this to work with __deepcopy__
+  def deepcopy(self):
     return self.__class__(deepcopy(self._list))
 
   def insert(self, i, val):

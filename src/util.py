@@ -123,30 +123,6 @@ def kl_divergence(domains, P_data, Q_data, query, log_base=math.e):
             Px[i][1] * math.log(Px[i][1] / Qx[i][1], log_base)
   return res
 
-def query_combos(domains, Q):
-  """
-  Used when a query contains unassigned/unspecified variables.
-  Returns a list of fully-specified queries where previously
-  unassigned variables are given assignments from their domain.
-
-  Ex:
-  P(Y|X=1) where domain of Y = {0,1}
-    => [ P(Y=0|X=1), P(Y=1|X=1) ]
-  """
-  queries = gutil.permutations(domains)
-  unused_keys = queries[0].keys() - Q.keys()
-  for q in gutil.permutations(domains):
-    for var in Q:
-      if q in queries and Q[var] != None and q[var] != Q[var]:
-        queries.remove(q)
-  queries_no_dupes = []
-  for q in queries:
-    for key in unused_keys:
-      del q[key]
-    if q not in queries_no_dupes:
-      queries_no_dupes.append(q)
-  return queries_no_dupes
-
 def has_unassigned(Q):
   """
   Returns True if the input query contains
@@ -157,29 +133,6 @@ def has_unassigned(Q):
       return True
   return False
 
-# def prob_with_unassigned(domains, dataset, Q, e={}):
-#   """
-#   For unassigned variables, calculates the conditional
-#   probability query for all possible assignment values.
-
-#   Returns a list of tuples where the first element is
-#   the assigned values of the unspecified variables (as
-#   a dictionary) and the second element is the calculated
-#   probability.
-#   """
-#   if not has_unassigned(Q) and not has_unassigned(e):
-#     return prob(dataset, Q, e)
-#   probs = list()
-#   Q_and_e = {**Q, **e}
-#   for q in query_combos(domains, Q_and_e):
-#     new_e = gutil.only_given_keys(q, e.keys())
-#     assignment = gutil.only_given_keys(q, [q for q in Q_and_e if Q_and_e[q] == None])
-#     prob_new_e = uncond_prob(dataset, new_e)
-#     if not prob_new_e:
-#       return None
-#     probs.append((assignment, uncond_prob(dataset, q) / prob_new_e))
-#   return probs
-
 def prob_with_unassigned(domains, dataset, query):
   probs = []
   for query_combo in query.combos(domains):
@@ -188,39 +141,3 @@ def prob_with_unassigned(domains, dataset, query):
       return None
     probs.append(new_prob)
   return probs
-
-def prob(dataset, Q, e={}):
-  """
-  For a query for which all queried-on variables
-  are assigned, returns the conditional probability 
-  calculated from the dataset.
-  """
-  assert not (has_unassigned(Q) or has_unassigned(e))
-  prob_e = uncond_prob(dataset, e)
-  if prob_e == 0:
-    return None
-  return uncond_prob(dataset, {**Q, **e}) / prob_e
-
-def consistent(dataset, Q):
-  """
-  Calculates the number of datapoints in the dataset
-  that are consistent with a probability query.
-  """
-  count = 0
-  for datapoint in dataset:
-    count += all([Q[key] == datapoint[key] for key in Q])
-  return count
-
-def uncond_prob(dataset, Q):
-  """
-  Calculates an probability query that excludes
-  evidence/conditional arguments that would follow
-  a conditioning bar.
-  
-  Ex:
-  P(A,B) = P(A ∩ B)
-    => 0.5
-  """
-  if not Q:
-    return 1.0
-  return consistent(dataset, Q) / len(dataset)

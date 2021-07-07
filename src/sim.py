@@ -116,7 +116,7 @@ if __name__ == "__main__":
         Agent("02", Environment(reversed_z), policy=pol),
         Agent("03", Environment(reversed_z), policy=pol),
     ]
-    sim = Sim(World(agents), 300, 12)
+    sim = Sim(World(agents), 200, 1)
     sim.multithreaded_sim(Result.CUM_REGRET)
   time = time.time() - start
   mins = time // 60
