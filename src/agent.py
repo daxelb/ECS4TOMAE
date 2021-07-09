@@ -5,7 +5,7 @@ import random
 from enums import Datatype, Policy
 
 class Agent:
-  def __init__(self, name, environment, epsilon=0.04, policy=Policy.DEAF):
+  def __init__(self, name, environment, epsilon=0.1, policy=Policy.DEAF):
     self.name = name
     self.environment = environment
     self.epsilon = epsilon
