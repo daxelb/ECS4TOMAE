@@ -4,7 +4,7 @@ import gutil
 from copy import deepcopy
 
 DIV_NODE_CONF = 0.03
-SAMPS_NEEDED = 20
+SAMPS_NEEDED = 0
 
 class Knowledge():
   def __init__(self, environment, agent):

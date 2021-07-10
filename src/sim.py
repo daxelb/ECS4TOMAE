@@ -109,14 +109,14 @@ if __name__ == "__main__":
   # Policy.DEAF, Policy.NAIVE,
   # Policy.DEAF, Policy.SENSITIVE,
   start = time.time()
-  for pol in [Policy.ADJUST]:
+  for pol in [Policy.DEAF, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST]:
     agents = [
         Agent("00", Environment(baseline), policy=pol),
         Agent("01", Environment(baseline), policy=pol),
         Agent("02", Environment(reversed_z), policy=pol),
         Agent("03", Environment(reversed_z), policy=pol),
     ]
-    sim = Sim(World(agents), 200, 1)
+    sim = Sim(World(agents), 250, 12)
     sim.multithreaded_sim(Result.CUM_REGRET)
   time = time.time() - start
   mins = time // 60

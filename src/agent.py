@@ -2,10 +2,10 @@ from knowledge import KnowledgeAdjust, Knowledge, KnowledgeNaive, KnowledgeSensi
 import util
 import gutil
 import random
-from enums import Datatype, Policy
+from enums import Policy
 
 class Agent:
-  def __init__(self, name, environment, epsilon=0.1, policy=Policy.DEAF):
+  def __init__(self, name, environment, epsilon=0.03, policy=Policy.DEAF):
     self.name = name
     self.environment = environment
     self.epsilon = epsilon
