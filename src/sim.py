@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import multiprocessing as mp
 import time
+from copy import copy
 
 class Sim:
   def __init__(self, world, num_episodes, num_trials):
@@ -54,7 +55,7 @@ class Sim:
     return
   
   def simulate(self, results, index, dep_var):
-    sim = self.__copy__()
+    sim = copy(self)
     sim.run()
     results[index] = sim.get_policy_data(dep_var)
 
@@ -86,7 +87,7 @@ class Sim:
       plt.show()
 
   def __copy__(self):
-    return Sim(self.world, self.num_episodes, self.num_trials)
+    return Sim(copy(self.world), self.num_episodes, self.num_trials)
 
 if __name__ == "__main__":  
   baseline = {
@@ -108,19 +109,22 @@ if __name__ == "__main__":
 
   # Policy.DEAF, Policy.NAIVE,
   # Policy.DEAF, Policy.SENSITIVE,
+  eps = 0.03
+  dnc = 0.03
+  sn = 15
   start = time.time()
-  for pol in [Policy.DEAF, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST]:
+  for pol in [Policy.ADJUST]:
     agents = [
-        Agent("00", Environment(baseline), policy=pol),
-        Agent("01", Environment(baseline), policy=pol),
-        Agent("02", Environment(reversed_z), policy=pol),
-        Agent("03", Environment(reversed_z), policy=pol),
+        Agent("00", Environment(baseline), pol, eps, dnc, sn),
+        Agent("01", Environment(baseline), pol, eps, dnc, sn),
+        Agent("02", Environment(reversed_z), pol, eps, dnc, sn),
+        Agent("03", Environment(reversed_z), pol, eps, dnc, sn)
     ]
-    sim = Sim(World(agents), 250, 12)
+    sim = Sim(World(agents), 150, 1)
     sim.multithreaded_sim(Result.CUM_REGRET)
   time = time.time() - start
   mins = time // 60
   sec = time % 60
   print("Time elapsed = {0}:{1}".format(int(mins), sec))
   plt.show()
-  plt.savefig("../output/0705-{}agent-{}ep-{}n".format(len(agents), sim.num_episodes, sim.num_trials * mp.cpu_count()))
+  # plt.savefig("../output/0705-{}agent-{}ep-{}n".format(len(agents), sim.num_episodes, sim.num_trials * mp.cpu_count()))

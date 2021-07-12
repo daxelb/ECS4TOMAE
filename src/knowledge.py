@@ -1,41 +1,26 @@
 from query import Product
 import util
 import gutil
-from copy import deepcopy
-
-DIV_NODE_CONF = 0.03
-SAMPS_NEEDED = 0
 
 class Knowledge():
-  def __init__(self, environment, agent):
-    self.model = environment.cgm
-    self.domains = environment.domains
-    self.act_vars = environment.act_vars
-    self.rew_var = environment.rew_var
+  def __init__(self, agent):
     self.agent = agent
+    self.model = agent.environment.cgm
+    self.domains = agent.environment.domains
+    self.vars = set(self.domains.keys())
+    self.act_vars = agent.environment.act_vars
+    self.rew_var = agent.environment.rew_var
     self.samples = {agent: []}
     self.act_doms = gutil.only_given_keys(self.domains, self.act_vars)
     self.rew_dom = gutil.only_given_keys(self.domains, [self.rew_var])
 
   def my_data(self):
     return self.samples[self.agent]
-  
-  def get_observable(self):
-    return sorted(list(self.domains.keys()))
-  
-  def get_missing(self, dict):
-    return [v for v in self.get_observable() if v not in dict.keys()]
-  
-  def domains_of_missing(self, dict):
-    return gutil.only_given_keys(self.domains, self.get_missing(dict))
 
   def add_sample(self, agent, sample):
     if agent not in self.samples:
       self.samples[agent] = []
     self.samples[agent].append(sample)
-
-  def get_dist(self, node=None):
-    return self.model.get_dist(node).assign(self.domains)
   
   def optimal_choice(self, givens={}):
     expected_values = util.expected_vals(self.my_data(), self.act_vars, self.rew_var, givens)
@@ -56,8 +41,10 @@ class KnowledgeNaive(Knowledge):
     return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values else None
   
 class KnowledgeSensitive(Knowledge):
-  def __init__(self, *args):
-    super().__init__(*args)
+  def __init__(self, agent, div_node_conf, samps_needed):
+    super().__init__(agent)
+    self.div_node_conf = div_node_conf
+    self.samps_needed = samps_needed
     self.divergence = {self.agent: gutil.Counter()}
     
   def add_sample(self, agent, sample):
@@ -65,7 +52,7 @@ class KnowledgeSensitive(Knowledge):
     self.update_divergence(agent)
 
   def div_nodes(self, agent):
-    return [node for node, divergence in self.divergence[agent].items() if divergence is None or abs(divergence) > DIV_NODE_CONF]
+    return [node for node, divergence in self.divergence[agent].items() if divergence is None or abs(divergence) > self.div_node_conf]
     
   def sensitive_data(self):
     data = []
@@ -90,12 +77,12 @@ class KnowledgeSensitive(Knowledge):
     return self.kl_divergence_of_query(self.model.get_node_dist(node), other_data)
 
   def get_non_action_nodes(self):
-    return [node for node in self.model.get_observable() if node not in self.act_vars]
+    return [node for node in self.vars if node not in self.act_vars]
 
   def update_divergence(self, agent):
     if agent not in self.divergence:
       self.add_agent_divergence(agent)
-    if len(self.samples[agent]) < SAMPS_NEEDED or agent == self.agent:
+    if len(self.samples[agent]) < self.samps_needed or agent == self.agent:
       return
     for node in self.get_non_action_nodes():
       self.divergence[agent][node] = self.kl_divergence_of_node(node, self.samples[agent])
@@ -115,32 +102,29 @@ class KnowledgeSensitive(Knowledge):
     divergent = {}
     for node in self.divergence[agent]:
       node_divergence = self.divergence[agent][node]
-      divergent[node] = node_divergence is None or abs(node_divergence) > DIV_NODE_CONF
+      divergent[node] = node_divergence is None or abs(node_divergence) > self.div_node_conf
     return divergent
       
   def optimal_choice(self, givens={}):
     expected_values = util.expected_vals(self.sensitive_data(), self.act_vars, self.rew_var, givens)
     return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values else None
 
-class KnowledgeAdjust(KnowledgeSensitive):
-  def __init__(self, *args):
-    super().__init__(*args) 
-  
+class KnowledgeAdjust(KnowledgeSensitive):  
   def get_num_datapoints(self, tf, other):
     return len(gutil.only_dicts_with_givens(self.my_data(), tf[0].get_assignments(tf[0].e())))\
       + len(gutil.only_dicts_with_givens(self.samples[other], tf[1].get_assignments(tf[1].e())))
   
   def transport_formula(self, agent, givens):
+    div_nodes = self.div_nodes(agent)
     unformatted_tf = self.model.from_cpts(
         self.model.selection_diagram(
-          self.div_nodes(agent)
+          div_nodes
         ).get_transport_formula(
           self.act_vars[0], self.rew_var, set(givens)
         )
       )
     my_queries = Product()
     other_queries = Product()
-    div_nodes = self.div_nodes(agent)
     for q in unformatted_tf:
       query_var = q.query_var()
       if query_var in givens or query_var in self.act_vars:
@@ -164,7 +148,7 @@ class KnowledgeAdjust(KnowledgeSensitive):
     return summation
     
   def optimal_choice(self, givens={}):
-    if len(self.my_data()) < SAMPS_NEEDED:
+    if len(self.my_data()) < self.samps_needed:
       return Knowledge.optimal_choice(self, givens)
     
     actions = gutil.permutations(self.act_doms)
