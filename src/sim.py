@@ -59,7 +59,28 @@ class Sim:
     sim.run()
     results[index] = sim.get_policy_data(dep_var)
 
-  def multithreaded_sim(self, dep_var, show=False):
+  def multithreaded_sim(self, dep_var, lbl=None, show=False):
+    print(lbl)
+    if lbl == 0.04:
+      color = "#{0}{1}{2}".format("ff","00","00")
+    elif lbl == 0.02:
+      color = "#{0}{1}{2}".format("ff","6a","00")
+    elif lbl == 0.05:
+      color = "#{0}{1}{2}".format("ff","ff","00")
+    elif lbl == 0.04:
+      color = "#{0}{1}{2}".format("51","ff","00")
+    elif lbl == 0.06:
+      color = "#{0}{1}{2}".format("00","ff","8c")
+    elif lbl == 0.06:
+      color = "#{0}{1}{2}".format("00","e1","ff")
+    elif lbl == 0.07:
+      color = "#{0}{1}{2}".format("00","55","ff")
+    elif lbl == 0.08:
+      color = "#{0}{1}{2}".format("1e","00","ff")
+    elif lbl == 0.08:
+      color = "#{0}{1}{2}".format("88","00","ff")
+    elif lbl == 0.1:
+      color = "#{0}{1}{2}".format("ff","00","dd")
     num_threads = mp.cpu_count()
     jobs = []
     results = mp.Manager().list([None] * num_threads)
@@ -78,7 +99,8 @@ class Sim:
       plt.plot(
           np.arange(len(policies[p][0])),
           np.array(gutil.avg_list(policies[p])),
-          label=p
+          label=lbl,
+          c=color
       )
     plt.xlabel("Iterations")
     plt.ylabel(dep_var.value)
@@ -112,17 +134,17 @@ if __name__ == "__main__":
   pol = Policy.ADJUST
   eps = 0.03
   # dnc = 0.03
-  sn = 15
+  sn = 10
   start = time.time()
-  for dnc in [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1]:
+  for dnc in [0.04, 0.05, 0.06, 0.07, 0.08]:
     agents = [
         Agent("00", Environment(baseline), pol, eps, dnc, sn),
         Agent("01", Environment(baseline), pol, eps, dnc, sn),
         Agent("02", Environment(reversed_z), pol, eps, dnc, sn),
         Agent("03", Environment(reversed_z), pol, eps, dnc, sn)
     ]
-    sim = Sim(World(agents), 300, 12)
-    sim.multithreaded_sim(Result.CUM_REGRET)
+    sim = Sim(World(agents), 240, 20)
+    sim.multithreaded_sim(Result.CUM_REGRET, lbl=dnc)
   time = time.time() - start
   mins = time // 60
   sec = time % 60
