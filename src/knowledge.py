@@ -1,48 +1,58 @@
 from query import Product
 import util
 import gutil
+from data import DataBank
 
 class Knowledge():
-  def __init__(self, agent):
+  def __init__(self, agent, databank):
     self.agent = agent
     self.model = agent.environment.cgm
     self.domains = agent.environment.domains
     self.vars = set(self.domains.keys())
     self.act_vars = agent.environment.act_vars
     self.rew_var = agent.environment.rew_var
-    self.samples = {agent: []}
     self.act_doms = gutil.only_given_keys(self.domains, self.act_vars)
     self.rew_dom = gutil.only_given_keys(self.domains, [self.rew_var])
+    self.databank = databank
+    self.databank.add_agent(self.agent)
+
+  def get_recent(self):
+    return self.my_data().get_recent()
 
   def my_data(self):
-    return self.samples[self.agent]
+    return self.databank[hash(self.agent)]
+    # return self.samples[self.agent]
 
-  def add_sample(self, agent, sample):
-    if agent not in self.samples:
-      self.samples[agent] = []
-    self.samples[agent].append(sample)
+  def add_sample(self, sample):
+    self.databank.append(self.agent, sample)
+    # if agent not in self.samples:
+    #   self.samples[agent] = []
+    # self.samples[agent].append(sample)
   
   def optimal_choice(self, givens={}):
-    expected_values = util.expected_vals(self.my_data(), self.act_vars, self.rew_var, givens)
-    return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values else None
+    return self.databank[hash(self.agent)].optimal_choice(self.act_doms, self.rew_var, givens)
+    # expected_values = util.expected_vals(self.my_data(), self.act_vars, self.rew_var, givens)
+    # return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values else None
 
 class KnowledgeNaive(Knowledge):
   def __init__(self, *args):
     super().__init__(*args)
     
   def all_data(self):
-    data = []
-    for a in self.samples:
-      data.extend(self.samples[a])
-    return data
+    return self.databank.all_data()
+    # data = []
+    # for a in self.samples:
+    #   data.extend(self.samples[a])
+    # return data
   
   def optimal_choice(self, givens={}):
-    expected_values = util.expected_vals(self.all_data(), self.act_vars, self.rew_var, givens)
-    return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values else None
+    return self.databank.all_data().optimal_choice(self.act_doms, self.rew_var, givens)
+    # expected_values = util.expected_vals(self.all_data(), self.act_vars, self.rew_var, givens)
+    # return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values else None
   
 class KnowledgeSensitive(Knowledge):
-  def __init__(self, agent, div_node_conf, samps_needed):
-    super().__init__(agent)
+  def __init__(self, agent, databank, div_node_conf, samps_needed):
+    super().__init__(agent, databank)
     self.div_node_conf = div_node_conf
     self.samps_needed = samps_needed
     self.divergence = {self.agent: gutil.Counter()}

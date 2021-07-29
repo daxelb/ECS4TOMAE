@@ -3,8 +3,6 @@
 # The code has been imported and modified into this project for ease/consistency
 
 import inspect
-import os
-import util
 import math
 import gutil
 
@@ -64,17 +62,38 @@ class Environment:
         [post_ass.update({n: ActionModel(self.cgm.get_parents(n), self.domains[n])}) for n in pre_nodes]
         self.post = StructuralCausalModel(post_ass)
         
-        self.feature_nodes = []
-        [self.feature_nodes.extend(self.cgm.get_parents(n)) for n in self.act_vars]
-        gutil.remove_dupes(self.feature_nodes)
+        self.feat_vars = []
+        [self.feat_vars.extend(self.cgm.get_parents(n)) for n in self.act_vars]
+        gutil.remove_dupes(self.feat_vars)
         self.action_rewards = self.get_action_rewards()
+    
+    def get_domains(self):
+      return self.domains
+    
+    def get_vars(self):
+      return set(self.domains.keys())
+    
+    def get_act_vars(self):
+      return set(self.act_vars)
+    
+    def get_act_doms(self):
+      return gutil.only_given_keys(self.domains, self.act_vars)
+    
+    def get_act_feat_vars(self):
+      return gutil.remove_dupes(self.act_vars + self.feat_vars)
+    
+    def get_act_feat_doms(self):
+      return gutil.only_given_keys(self.domains, self.get_act_feat_vars())
+    
+    def get_rew_var(self):
+      return self.rew_var
+    
+    def get_rew_dom(self):
+      return gutil.only_given_keys(self.domains, [self.rew_var])
   
-    def get_action_rewards(self, iterations=750):
-      act_feat_nodes = self.act_vars + self.feature_nodes
-      gutil.remove_dupes(act_feat_nodes)
-      perms = gutil.permutations(gutil.only_given_keys(self.domains, act_feat_nodes))
+    def get_action_rewards(self, iterations=1000):
       action_rewards = []
-      for p in perms:
+      for p in gutil.permutations(self.get_act_feat_doms()):
         action_reward = [p,0]
         for _ in range(iterations):
           action_reward[1] += self.post.sample(p)[self.rew_var]

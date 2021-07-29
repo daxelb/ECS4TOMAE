@@ -8,7 +8,6 @@ from itertools import combinations, chain, zip_longest
 from collections.abc import Iterable
 from query import Query, Product
 import gutil
-import util
 
 class CausalGraph:
   """

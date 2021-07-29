@@ -9,6 +9,8 @@ def avg_list(lists):
       => [(0+5+4)/3, (1+2+3)/3, (2+1+0)/3]
       => [3,2,1]
   """
+  import time
+  print(time.time())
   averaged_list = [0] * len(lists[0])
   for lst in lists:
     for i, e in enumerate(lst):

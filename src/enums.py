@@ -5,10 +5,10 @@ class Datatype(Enum):
   EXP = "exp"
   
 class Policy(Enum):
-  DEAF = 0
-  NAIVE = 1
-  SENSITIVE = 2
-  ADJUST = 3
+  DEAF = "Deaf"
+  NAIVE = "Naive"
+  SENSITIVE = "Sensitive"
+  ADJUST = "Adjust"
   
 class Result(Enum):
   CUM_REGRET = "Pseudo Cumulative Regret"

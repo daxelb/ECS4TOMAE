@@ -110,18 +110,30 @@ def kl_divergence(domains, P_data, Q_data, query, log_base=math.e):
   By default, the log_base is e to measure information in nats. A log_base
   of 2 would measure information in bits.
   """
-  Px = prob_with_unassigned(domains, P_data, query)
-  Qx = prob_with_unassigned(domains, Q_data, query)
-  if Px is None or Qx is None:
+  Px_and_Qx = get_Px_and_Qx(domains, P_data, Q_data, query)
+  if Px_and_Qx is None:
     return None
-  res = 0
-  for i in range(len(Px)):
-    assert Px[i][0] == Qx[i][0]
-    res +=  0 if Qx[i][1] == Px[i][1] else \
-            math.inf if Qx[i][1] == 0 else \
-            -math.inf if Px[i][1] == 0 else \
-            Px[i][1] * math.log(Px[i][1] / Qx[i][1], log_base)
-  return res
+  kld = 0
+  for i in range(len(Px_and_Qx)):
+    P_i = Px_and_Qx[i][1][0]
+    Q_i = Px_and_Qx[i][1][1]
+    kld +=  0 if P_i == Q_i else \
+            math.inf if Q_i == 0 else \
+            -math.inf if P_i == 0 else \
+            P_i * math.log(P_i / Q_i, log_base)
+  return kld
+  # Px = prob_with_unassigned(domains, P_data, query)
+  # Qx = prob_with_unassigned(domains, Q_data, query)
+  # if Px is None or Qx is None:
+  #   return None
+  # res = 0
+  # for i in range(len(Px)):
+  #   assert Px[i][0] == Qx[i][0]
+  #   res +=  0 if Qx[i][1] == Px[i][1] else \
+  #           math.inf if Qx[i][1] == 0 else \
+  #           -math.inf if Px[i][1] == 0 else \
+  #           Px[i][1] * math.log(Px[i][1] / Qx[i][1], log_base)
+  # return res
 
 def has_unassigned(Q):
   """
@@ -140,4 +152,13 @@ def prob_with_unassigned(domains, dataset, query):
     if new_prob[1] is None:
       return None
     probs.append(new_prob)
+  return probs
+
+def get_Px_and_Qx(domains, P_data, Q_data, query):
+  probs = []
+  for query_combo in query.combos(domains):
+    new_probs = (query_combo, (query_combo.solve(P_data), query_combo.solve(Q_data)))
+    if new_probs[1][0] is None or new_probs[1][1] is None:
+      return None
+    probs.append(new_probs)
   return probs
