@@ -78,7 +78,7 @@ class World:
         if a == f: continue
         correct_div_nodes[a][f] = {}
         for node, assignment in a.environment._assignment.items():
-          if node not in a.environment.get_act_vars():
+          if node != a.environment.get_act_var():
             correct_div_nodes[a][f][node] = assignment != f.environment._assignment[node]
     return correct_div_nodes
 

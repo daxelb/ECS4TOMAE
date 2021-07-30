@@ -95,7 +95,7 @@ class Query:
   def solve(self, data):
     assert self.all_assigned()
     query_space = data.query(self.e)
-    if query_space.empty:
+    if query_space.is_empty():
       return None
     return len(query_space.query(self.Q)) / len(query_space)
   

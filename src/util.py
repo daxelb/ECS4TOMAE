@@ -11,7 +11,7 @@ def hash_from_dict(dictionary):
     => "A=1,B=5,C=1"
   """
   hashstring = ""
-  for i, key in enumerate(dictionary.keys()):
+  for i, key in enumerate(sorted(list(dictionary.keys()))):
     hashstring += str(key)
     if not isinstance(dictionary[key], Iterable):
       hashstring += "=" + str(dictionary[key])

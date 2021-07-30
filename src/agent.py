@@ -7,8 +7,8 @@ class Agent:
   def __init__(self, name, environment, databank, policy, epsilon=0.03, div_node_conf=0, samps_needed=0):
     self.name = name
     self.environment = environment
-    self.act_vars = environment.get_act_vars()
-    self.act_doms = environment.get_act_doms()
+    self.act_var = environment.get_act_var()
+    self.act_dom = environment.get_act_dom()
     self.rew_var = environment.get_rew_var()
     self.policy = policy
     self.epsilon = epsilon
@@ -19,9 +19,9 @@ class Agent:
     elif policy == Policy.NAIVE:
       self.knowledge = KnowledgeNaive(self, databank)
     elif policy == Policy.SENSITIVE:
-      self.knowledge = KnowledgeSensitive(self, databank, div_node_conf, samps_needed)
+      self.knowledge = KnowledgeSensitive(self, databank)
     elif policy == Policy.ADJUST:
-      self.knowledge = KnowledgeAdjust(self, databank, div_node_conf, samps_needed)
+      self.knowledge = KnowledgeAdjust(self, databank)
 
   def get_recent(self):
     return self.knowledge.get_recent()
@@ -41,22 +41,13 @@ class Agent:
     return optimal_choice
 
   def experiment(self, givens={}):
-    for choice in gutil.permutations(self.act_doms):
+    for choice in gutil.permutations(self.act_dom):
       if len(self.knowledge.my_data().query({**choice, **givens})) == 0:
         return choice
     return self.random_action()
-    # reward_vals = util.reward_vals(
-    #   self.knowledge.my_data(), self.act_vars, self.rew_var, givens)
-    # unexplored = [util.dict_from_hash(e) for e in util.hashes_from_domain(self.act_doms) if e not in reward_vals.keys()]
-    # return random.choice(unexplored) if unexplored else self.random_action()
 
   def random_action(self):
-    return random.choice(gutil.permutations(self.act_doms))
-
-  # def encounter(self, other):
-  #   if self.policy == Policy.DEAF:
-  #     return
-  #   self.knowledge.add_sample(other, other.get_recent())
+    return random.choice(gutil.permutations(self.act_dom))
     
   def __copy__(self):
     return Agent(self.name, self.environment, self.knowlege.databank, self.policy, self.epsilon, self.div_node_conf, self.samps_needed)

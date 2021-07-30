@@ -8,11 +8,11 @@ class Knowledge():
     self.agent = agent
     self.model = agent.environment.cgm
     self.domains = agent.environment.domains
-    self.vars = set(self.domains.keys())
-    self.act_vars = agent.environment.act_vars
-    self.rew_var = agent.environment.rew_var
-    self.act_doms = gutil.only_given_keys(self.domains, self.act_vars)
-    self.rew_dom = gutil.only_given_keys(self.domains, [self.rew_var])
+    self.vars = agent.environment.get_vars()
+    self.act_var = agent.environment.get_act_var()
+    self.rew_var = agent.environment.get_rew_var()
+    self.act_dom = agent.environment.get_act_dom()
+    self.rew_dom = agent.environment.get_rew_dom()
     self.databank = databank
     self.databank.add_agent(self.agent)
 
@@ -21,42 +21,31 @@ class Knowledge():
 
   def my_data(self):
     return self.databank[self.agent]
-    # return self.samples[self.agent]
 
   def add_sample(self, sample):
-    self.databank.append(self.agent, sample)
-    # if agent not in self.samples:
-    #   self.samples[agent] = []
-    # self.samples[agent].append(sample)
+    self.databank[self.agent].append(sample)
   
   def optimal_choice(self, givens={}):
-    return self.databank[self.agent].optimal_choice(self.act_doms, self.rew_var, givens)
-    # expected_values = util.expected_vals(self.my_data(), self.act_vars, self.rew_var, givens)
-    # return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values else None
+    return self.databank[self.agent].optimal_choice(self.act_dom, self.rew_var, givens)
 
-class KnowledgeNaive(Knowledge):
-  def __init__(self, *args):
-    super().__init__(*args)
-  
+class KnowledgeNaive(Knowledge): 
   def optimal_choice(self, givens={}):
-    return self.databank.all_data().optimal_choice(self.act_doms, self.rew_var, givens)
+    return self.databank.all_data().optimal_choice(self.act_dom, self.rew_var, givens)
   
 class KnowledgeSensitive(Knowledge):
-  def __init__(self, agent, databank, div_node_conf, samps_needed):
-    super().__init__(agent, databank)
-    self.div_node_conf = div_node_conf
-    self.samps_needed = samps_needed
+  def div_nodes(self, agent):
+    return self.databank.div_nodes(self.agent, agent)
 
   def is_divergent_dict(self, agent):
     return self.databank.is_divergent_dict(self.agent, agent)
 
   def optimal_choice(self, givens={}):
-    return self.databank.sensitive_data(self.agent).optimal_choice(self.act_doms, self.rew_var, givens)
+    return self.databank.sensitive_data(self.agent).optimal_choice(self.act_dom, self.rew_var, givens)
 
 class KnowledgeAdjust(KnowledgeSensitive):  
   def get_num_datapoints(self, tf, other):
     return len(gutil.only_dicts_with_givens(self.my_data(), tf[0].get_assignments(tf[0].e())))\
-      + len(gutil.only_dicts_with_givens(self.samples[other], tf[1].get_assignments(tf[1].e())))
+      + len(gutil.only_dicts_with_givens(self.databank[other], tf[1].get_assignments(tf[1].e())))
   
   def transport_formula(self, agent, givens):
     div_nodes = self.div_nodes(agent)
@@ -64,14 +53,14 @@ class KnowledgeAdjust(KnowledgeSensitive):
         self.model.selection_diagram(
           div_nodes
         ).get_transport_formula(
-          self.act_vars[0], self.rew_var, set(givens)
+          self.act_var, self.rew_var, set(givens)
         )
       )
     my_queries = Product()
     other_queries = Product()
     for q in unformatted_tf:
       query_var = q.query_var()
-      if query_var in givens or query_var in self.act_vars:
+      if query_var in givens or query_var == self.act_var:
         continue
       if query_var in div_nodes:
         my_queries.append(q)
@@ -92,12 +81,12 @@ class KnowledgeAdjust(KnowledgeSensitive):
     return summation
     
   def optimal_choice(self, givens={}):
-    if len(self.my_data()) < self.samps_needed:
+    if len(self.my_data()) < self.agent.samps_needed:
       return Knowledge.optimal_choice(self, givens)
     
-    actions = gutil.permutations(self.act_doms)
+    actions = gutil.permutations(self.act_dom)
     rewards = gutil.permutations(self.rew_dom)
-    my_data = self.my_data()
+    P_data = self.my_data()
     
     action_rewards = {}
     for act in actions:
@@ -106,19 +95,19 @@ class KnowledgeAdjust(KnowledgeSensitive):
       for rew in rewards:
         action_rewards[act_hash][util.hash_from_dict(rew)] = [[],[]]
     
-    for other, other_data in self.samples.items():
-      transport_formula = self.transport_formula(other, givens)
+    for Q_agent, Q_data in self.databank.items():
+      transport_formula = self.transport_formula(Q_agent, givens)
       for act in actions:
         transport_formula.assign(act)
         act_hash = util.hash_from_dict(act)
-        num_datapoints = self.get_num_datapoints(transport_formula, other)
+        num_datapoints = self.get_num_datapoints(transport_formula, Q_agent)
         if not num_datapoints:
           continue
         # calculating the transport formula with every action and every agent is slow
         for rew in rewards:
           transport_formula.assign(rew)
           rew_hash = util.hash_from_dict(rew)
-          tf_sol = self.solve_transport_formula(transport_formula, my_data, other_data)
+          tf_sol = self.solve_transport_formula(transport_formula, P_data, Q_data)
           if tf_sol is None:
             continue
           action_rewards[act_hash][rew_hash][0].append(num_datapoints)

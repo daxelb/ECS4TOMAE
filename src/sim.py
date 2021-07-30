@@ -138,8 +138,8 @@ if __name__ == "__main__":
   sn = 10
   start = time.time()
   print(time.time())
-  for policy in [Policy.SENSITIVE]:
-    databank = DataBank(Environment(baseline).domains, Environment(baseline).act_vars, Environment(baseline).rew_var)
+  for policy in [Policy.ADJUST]:
+    databank = DataBank(Environment(baseline).domains, Environment(baseline).act_var, Environment(baseline).rew_var)
     agents = [
         Agent("0", Environment(baseline), databank, policy, eps, dnc, sn),
         Agent("1", Environment(baseline), databank, policy, eps, dnc, sn),

@@ -20,7 +20,7 @@ class Environment:
         self.domains = {}
         self._assignment = assignment.copy()
         nodes = list(assignment.keys())
-        self.act_vars = []
+        self.act_var = None
         self.rew_var = rew_var
         set_nodes = []
         edges = []
@@ -32,7 +32,8 @@ class Environment:
             elif isinstance(model, AssignmentModel):
                 self.domains[node] = model.domain
                 if isinstance(model, ActionModel):
-                  self.act_vars.append(node)
+                  assert self.act_var == None
+                  self.act_var = node
                 edges.extend([
                     (parent, node)
                     for parent in model.parents
@@ -55,16 +56,13 @@ class Environment:
 
         self.cgm = CausalGraph(nodes=nodes, edges=edges, set_nodes=set_nodes)
 
-        pre_nodes = []
-        [pre_nodes.extend(self.cgm.get_ancestors(v)) for v in self.act_vars]
+        pre_nodes = list(self.cgm.get_ancestors(self.act_var))
         self.pre = StructuralCausalModel(gutil.only_given_keys(self._assignment, pre_nodes))
         post_ass = self._assignment.copy()
         [post_ass.update({n: ActionModel(self.cgm.get_parents(n), self.domains[n])}) for n in pre_nodes]
         self.post = StructuralCausalModel(post_ass)
         
-        self.feat_vars = []
-        [self.feat_vars.extend(self.cgm.get_parents(n)) for n in self.act_vars]
-        gutil.remove_dupes(self.feat_vars)
+        self.feat_vars = self.get_feat_vars()
         self.action_rewards = self.get_action_rewards()
     
     def get_domains(self):
@@ -73,14 +71,17 @@ class Environment:
     def get_vars(self):
       return set(self.domains.keys())
     
-    def get_act_vars(self):
-      return set(self.act_vars)
+    def get_act_var(self):
+      return self.act_var
     
-    def get_act_doms(self):
-      return gutil.only_given_keys(self.domains, self.act_vars)
+    def get_act_dom(self):
+      return {self.act_var: self.domains[self.act_var]}
+    
+    def get_feat_vars(self):
+      return self.cgm.get_parents(self.act_var)
     
     def get_act_feat_vars(self):
-      return gutil.remove_dupes(self.act_vars + self.feat_vars)
+      return self.feat_vars.union(set(self.act_var))
     
     def get_act_feat_doms(self):
       return gutil.only_given_keys(self.domains, self.get_act_feat_vars())
@@ -104,7 +105,7 @@ class Environment:
     def optimal_action_rewards(self, givens={}):
       action_rewards = []
       for tup in self.action_rewards:
-        action_rewards.append((gutil.only_given_keys(tup[0], self.act_vars), tup[1]))
+        action_rewards.append((gutil.only_given_keys(tup[0], [self.act_var]), tup[1]))
         for key in givens:
           if tup[0][key] != givens[key]:
             action_rewards = action_rewards[:-1]

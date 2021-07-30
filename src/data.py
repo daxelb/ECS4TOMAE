@@ -14,7 +14,7 @@ class DataSet(list):
   def __init__(self, data=[]):
     super().__init__(data)
 
-  def empty(self):
+  def is_empty(self):
     return len(self) == 0
     
   def get_recent(self):
@@ -36,10 +36,10 @@ class DataSet(list):
     total = len(self)
     return sum([e[var] for e in self]) / total if total else None
   
-  def optimal_choice(self, act_doms, rew_var, givens):
+  def optimal_choice(self, act_dom, rew_var, givens):
     best_choice = None
     best_rew = -math.inf
-    for choice in gutil.permutations(act_doms):
+    for choice in gutil.permutations(act_dom):
       expected_rew = self.query({**choice, **givens}).mean(rew_var)
       if expected_rew is not None and expected_rew > best_rew:
         best_choice = choice
@@ -49,11 +49,11 @@ class DataSet(list):
 
 
 class DataBank:
-  def __init__(self, domains, act_vars, rew_var, data={}):
+  def __init__(self, domains, act_var, rew_var, data={}):
     self.data = data
     self.domains = domains
     self.vars = set(domains.keys())
-    self.act_vars = act_vars
+    self.act_var = act_var
     self.rew_var = rew_var
     self.divergence = {}
     for key in self.data:
@@ -73,7 +73,7 @@ class DataBank:
         self.divergence[new_agent][existing_agent][node] = 1
         
   def get_non_act_nodes(self):
-    return [node for node in self.vars if node not in self.act_vars]
+    return [node for node in self.vars if node != self.act_var]
         
   def kl_div_of_query(self, query, P_agent, Q_agent):
     return util.kl_divergence(self.domains, self.data[P_agent], self.data[hash(Q_agent)], query)
@@ -116,9 +116,8 @@ class DataBank:
     [data.extend(Q_data) for Q_agent, Q_data in self.data.items() if not self.div_nodes(P_agent, Q_agent)]
     return data
 
-  def append(self, agent, sample):
-    self.data[agent].append(sample)
-    # self.data[agent] = self.data[agent].append(sample)
+  def items(self):
+    return self.data.items()
 
   def __getitem__(self, key):
     return self.data[key]
@@ -127,7 +126,7 @@ class DataBank:
     return self.__dict__
   
   def __reduce__(self):
-    return type(self), (self.domains, self.act_vars, self.rew_var, self.data)
+    return type(self), (self.domains, self.act_var, self.rew_var, self.data)
 
     
 if __name__ == "__main__":
@@ -141,7 +140,7 @@ if __name__ == "__main__":
     "Z": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
     "Y": DiscreteModel(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
   })
-  db = DataBank(baseline.domains, baseline.act_vars, baseline.rew_var)
+  db = DataBank(baseline.domains, baseline.act_var, baseline.rew_var)
   agents = [
     Agent("00", baseline, db, Policy.DEAF, 0.05, 0.03, 10),
     Agent("01", baseline, db, Policy.ADJUST, 0.05, 0.03, 10),
@@ -187,25 +186,6 @@ if __name__ == "__main__":
   db.append(agents[1], baseline.post.sample(set_values={"W": 0, "X": 1}))
   db.append(agents[1], baseline.post.sample(set_values={"W": 1, "X": 0}))
   db.append(agents[1], baseline.post.sample(set_values={"W": 0, "X": 0}))
-  # print(db.agent_pairs())
-  # print(len(db.data[agents[0]]))
-  # print(db.divergence)
+
   from query import Query
-  # print(Query({"Y": 1}, {"X": None, "W": 1}).solve_unassigned(db.data[agents[0]], {"X": (0,1), "Y":(0,1), "Z": (0,1), "W": (0,1)}))
-  # print(Query({"X": 0}, {"Y": 0}).solve(db.data[agents[0]]))
-  # print(Query({"X": 0}, {"Y": 0}).solve(db.data[agents[1]]))
-  # # print(Query({"X": 0}, {"Y": 0}).num_consistent(db.data[agents[0]]))
-  # # print(Query({"Y": 0}).num_consistent(db.data[agents[0]]))
-  # db.update_divergence()
-  # print(db.divergence)
-  # print(db.sensitive_data(agents[0]))
-  # print()
-  # print(db.sensitive_data(agents[1]))
-  # print()
-  # print(db.all_data())
-  print(db.all_data().optimal_choice(agents[0].environment.get_act_doms(), "Y", {"W": 1}))
-  # db.optimal_choice_naive({"W": 1})
-  # print(db.all_data().query("X == 0")["Y"].mean())
-  # print(db.all_data().query("X == 1")["Y"].mean())
-  
-  # print(parse_as_dataframe_query(Query({"X": 0}, {"Y": 0})))
+  print(db.all_data().optimal_choice(agents[0].environment.get_act_dom(), "Y", {"W": 1}))
