@@ -10,47 +10,38 @@ import numpy as np
 def pairs(lst):
   return [(a, b) for i, a in enumerate(lst) for b in lst[i + 1:]]
 
-class DataSet(DataFrame):
-  def __init__(self, vars):
-    super().__init__(index=np.arange(250), columns=sorted(list(vars)))
+class DataSet(list):
+  def __init__(self, data=[]):
+    super().__init__(data)
     
   def get_recent(self):
-    return self.iloc[-1].to_dict()
-    
-  def parse_query(self, query_dict):
-    str_query = ""
-    for var, ass in query_dict.items():
-      if isinstance(ass, (int, float)):
-        str_query += "{0} == {1} & ".format(var,ass)
-    return str_query[:-3]
+    return self[-1]
     
   def query(self, query_dict):
-    res = super().query(self.parse_query(query_dict))
-    res.__class__ = self.__class__
+    res = DataSet()
+    for e in self:
+      consistent = True
+      for key in query_dict:
+        if e[key] != query_dict[key]:
+          consistent = False
+          break
+      if consistent:
+        res.append(e)
     return res
-  
-  def append(self, sample):
-    res = super().append(sample, ignore_index=True)
-    res.__class__ = self.__class__
-    return res
+    
+  def mean(self, var):
+    total = len(self)
+    return sum([e[var] for e in self]) / total if total else None
   
   def optimal_choice(self, act_doms, rew_var, givens):
     best_choice = None
     best_rew = -math.inf
     for choice in gutil.permutations(act_doms):
-      expected_rew = self.query({**choice, **givens})[rew_var].mean()
-      if expected_rew > best_rew:
+      expected_rew = self.query({**choice, **givens}).mean(rew_var)
+      if expected_rew is not None and expected_rew > best_rew:
         best_choice = choice
         best_rew = expected_rew
-    return 
-    
-  
-  # def __len__(self):
-  #   return len(self.df)
-  
-  # def __bool__(self):
-  #   return bool(len(self))
-
+    return best_choice
 class DataBank:
   def __init__(self, domains, act_vars, rew_var, data={}):
     self.data = data
@@ -63,10 +54,10 @@ class DataBank:
       self.add_agent(key)
   
   def add_agent(self, new_agent):
-    new_agent = hash(new_agent)
+    # new_agent = hash(new_agent)
     if new_agent in self.data:
       return
-    self.data[new_agent] = DataSet(self.vars)
+    self.data[new_agent] = DataSet()
     self.divergence[new_agent] = {}
     for existing_agent in self.data.keys():
       self.divergence[new_agent][existing_agent] = {}
@@ -78,11 +69,11 @@ class DataBank:
   def get_non_act_nodes(self):
     return [node for node in self.vars if node not in self.act_vars]
         
-  def kl_div_of_query(self, query, p_agent, q_agent):
-    return util.kl_divergence(self.domains, self.data[hash(p_agent)], self.data[hash(q_agent)], query)
+  def kl_div_of_query(self, query, P_agent, Q_agent):
+    return util.kl_divergence(self.domains, self.data[P_agent], self.data[hash(Q_agent)], query)
   
-  def kl_div_of_node(self, node, p_agent, q_agent):
-    return self.kl_div_of_query(p_agent.knowledge.model.get_node_dist(node), p_agent, q_agent)
+  def kl_div_of_node(self, node, P_agent, Q_agent):
+    return self.kl_div_of_query(P_agent.knowledge.model.get_node_dist(node), P_agent, Q_agent)
         
   def update_divergence(self):
     for P_agent, P_data in self.data.items():
@@ -102,20 +93,18 @@ class DataBank:
     return [node for node, divergence in self.divergence[P_agent][Q_agent].items() if divergence is None or abs(divergence) > P_agent.div_node_conf]
   
   def all_data(self):
-    data = pd.concat(self.data.values())
-    data.__class__ = DataSet
+    data = DataSet()
+    [data.extend(d) for d in self.data.values()]
     return data
   
   def sensitive_data(self, P_agent):
-    data = pd.concat([Q_data for Q_agent, Q_data in self.data.items() if not self.div_nodes(hash(P_agent), Q_agent)])
-    data.__class__ = DataSet
+    data = DataSet()
+    [data.extend(Q_data) for Q_agent, Q_data in self.data.items() if not self.div_nodes(P_agent, Q_agent)]
     return data
-  
-  # def optimal_choice_naive(self, givens):
-  #   return self.optimal_choice(self.all_data(), givens)
 
   def append(self, agent, sample):
-    self.data[hash(agent)] = self.data[hash(agent)].append(sample)
+    self.data[agent].append(sample)
+    # self.data[agent] = self.data[agent].append(sample)
 
   def __getitem__(self, key):
     return self.data[key]

@@ -20,7 +20,7 @@ class Knowledge():
     return self.my_data().get_recent()
 
   def my_data(self):
-    return self.databank[hash(self.agent)]
+    return self.databank[self.agent]
     # return self.samples[self.agent]
 
   def add_sample(self, sample):
@@ -30,7 +30,7 @@ class Knowledge():
     # self.samples[agent].append(sample)
   
   def optimal_choice(self, givens={}):
-    return self.databank[hash(self.agent)].optimal_choice(self.act_doms, self.rew_var, givens)
+    return self.databank[self.agent].optimal_choice(self.act_doms, self.rew_var, givens)
     # expected_values = util.expected_vals(self.my_data(), self.act_vars, self.rew_var, givens)
     # return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values else None
 

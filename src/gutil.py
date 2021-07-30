@@ -14,6 +14,7 @@ def avg_list(lists):
   averaged_list = [0] * len(lists[0])
   for lst in lists:
     for i, e in enumerate(lst):
+      print(e)
       averaged_list[i] += e / len(lists)
   return averaged_list
 

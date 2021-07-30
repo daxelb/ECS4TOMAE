@@ -97,6 +97,7 @@ class Sim:
           policies[p] = []
         policies[p].extend(res[p])
     for p in policies:
+      print(p)
       plt.plot(
           np.arange(len(policies[p][0])),
           np.array(gutil.avg_list(policies[p])),
