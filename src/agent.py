@@ -4,8 +4,8 @@ import gutil
 import random
 from enums import Policy
 class Agent:
-  def __init__(self, hash, environment, databank, policy, epsilon=0.03, div_node_conf=0, samps_needed=0):
-    self.hash = hash
+  def __init__(self, name, environment, databank, policy, epsilon=0.03, div_node_conf=0, samps_needed=0):
+    self.name = name
     self.environment = environment
     self.act_vars = environment.get_act_vars()
     self.act_doms = environment.get_act_doms()
@@ -59,21 +59,21 @@ class Agent:
   #   self.knowledge.add_sample(other, other.get_recent())
     
   def __copy__(self):
-    return Agent(self.hash, self.environment, self.knowlege.databank, self.policy, self.epsilon, self.div_node_conf, self.samps_needed)
+    return Agent(self.name, self.environment, self.knowlege.databank, self.policy, self.epsilon, self.div_node_conf, self.samps_needed)
 
   def __hash__(self):
-    return self.hash
+    return hash(self.name)
   
   def __reduce__(self):
-    return (self.__class__, (self.hash, self.environment, self.knowledge.databank, self.policy, self.epsilon, self.div_node_conf, self.samps_needed))
+    return (self.__class__, (self.name, self.environment, self.knowledge.databank, self.policy, self.epsilon, self.div_node_conf, self.samps_needed))
 
   def __eq__(self, other):
     return isinstance(other, self.__class__) \
-        and self.hash == other.hash \
+        and self.name == other.name \
         and self.environment == other.environment
         
   def __str__(self):
-    return "Agent" + str(self.hash)
+    return "Agent" + str(self.name)
   
   def __repr__(self):
-    return "<Agent" + self.hash + ": " + self.policy.value + ">"
+    return "<Agent" + self.name + ": " + self.policy.value + ">"

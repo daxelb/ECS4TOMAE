@@ -10,6 +10,12 @@ class World:
     self.agents = agents
     self.cdn = self.get_correct_div_nodes()
     self.episodes = []
+    self.hasSensitive = False
+    for agent in self.agents:
+      if agent.policy in [Policy.SENSITIVE, Policy.ADJUST]:
+        self.hasSensitive = True
+        break
+
   
   def update_episode_data(self):
     new_data = {}
@@ -19,7 +25,8 @@ class World:
 
   def run_once(self):
     self.act()
-    # self.encounter_all()
+    if self.hasSensitive:
+      self.update_divergence()
     self.update_episode_data()
     return
 
@@ -32,6 +39,9 @@ class World:
   def act(self):
     [a.act() for a in self.agents]
     return
+
+  def update_divergence(self):
+    self.agents[0].knowledge.databank.update_divergence()
 
   def encounter_all(self):
     """
@@ -63,13 +73,13 @@ class World:
     correct_div_nodes = {}
     for a in self.agents:
       if a.policy in [Policy.DEAF, Policy.NAIVE]: continue
-      correct_div_nodes[a.hash] = {}
+      correct_div_nodes[a] = {}
       for f in self.agents:
         if a == f: continue
-        correct_div_nodes[a.hash][f.hash] = {}
+        correct_div_nodes[a][f] = {}
         for node, assignment in a.environment._assignment.items():
           if node not in a.environment.get_act_vars():
-            correct_div_nodes[a.hash][f.hash][node] = assignment != f.environment._assignment[node]
+            correct_div_nodes[a][f][node] = assignment != f.environment._assignment[node]
     return correct_div_nodes
 
   def get_perc_correct(self):
@@ -84,9 +94,9 @@ class World:
       for f in self.agents:
         if a == f:
           continue
-        correct = gutil.num_matches(a.knowledge.is_divergent_dict(f), self.cdn[a.hash][f.hash])
-        perc_corr = correct / (len(self.cdn[a.hash]) * len(self.cdn[a.hash][f.hash]))
-        percent_correct[a.hash] += perc_corr
+        correct = gutil.num_matches(a.knowledge.is_divergent_dict(f), self.cdn[a][f])
+        perc_corr = correct / (len(self.cdn[a]) * len(self.cdn[a][f]))
+        percent_correct[a] += perc_corr
         percent_correct["total"] += perc_corr/len(self.cdn)
     return percent_correct
   
@@ -101,9 +111,9 @@ class World:
       recent = a.get_recent()
       rew_received = recent[a.rew_var]
       rew_optimal = a.environment.optimal_reward(gutil.only_given_keys(recent, a.environment.feat_vars))
-      curr_regret = self.episodes[-1][Result.CUM_REGRET][a.hash] if self.episodes else 0
+      curr_regret = self.episodes[-1][Result.CUM_REGRET][a] if self.episodes else 0
       new_regret = curr_regret + (rew_optimal - rew_received)
-      cum_regret[a.hash] = new_regret
+      cum_regret[a] = new_regret
       cum_regret["total"] += new_regret
     return cum_regret
 
@@ -112,8 +122,8 @@ class World:
       if dep_var == Result.PERC_CORR and a.policy in [Policy.DEAF, Policy.NAIVE] : continue
       plt.plot(
         np.arange(len(self.episodes)),
-        np.array(gutil.list_from_dicts(self.episodes, dep_var, a.hash)),
-        label=a.hash
+        np.array(gutil.list_from_dicts(self.episodes, dep_var, a)),
+        label=a.name
       )
     plt.xlabel("Iterations")
     plt.ylabel(dep_var.value)
@@ -139,7 +149,7 @@ class World:
     for a in self.agents:
       if a.policy not in policies:
           policies[a.policy] = []
-      policies[a.policy].append(gutil.list_from_dicts(self.episodes, dep_var, a.hash))
+      policies[a.policy].append(gutil.list_from_dicts(self.episodes, dep_var, a))
     for p in policies:
       plt.plot(
         np.arange(len(self.episodes)),

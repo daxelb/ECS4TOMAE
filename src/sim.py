@@ -33,7 +33,7 @@ class Sim:
       for a in self.world.agents:
         if a.policy not in policies:
           policies[a.policy] = []
-        policies[a.policy].append(gutil.list_from_dicts(trial, dep_var, a.hash))
+        policies[a.policy].append(gutil.list_from_dicts(trial, dep_var, a))
     return policies
   
   def plot_policy(self, dep_var):
@@ -42,7 +42,7 @@ class Sim:
       for a in self.world.agents:
         if a.policy not in policies:
           policies[a.policy] = []
-        policies[a.policy].append(gutil.list_from_dicts(trial_episode, dep_var, a.hash))
+        policies[a.policy].append(gutil.list_from_dicts(trial_episode, dep_var, a))
     for p in policies:
       plt.plot(
         np.arange(self.num_episodes),
@@ -61,7 +61,7 @@ class Sim:
     results[index] = sim.get_policy_data(dep_var)
 
   def multithreaded_sim(self, dep_var, lbl=None, show=False):
-    # print(lbl)
+    color = "#{0}{1}{2}".format("ff", "00", "00")
     if lbl == 0.04:
       color = "#{0}{1}{2}".format("ff","00","00")
     elif lbl == 0.02:
@@ -97,7 +97,6 @@ class Sim:
           policies[p] = []
         policies[p].extend(res[p])
     for p in policies:
-      print(p)
       plt.plot(
           np.arange(len(policies[p][0])),
           np.array(gutil.avg_list(policies[p])),
@@ -135,17 +134,17 @@ if __name__ == "__main__":
   # Policy.DEAF, Policy.SENSITIVE,
   pol = Policy.DEAF
   eps = 0.03
-  dnc = 0.03
+  dnc = 0.04
   sn = 10
   start = time.time()
   print(time.time())
-  for policy in [Policy.NAIVE]:
+  for policy in [Policy.SENSITIVE]:
     databank = DataBank(Environment(baseline).domains, Environment(baseline).act_vars, Environment(baseline).rew_var)
     agents = [
-        Agent(0, Environment(baseline), databank, policy, eps, dnc, sn),
-        Agent(1, Environment(baseline), databank, policy, eps, dnc, sn),
-        Agent(2, Environment(reversed_z), databank, policy, eps, dnc, sn),
-        Agent(3, Environment(reversed_z), databank, policy, eps, dnc, sn)
+        Agent("0", Environment(baseline), databank, policy, eps, dnc, sn),
+        Agent("1", Environment(baseline), databank, policy, eps, dnc, sn),
+        Agent("2", Environment(reversed_z), databank, policy, eps, dnc, sn),
+        Agent("3", Environment(reversed_z), databank, policy, eps, dnc, sn)
     ]
     sim = Sim(World(agents), 250, 1)
     sim.multithreaded_sim(Result.CUM_REGRET, lbl=dnc)

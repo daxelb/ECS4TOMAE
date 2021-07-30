@@ -13,6 +13,9 @@ def pairs(lst):
 class DataSet(list):
   def __init__(self, data=[]):
     super().__init__(data)
+
+  def empty(self):
+    return len(self) == 0
     
   def get_recent(self):
     return self[-1]
@@ -42,6 +45,9 @@ class DataSet(list):
         best_choice = choice
         best_rew = expected_rew
     return best_choice
+
+
+
 class DataBank:
   def __init__(self, domains, act_vars, rew_var, data={}):
     self.data = data
@@ -92,6 +98,14 @@ class DataBank:
       return []
     return [node for node, divergence in self.divergence[P_agent][Q_agent].items() if divergence is None or abs(divergence) > P_agent.div_node_conf]
   
+  def is_divergent_dict(self, P_agent, Q_agent):
+    divergent = {}
+    for node in self.get_non_act_nodes():
+      node_divergence = self.divergence[P_agent][Q_agent][node]
+      divergent[node] = node_divergence is None or \
+                        abs(node_divergence) > P_agent.div_node_conf
+    return divergent
+
   def all_data(self):
     data = DataSet()
     [data.extend(d) for d in self.data.values()]

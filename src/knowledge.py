@@ -37,87 +37,21 @@ class Knowledge():
 class KnowledgeNaive(Knowledge):
   def __init__(self, *args):
     super().__init__(*args)
-    
-  def all_data(self):
-    return self.databank.all_data()
-    # data = []
-    # for a in self.samples:
-    #   data.extend(self.samples[a])
-    # return data
   
   def optimal_choice(self, givens={}):
     return self.databank.all_data().optimal_choice(self.act_doms, self.rew_var, givens)
-    # expected_values = util.expected_vals(self.all_data(), self.act_vars, self.rew_var, givens)
-    # return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values else None
   
 class KnowledgeSensitive(Knowledge):
   def __init__(self, agent, databank, div_node_conf, samps_needed):
     super().__init__(agent, databank)
     self.div_node_conf = div_node_conf
     self.samps_needed = samps_needed
-    self.divergence = {self.agent: gutil.Counter()}
-    
-  def add_sample(self, agent, sample):
-    super().add_sample(agent, sample)
-    self.update_divergence(agent)
 
-  def div_nodes(self, agent):
-    return [node for node, divergence in self.divergence[agent].items() if divergence is None or abs(divergence) > self.div_node_conf]
-    
-  def sensitive_data(self):
-    data = []
-    for agent, agent_data in self.samples.items():
-      if not self.div_nodes(agent):
-        data.extend(agent_data)
-    return data
-    
-  def kl_divergence_of_query(self, query, other_data):
-    """
-    Returns the KL Divergence of a query between this (self) dataset
-    and another dataset (presumably, another agent's useful_data)
-    """
-    return util.kl_divergence(self.domains, self.my_data(), other_data, query)
-
-  def kl_divergence_of_node(self, node, other_data):
-    """
-    Returns KL Divergence of the conditional probability of a given node in the model
-    between this useful data and another dataset.
-    """
-    assert node not in self.act_vars
-    return self.kl_divergence_of_query(self.model.get_node_dist(node), other_data)
-
-  def get_non_action_nodes(self):
-    return [node for node in self.vars if node not in self.act_vars]
-
-  def update_divergence(self, agent):
-    if agent not in self.divergence:
-      self.add_agent_divergence(agent)
-    if len(self.samples[agent]) < self.samps_needed or agent == self.agent:
-      return
-    for node in self.get_non_action_nodes():
-      self.divergence[agent][node] = self.kl_divergence_of_node(node, self.samples[agent])
-
-  def add_agent_divergence(self, agent):
-    self.divergence[agent] = {}
-    if agent == self.agent:
-      self.assign_divergence(agent, 0)
-    else:
-      self.assign_divergence(agent, 1)
-      
-  def assign_divergence(self, agent, assignment):
-    for node in self.get_non_action_nodes():
-      self.divergence[agent][node] = assignment
-      
   def is_divergent_dict(self, agent):
-    divergent = {}
-    for node in self.divergence[agent]:
-      node_divergence = self.divergence[agent][node]
-      divergent[node] = node_divergence is None or abs(node_divergence) > self.div_node_conf
-    return divergent
-      
+    return self.databank.is_divergent_dict(self.agent, agent)
+
   def optimal_choice(self, givens={}):
-    expected_values = util.expected_vals(self.sensitive_data(), self.act_vars, self.rew_var, givens)
-    return util.dict_from_hash(gutil.max_key(expected_values)) if expected_values else None
+    return self.databank.sensitive_data(self.agent).optimal_choice(self.act_doms, self.rew_var, givens)
 
 class KnowledgeAdjust(KnowledgeSensitive):  
   def get_num_datapoints(self, tf, other):
