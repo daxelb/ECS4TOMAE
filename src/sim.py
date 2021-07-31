@@ -61,27 +61,27 @@ class Sim:
     results[index] = sim.get_policy_data(dep_var)
 
   def multithreaded_sim(self, dep_var, lbl=None, show=False):
-    color = "#{0}{1}{2}".format("ff", "00", "00")
-    if lbl == 0.04:
-      color = "#{0}{1}{2}".format("ff","00","00")
-    elif lbl == 0.02:
-      color = "#{0}{1}{2}".format("ff","6a","00")
-    elif lbl == 0.05:
-      color = "#{0}{1}{2}".format("ff","ff","00")
-    elif lbl == 0.04:
-      color = "#{0}{1}{2}".format("51","ff","00")
-    elif lbl == 0.06:
-      color = "#{0}{1}{2}".format("00","ff","8c")
-    elif lbl == 0.06:
-      color = "#{0}{1}{2}".format("00","e1","ff")
-    elif lbl == 0.07:
-      color = "#{0}{1}{2}".format("00","55","ff")
-    elif lbl == 0.08:
-      color = "#{0}{1}{2}".format("1e","00","ff")
-    elif lbl == 0.08:
-      color = "#{0}{1}{2}".format("88","00","ff")
-    elif lbl == 0.1:
-      color = "#{0}{1}{2}".format("ff","00","dd")
+    # color = "#{0}{1}{2}".format("ff", "00", "00")
+    # if lbl == 0.04:
+    #   color = "#{0}{1}{2}".format("ff","00","00")
+    # elif lbl == 0.02:
+    #   color = "#{0}{1}{2}".format("ff","6a","00")
+    # elif lbl == 0.05:
+    #   color = "#{0}{1}{2}".format("ff","ff","00")
+    # elif lbl == 0.04:
+    #   color = "#{0}{1}{2}".format("51","ff","00")
+    # elif lbl == 0.06:
+    #   color = "#{0}{1}{2}".format("00","ff","8c")
+    # elif lbl == 0.06:
+    #   color = "#{0}{1}{2}".format("00","e1","ff")
+    # elif lbl == 0.07:
+    #   color = "#{0}{1}{2}".format("00","55","ff")
+    # elif lbl == 0.08:
+    #   color = "#{0}{1}{2}".format("1e","00","ff")
+    # elif lbl == 0.08:
+    #   color = "#{0}{1}{2}".format("88","00","ff")
+    # elif lbl == 0.1:
+    #   color = "#{0}{1}{2}".format("ff","00","dd")
     num_threads = mp.cpu_count()
     jobs = []
     results = mp.Manager().list([None] * num_threads)
@@ -101,7 +101,7 @@ class Sim:
           np.arange(len(policies[p][0])),
           np.array(gutil.avg_list(policies[p])),
           label=lbl,
-          c=color
+          # c=color
       )
     plt.xlabel("Iterations")
     plt.ylabel(dep_var.value)
@@ -132,13 +132,14 @@ if __name__ == "__main__":
 
   # Policy.DEAF, Policy.NAIVE,
   # Policy.DEAF, Policy.SENSITIVE,
+  policies = [Policy.DEAF, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST]
+  # policies = [Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST]
   pol = Policy.DEAF
   eps = 0.03
   dnc = 0.04
   sn = 10
   start = time.time()
-  print(time.time())
-  for policy in [Policy.ADJUST]:
+  for policy in policies:
     databank = DataBank(Environment(baseline).domains, Environment(baseline).act_var, Environment(baseline).rew_var)
     agents = [
         Agent("0", Environment(baseline), databank, policy, eps, dnc, sn),
@@ -147,7 +148,7 @@ if __name__ == "__main__":
         Agent("3", Environment(reversed_z), databank, policy, eps, dnc, sn)
     ]
     sim = Sim(World(agents), 250, 1)
-    sim.multithreaded_sim(Result.CUM_REGRET, lbl=dnc)
+    sim.multithreaded_sim(Result.CUM_REGRET, lbl=policy)
   time = time.time() - start
   mins = time // 60
   sec = time % 60

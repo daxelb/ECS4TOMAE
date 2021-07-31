@@ -49,18 +49,17 @@ class DataSet(list):
 
 
 class DataBank:
-  def __init__(self, domains, act_var, rew_var, data={}):
+  def __init__(self, domains, act_var, rew_var, data={}, divergence={}):
     self.data = data
     self.domains = domains
     self.vars = set(domains.keys())
     self.act_var = act_var
     self.rew_var = rew_var
-    self.divergence = {}
+    self.divergence = divergence
     for key in self.data:
       self.add_agent(key)
   
   def add_agent(self, new_agent):
-    # new_agent = hash(new_agent)
     if new_agent in self.data:
       return
     self.data[new_agent] = DataSet()
@@ -86,9 +85,10 @@ class DataBank:
       if len(P_data) < P_agent.samps_needed:
           break
       for Q_agent, Q_data in self.data.items():
-        if P_agent == Q_agent:
-          continue
         for node in self.get_non_act_nodes():
+          if P_agent == Q_agent:
+            self.divergence[P_agent][Q_agent][node] = 0
+            continue
           query = P_agent.knowledge.model.get_node_dist(node)
           self.divergence[P_agent][Q_agent][node] = util.kl_divergence(self.domains, P_data, Q_data, query)
     return
@@ -113,7 +113,7 @@ class DataBank:
   
   def sensitive_data(self, P_agent):
     data = DataSet()
-    [data.extend(Q_data) for Q_agent, Q_data in self.data.items() if not self.div_nodes(P_agent, Q_agent)]
+    [data.extend(Q_data) for Q_agent, Q_data in self.data.items() if len(self.div_nodes(P_agent, Q_agent)) == 0]
     return data
 
   def items(self):
@@ -121,12 +121,9 @@ class DataBank:
 
   def __getitem__(self, key):
     return self.data[key]
-
-  def __getstate__(self):
-    return self.__dict__
   
   def __reduce__(self):
-    return type(self), (self.domains, self.act_var, self.rew_var, self.data)
+    return type(self), (self.domains, self.act_var, self.rew_var, self.data, self.divergence)
 
     
 if __name__ == "__main__":
