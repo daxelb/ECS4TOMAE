@@ -97,14 +97,6 @@ class DataBank:
     if P_agent == Q_agent:
       return []
     return [node for node, divergence in self.divergence[P_agent][Q_agent].items() if divergence is None or abs(divergence) > P_agent.div_node_conf]
-  
-  def is_divergent_dict(self, P_agent, Q_agent):
-    divergent = {}
-    for node in self.get_non_act_nodes():
-      node_divergence = self.divergence[P_agent][Q_agent][node]
-      divergent[node] = node_divergence is None or \
-                        abs(node_divergence) > P_agent.div_node_conf
-    return divergent
 
   def all_data(self):
     data = DataSet()
@@ -124,6 +116,9 @@ class DataBank:
   
   def __reduce__(self):
     return type(self), (self.domains, self.act_var, self.rew_var, self.data, self.divergence)
+  
+  def clone(self):
+    return DataBank(self.domains, self.act_var, self.rew_var)
 
     
 if __name__ == "__main__":

@@ -10,6 +10,8 @@ class Policy(Enum):
   SENSITIVE = "Sensitive"
   ADJUST = "Adjust"
   
-class Result(Enum):
-  CUM_REGRET = "Pseudo Cumulative Regret"
-  PERC_CORR = "% Correct Divergence IDs"
+class IV(Enum):
+  POL = "Policy"
+  EPS = "Epsilon"
+  DNC = "Divergent Node Confidence"
+  SN = "Samples Needed"

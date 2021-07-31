@@ -36,9 +36,6 @@ class KnowledgeSensitive(Knowledge):
   def div_nodes(self, agent):
     return self.databank.div_nodes(self.agent, agent)
 
-  def is_divergent_dict(self, agent):
-    return self.databank.is_divergent_dict(self.agent, agent)
-
   def optimal_choice(self, givens={}):
     return self.databank.sensitive_data(self.agent).optimal_choice(self.act_dom, self.rew_var, givens)
 

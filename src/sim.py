@@ -3,13 +3,25 @@ from world import World
 from assignment_models import ActionModel, DiscreteModel, RandomModel
 from agent import Agent
 from environment import Environment
-from enums import Policy, Result
+from enums import Policy, IV
 import gutil
+import pandas as pd
+import plotly.graph_objs as go
 import matplotlib.pyplot as plt
 import numpy as np
 import multiprocessing as mp
 import time
 from copy import copy
+
+def get_data_key(agent, ind_var):
+  if ind_var == IV.POL:
+    return agent.policy
+  elif ind_var == IV.EPS:
+    return agent.epsilon
+  elif ind_var == IV.DNC:
+    return agent.div_node_conf
+  elif ind_var == IV.SN:
+    return agent.samps_needed
 
 class Sim:
   def __init__(self, world, num_episodes, num_trials):
@@ -27,90 +39,35 @@ class Sim:
       self.trials.append(world.episodes)
     return
 
-  def get_policy_data(self, dep_var):
-    policies = {}
+  def get_data(self):
+    data = pd.DataFrame(columns=range(self.num_episodes))
     for trial in self.trials:
-      for a in self.world.agents:
-        if a.policy not in policies:
-          policies[a.policy] = []
-        policies[a.policy].append(gutil.list_from_dicts(trial, dep_var, a))
-    return policies
+      for agent in self.world.agents:
+        data.loc[len(data)] = gutil.list_from_dicts(trial, agent)
+    return data
   
-  def plot_policy(self, dep_var):
-    policies = {}
-    for trial_episode in self.trials:
-      for a in self.world.agents:
-        if a.policy not in policies:
-          policies[a.policy] = []
-        policies[a.policy].append(gutil.list_from_dicts(trial_episode, dep_var, a))
-    for p in policies:
-      plt.plot(
-        np.arange(self.num_episodes),
-        np.array(gutil.avg_list(policies[p])),
-        label=p
-      )
-    plt.xlabel("Iterations")
-    plt.ylabel(dep_var.value)
-    plt.legend()
-    plt.show()
-    return
-  
-  def simulate(self, results, index, dep_var):
+  def simulate(self, results, index):
     sim = copy(self)
     sim.run()
-    results[index] = sim.get_policy_data(dep_var)
+    results[index] = sim.get_data()
 
-  def multithreaded_sim(self, dep_var, lbl=None, show=False):
-    # color = "#{0}{1}{2}".format("ff", "00", "00")
-    # if lbl == 0.04:
-    #   color = "#{0}{1}{2}".format("ff","00","00")
-    # elif lbl == 0.02:
-    #   color = "#{0}{1}{2}".format("ff","6a","00")
-    # elif lbl == 0.05:
-    #   color = "#{0}{1}{2}".format("ff","ff","00")
-    # elif lbl == 0.04:
-    #   color = "#{0}{1}{2}".format("51","ff","00")
-    # elif lbl == 0.06:
-    #   color = "#{0}{1}{2}".format("00","ff","8c")
-    # elif lbl == 0.06:
-    #   color = "#{0}{1}{2}".format("00","e1","ff")
-    # elif lbl == 0.07:
-    #   color = "#{0}{1}{2}".format("00","55","ff")
-    # elif lbl == 0.08:
-    #   color = "#{0}{1}{2}".format("1e","00","ff")
-    # elif lbl == 0.08:
-    #   color = "#{0}{1}{2}".format("88","00","ff")
-    # elif lbl == 0.1:
-    #   color = "#{0}{1}{2}".format("ff","00","dd")
+  def multithreaded_sim(self):
     num_threads = mp.cpu_count()
     jobs = []
     results = mp.Manager().list([None] * num_threads)
     for i in range(num_threads):
-      job = mp.Process(target=self.simulate,args=(results, i, dep_var))
+      job = mp.Process(target=self.simulate,args=(results, i))
       jobs.append(job)
       job.start()
     [job.join() for job in jobs]
-    policies = {}
-    for res in results:
-      for p in res:
-        if p not in policies:
-          policies[p] = []
-        policies[p].extend(res[p])
-    for p in policies:
-      plt.plot(
-          np.arange(len(policies[p][0])),
-          np.array(gutil.avg_list(policies[p])),
-          label=lbl,
-          # c=color
-      )
-    plt.xlabel("Iterations")
-    plt.ylabel(dep_var.value)
-    plt.legend()
-    if show:
-      plt.show()
+    combined_results = pd.DataFrame(columns=range(self.num_episodes))
+    for result in results:
+      combined_results = pd.concat((combined_results, result), ignore_index=True)
+    return combined_results
 
   def __copy__(self):
     return Sim(copy(self.world), self.num_episodes, self.num_trials)
+
 
 if __name__ == "__main__":  
   baseline = {
@@ -130,28 +87,28 @@ if __name__ == "__main__":
   reversed_y = dict(baseline)
   reversed_y["Y"] = DiscreteModel(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
 
-  # Policy.DEAF, Policy.NAIVE,
-  # Policy.DEAF, Policy.SENSITIVE,
-  policies = [Policy.DEAF, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST]
+  policies = [Policy.ADJUST]
   # policies = [Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST]
   pol = Policy.DEAF
   eps = 0.03
   dnc = 0.04
   sn = 10
   start = time.time()
+  databank = DataBank(Environment(baseline).domains, Environment(baseline).act_var, Environment(baseline).rew_var)
+  
+  agents = [
+      Agent("0", Environment(baseline), databank, policy, epsilon=eps, div_node_conf=dnc, samps_needed=sn),
+      Agent("1", Environment(baseline), databank, policy, eps, dnc, sn),
+      Agent("2", Environment(reversed_z), databank, policy, eps, dnc, sn),
+      Agent("3", Environment(reversed_z), databank, policy, eps, dnc, sn)
+  ]
   for policy in policies:
     databank = DataBank(Environment(baseline).domains, Environment(baseline).act_var, Environment(baseline).rew_var)
-    agents = [
-        Agent("0", Environment(baseline), databank, policy, eps, dnc, sn),
-        Agent("1", Environment(baseline), databank, policy, eps, dnc, sn),
-        Agent("2", Environment(reversed_z), databank, policy, eps, dnc, sn),
-        Agent("3", Environment(reversed_z), databank, policy, eps, dnc, sn)
-    ]
-    sim = Sim(World(agents), 250, 1)
-    sim.multithreaded_sim(Result.CUM_REGRET, lbl=policy)
+
+    sim = Sim(World(agents), 50, 1)
+    sim.multithreaded_sim(ind_var=IV.POL, show=True)
   time = time.time() - start
   mins = time // 60
   sec = time % 60
   print("Time elapsed = {0}:{1}".format(int(mins), sec))
-  plt.show()
   # plt.savefig("../output/0705-{}agent-{}ep-{}n".format(len(agents), sim.num_episodes, sim.num_trials * mp.cpu_count()))
