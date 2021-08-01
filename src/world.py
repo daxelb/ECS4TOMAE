@@ -15,7 +15,7 @@ class World:
         self.hasSensitive = True
         break
 
-  def run_once(self):
+  def run_once(self): 
     self.act()
     if self.hasSensitive:
       self.update_divergence()
@@ -69,10 +69,6 @@ class World:
       rew_optimal = a.environment.optimal_reward(gutil.only_given_keys(recent, a.environment.feat_vars))
       curr_regret = self.pseudo_cum_regret[-1][a] if self.pseudo_cum_regret else 0
       new_regret = curr_regret + (rew_optimal - rew_received)
-      # print(rew_optimal - rew_received)
-      # if a.name == "0":
-      #   print(rew_received)
-        # print(new_regret)
       cum_regret[a] = new_regret
     self.pseudo_cum_regret.append(cum_regret)
   

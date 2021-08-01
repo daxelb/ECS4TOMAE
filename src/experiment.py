@@ -9,10 +9,9 @@ import plotly.graph_objs as go
 import time
 from enums import Policy
 
-
 class Experiment:
-  def __init__(self, environments, pol, eps, dnc, sn, num_episodes, num_trials, show=False, save=False):
-    self.environments = environments
+  def __init__(self, environment_dicts, pol, eps, dnc, sn, num_episodes, num_trials, show=False, save=False):
+    self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     self.pol = pol
     self.eps = eps
     self.dnc = dnc
@@ -43,7 +42,7 @@ class Experiment:
       permutations.append(permutation)
     return permutations
   
-  def sim(self, line_name, ass_perm):
+  def sim(self, line_name, line_hue, ass_perm):
     db = DataBank(self.environments[0].get_domains(), self.environments[0].get_act_var(), self.environments[0].get_rew_var())
     pol = ass_perm[0]
     eps = ass_perm[1]
@@ -56,81 +55,93 @@ class Experiment:
     y = result.mean(axis=0)
     y_upper = result.max(axis=0)
     y_lower = result.min(axis=0)
+    line_color = "hsla(" + line_hue + ",100%,50%,1)"
+    error_band_color = "hsla(" + line_hue + ",100%,50%,0.125)"
     return [
       go.Scatter(
         name=line_name,
         x=x,
         y=y,
-        mode='lines'
+        line=dict(color=line_color),
+        mode='lines',
       ),
       go.Scatter(
         name=line_name+"-upper",
-        x=x,
-        y=y_upper,
-        mode='lines',
-        line=dict(width=0),
-        showlegend=False
+          x=x,
+          y=y_upper,
+          mode='lines',
+          marker=dict(color=error_band_color),
+          line=dict(width=0),
+          # showlegend=False,
       ),
       go.Scatter(
-        name=line_name+"-lower",
-        x=x,
-        y=y_lower,
-        mode='lines',
-        line=dict(width=0),
-        showlegend=False
+          name=line_name+"-lower",
+          x=x,
+          y=y_lower,
+          marker=dict(color=error_band_color),
+          line=dict(width=0),
+          mode='lines',
+          fillcolor=error_band_color,
+          fill='tonexty',
+          # showlegend=False,
       )
     ]
       
   def run(self):
     start_time = time.time()
     figure = []
-    for permutation in self.get_assignment_permutations():
+    permutations = self.get_assignment_permutations()
+    for i, permutation in enumerate(permutations):
       line_name = ""
       if self.ind_var_i == 0:
         line_name = permutation[self.ind_var_i].value
       elif self.ind_var_i != -99:
         line_name = str(permutation[self.ind_var_i])
-      figure.extend(self.sim(line_name, permutation))
+      line_hue = str(int(360 * (i / len(permutations))))
+      if i:
+        print()
+      print(line_name)
+      figure.extend(self.sim(line_name, line_hue, permutation))
     plotly_fig = go.Figure(figure)
     plotly_fig.update_layout(
       yaxis_title="Pseudo Cumulative Regret",
-      title="BlahBlahBlah",
+      xaxis_title="Episodes",
+      title="graph pog",
       # hovermode="x"
     )
     elapsed_time = time.time() - start_time
     hrs = elapsed_time // (60 * 60)
     mins = elapsed_time // 60
     sec = elapsed_time % 60
-    print("Time elapsed = {0}:{1}:{2}".format(int(hrs), int(mins), sec))
+    print("\nTime elapsed = {:02d}:{:02d}:{:.2f}".format(int(hrs), int(mins), sec))
     if self.show:
       plotly_fig.show()
 
 if __name__ == "__main__":  
-  baseline = Environment({
+  baseline = {
     "W": RandomModel((0.4, 0.6)),
     "X": ActionModel(("W"), (0, 1)),
     "Z": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
     "Y": DiscreteModel(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
-  })
-  w1 = copy(baseline)
+  }
+  w1 = dict(baseline)
   w1["W"] = RandomModel((0.1, 0.9))
-  w9 = copy(baseline)
+  w9 = dict(baseline)
   w9["W"] = RandomModel((0.9, 0.1))
-  z5 = copy(baseline)
+  z5 = dict(baseline)
   z5["Z"] = DiscreteModel(("X"), {(0,): (0.9, 0.1), (1,): (0.5, 0.5)})
-  reversed_z = copy(baseline)
+  reversed_z = dict(baseline)
   reversed_z["Z"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
-  reversed_y = copy(baseline)
+  reversed_y = dict(baseline)
   reversed_y["Y"] = DiscreteModel(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
 
-  environments = (baseline, reversed_z, reversed_z, reversed_z, reversed_z)
-  # [print(env["Z"]) for env in environments]
-  pol = Policy.NAIVE
+  env_dicts = (baseline, baseline, reversed_z, reversed_z)
+  pol = [Policy.DEAF, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST]
   eps = 0.03
   dnc = 0.04
   sn = 10
-  num_episodes = 250
+  num_episodes = 25
   num_trials = 1
-  experiment = Experiment(environments, pol, eps, dnc, sn, num_episodes, num_trials, show=True, save=False)
+  experiment = Experiment(env_dicts, pol, eps, dnc, sn, num_episodes, num_trials, show=True, save=False)
   experiment.run()
   # plt.savefig("../output/0705-{}agent-{}ep-{}n".format(len(agents), sim.num_episodes, sim.num_trials * mp.cpu_count()))

@@ -5,7 +5,7 @@
 import inspect
 import math
 import gutil
-from copy import copy
+
 from scm import StructuralCausalModel
 from cgm import CausalGraph
 from assignment_models import AssignmentModel, ActionModel, DiscreteModel, RandomModel
@@ -146,27 +146,7 @@ class Environment:
     return True
   
   def __copy__(self):
-    return Environment(dict(self._assignment), self.rew_var)
+    return Environment(self._assignment, self.rew_var)
   
   def __getitem__(self, key):
     return self._assignment[key]
-  
-  def __setitem__(self, key, new_value):
-    self._assignment[key] = new_value
-
-if __name__ == "__main__":
-    # domains = {"W": (0,1), "X": (0,1), "Z": (0,1), "Y": (0,1)}
-    universal_model = Environment({
-    "W": RandomModel((0.5, 0.5)),
-    "X": ActionModel(("W"), (0, 1)),
-    "Z": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
-    "Y": DiscreteModel(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
-  })
-    # print(universal_model.sample({"X": 1}))
-    # print(universal_model.cgm.get_ancestors("Y"))
-    # print(universal_model.pre.sample())
-    # print(universal_model.post.sample(set_values={"W": 1, "X": 1}))
-    # print(universal_model._assignment["W"].model)
-    # print(universal_model.get_action_rewards())
-    print(universal_model.optimal_action_rewards({"W":1}))
-    # print(universal_model.optimal_act_rew({"W":1}))

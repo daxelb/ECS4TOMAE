@@ -35,7 +35,11 @@ class Sim:
       world = copy(self.world)
       for j in range(self.num_episodes):
         world.run_once()
-        gutil.printProgressBar(i+((j+1)/self.num_episodes), self.num_trials)
+        gutil.printProgressBar(
+          i+((j+1)/self.num_episodes),
+          self.num_trials,
+          "{}:{}".format(i,j),
+          )
       self.trials.append(world.pseudo_cum_regret)
     return
 
@@ -105,7 +109,7 @@ if __name__ == "__main__":
   for policy in policies:
     databank = DataBank(Environment(baseline).domains, Environment(baseline).act_var, Environment(baseline).rew_var)
 
-    sim = Sim(World(agents), 50, 1)
+    sim = Sim(World(agents), 150, 1)
     sim.multithreaded_sim(ind_var=IV.POL, show=True)
   time = time.time() - start
   mins = time // 60
