@@ -5,7 +5,7 @@
 import inspect
 import math
 import gutil
-
+from copy import copy
 from scm import StructuralCausalModel
 from cgm import CausalGraph
 from assignment_models import AssignmentModel, ActionModel, DiscreteModel, RandomModel
@@ -146,7 +146,7 @@ class Environment:
     return True
   
   def __copy__(self):
-    return Environment(self._assignment, self.rew_var)
+    return Environment(dict(self._assignment), self.rew_var)
   
   def __getitem__(self, key):
     return self._assignment[key]

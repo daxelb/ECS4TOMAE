@@ -85,13 +85,17 @@ class Experiment:
     start_time = time.time()
     figure = []
     for permutation in self.get_assignment_permutations():
-      line_name = str(permutation[self.ind_var_i]) if self.ind_var_i else permutation[self.ind_var_i].value
+      line_name = ""
+      if self.ind_var_i == 0:
+        line_name = permutation[self.ind_var_i].value
+      elif self.ind_var_i != -99:
+        line_name = str(permutation[self.ind_var_i])
       figure.extend(self.sim(line_name, permutation))
     plotly_fig = go.Figure(figure)
     plotly_fig.update_layout(
       yaxis_title="Pseudo Cumulative Regret",
       title="BlahBlahBlah",
-      hovermode="x"
+      # hovermode="x"
     )
     elapsed_time = time.time() - start_time
     hrs = elapsed_time // (60 * 60)
@@ -119,8 +123,9 @@ if __name__ == "__main__":
   reversed_y = copy(baseline)
   reversed_y["Y"] = DiscreteModel(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
 
-  environments = [baseline, baseline, reversed_z, reversed_z]
-  pol = [Policy.DEAF, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST]
+  environments = (baseline, reversed_z, reversed_z, reversed_z, reversed_z)
+  # [print(env["Z"]) for env in environments]
+  pol = Policy.NAIVE
   eps = 0.03
   dnc = 0.04
   sn = 10

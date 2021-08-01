@@ -8,22 +8,18 @@ from copy import copy
 class World:
   def __init__(self, agents):
     self.agents = agents
-    self.episodes = []
+    self.pseudo_cum_regret = []
     self.hasSensitive = False
     for agent in self.agents:
       if agent.policy in [Policy.SENSITIVE, Policy.ADJUST]:
         self.hasSensitive = True
         break
 
-  
-  def update_episode_data(self):
-    self.episodes.append(self.get_cum_regret())
-
   def run_once(self):
     self.act()
     if self.hasSensitive:
       self.update_divergence()
-    self.update_episode_data()
+    self.update_pseudo_cum_regret()
     return
 
   def run(self, episodes=250):
@@ -60,7 +56,7 @@ class World:
       a.encounter(random.choice([f for f in self.agents if f != a]))
     return
   
-  def get_cum_regret(self):
+  def update_pseudo_cum_regret(self):
     """
     Returns a dict of the cumulative 
     regret of each agent (and total cum. regret)
@@ -71,10 +67,14 @@ class World:
       recent = a.get_recent()
       rew_received = recent[a.rew_var]
       rew_optimal = a.environment.optimal_reward(gutil.only_given_keys(recent, a.environment.feat_vars))
-      curr_regret = self.episodes[-1][a] if self.episodes else 0
+      curr_regret = self.pseudo_cum_regret[-1][a] if self.pseudo_cum_regret else 0
       new_regret = curr_regret + (rew_optimal - rew_received)
+      # print(rew_optimal - rew_received)
+      # if a.name == "0":
+      #   print(rew_received)
+        # print(new_regret)
       cum_regret[a] = new_regret
-    return cum_regret
+    self.pseudo_cum_regret.append(cum_regret)
   
   def __copy__(self):
     return World(copy(self.agents))

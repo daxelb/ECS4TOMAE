@@ -1,6 +1,6 @@
 import numpy as np
 import gutil
-
+from copy import copy
 class AssignmentModel:
     """
     Basically just a hack to allow me to provide information about the
@@ -15,7 +15,10 @@ class AssignmentModel:
         return self.model(**kwargs)
 
     def __repr__(self):
-        return "AssignmentModel({})".format(",".join(self.parents))
+        return self.__class__.__name__ + "(Parents: {0}, Domains: {1})".format(self.parents, self.domain)
+    
+    # def __copy__(self):
+    #   return self.__class__(copy(self.parents), copy(self.name))
 
 class RandomModel(AssignmentModel):
   def __init__(self, probs):
@@ -30,10 +33,17 @@ class RandomModel(AssignmentModel):
     return isinstance(other, self.__class__) \
         and set(self.domain) == set(other.domain) \
         and self._probs == other._probs
+        
+  def __repr__(self):
+    return self.__class__.__name__ + "(Parents: {0}, Domains: {1}, Probabilities:{2})".format(self.parents, self.domain, self._probs)
+  
+  # def __copy__(self):
+  #   return self.__class__(copy(self._probs))
     
 class DiscreteModel(AssignmentModel):
   def __init__(self, parents, lookup_table):
     assert len(parents) > 0
+    self.lookup_table = lookup_table
     self.parents = parents
 
     # create input/output mapping
@@ -69,6 +79,12 @@ class DiscreteModel(AssignmentModel):
         and (set(self.parents) == set(other.parents)) \
         and (set(self._inputs) == set(other._inputs)) \
         and (set(self._outputs) == set(other._outputs))
+        
+  def __repr__(self):
+    return self.__class__.__name__ + "(Parents: {0}, Probabilities: {1})".format(self.parents, self._ps)
+  
+  # def __copy__(self):
+  #   return self.__class__(copy(self.parents), copy(self.lookup_table))
 
 class ActionModel(AssignmentModel):
   def __init__(self, parents, domain):
@@ -81,3 +97,6 @@ class ActionModel(AssignmentModel):
     return isinstance(other, self.__class__) \
         and set(self.domain) == set(other.domain) \
         and set(self.parents) == set(other.parents)
+        
+  def __repr__(self):
+    return self.__class__.__name__ + "(Parents: {0}, Domains: {1})".format(self.parents, self.domain)
