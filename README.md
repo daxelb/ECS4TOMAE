@@ -1,4 +1,4 @@
-# ladder-of-transportability
+# Exploiting Causal Structure in Multi-Agent Cooperation
 
 Dependencies:
 - numpy
