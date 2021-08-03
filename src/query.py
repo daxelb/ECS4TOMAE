@@ -70,10 +70,23 @@ class Query:
     if self.all_assigned():
       return {self}
     return {copy(self).assign(combo) for combo in gutil.permutations(domains)}
+  
+  def unassigned_combos(self, domains):
+    if self.all_assigned():
+      return {self}
+    return {copy(self).assign_unassigned(combo) for combo in gutil.permutations(domains)}
+  
+  def parse_as_df_query(self):
+    str_query = ""
+    for var, ass in self.Q_and_e().items():
+      if is_num(ass):
+        str_query += "{0} == {1} & ".format(var,ass)
+    return str_query[:-3]
 
   def num_consistent(self, data):
-    Q_and_e = self.Q_and_e()
-    return sum([all([Q_and_e[var] == dp[var] for var in Q_and_e]) for dp in data])
+    return len(data.query(self.parse_as_df_query())) if self else len(data)
+    # Q_and_e = self.Q_and_e()
+    # return sum([all([Q_and_e[var] == dp[var] for var in Q_and_e]) for dp in data])
 
   def uncomputed_prob(self, data):
     assert self.all_assigned()
@@ -81,21 +94,42 @@ class Query:
   
   def solve(self, data):
     assert self.all_assigned()
-    uncomputed = self.uncomputed_prob(data)
-    return None if uncomputed[1] == 0 else uncomputed[0] / uncomputed[1]
+    query_space = data.query(self.e)
+    if query_space.is_empty():
+      return None
+    return len(query_space.query(self.Q)) / len(query_space)
   
+  def solve_unassigned(self, data, domains):
+    return {q: q.solve(data) for q in self.unassigned_combos(domains)}
+    
   def assign(self, var_or_dict, ass=None):
     return self.assign_many(var_or_dict) if ass is None else self.assign_one(var_or_dict, ass)
+  
+  def assign_unassigned(self, var_or_dict, ass=None):
+    return self.assign_unassigned_many(var_or_dict) if ass is None else self.assign_unassigned_one(var_or_dict, ass)
+  
+  def assign_unassigned_one(self, var, ass):
+    if var in self.Q and self.Q[var] == None:
+      self.Q[var] = ass
+    if var in self.e and self.e[var] == None:
+      self.e[var] = ass
+    return self
   
   def assign_one(self, var, ass):
     if var in self.Q:
       self.Q[var] = ass
     if var in self.e:
       self.e[var] = ass
+    return self
       
   def assign_many(self, domains):
     for var, ass in domains.items():
       self.assign_one(var, ass)
+    return self
+  
+  def assign_unassigned_many(self, domains):
+    for var, ass in domains.items():
+      self.assign_unassigned_one(var, ass)
     return self
   
   def as_tup(self):
@@ -118,16 +152,9 @@ class Query:
   def __eq__(self, other):
     return all(var in other.Q and self.Q[var] == other.Q[var] for var in self.Q) \
        and all(var in other.e and self.e[var] == other.e[var] for var in self.e)
-    # for var in self.Q:
-    #   if var not in other.Q or self.Q[var] != other.Q[var]:
-    #     return False
-    # for var in self.e:
-    #   if var not in other.e or self.e[var] != other.e[var]:
-    #     return False
-    # return True
   
-  def __nonzero__(self):
-    return len(self.Q_and_e()) == 0
+  def __bool__(self):
+    return len(self.Q_and_e()) != 0
   
 class Queries(MutableSequence):
   def __init__(self, data=None):
