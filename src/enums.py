@@ -1,17 +1,13 @@
 from enum import Enum
-
-class Datatype(Enum):
-  OBS = "obs"
-  EXP = "exp"
-  
 class Policy(Enum):
-  DEAF = "Deaf"
+  SOLO = "Solo"
   NAIVE = "Naive"
   SENSITIVE = "Sensitive"
   ADJUST = "Adjust"
   
-class IV(Enum):
-  POL = "Policy"
-  EPS = "Epsilon"
-  DNC = "Divergent Node Confidence"
-  SN = "Samples Needed"
+class ASR(Enum):
+  GREEDY = "Greedy"
+  EPSILON_GREEDY = "Epsilon Greedy"
+  EPSILON_FIRST = "Epsilon First"
+  EPSILON_DECREASING = "Epsilon Decreasing"
+  THOMPSON_SAMPLING = "Thompson Sampling"

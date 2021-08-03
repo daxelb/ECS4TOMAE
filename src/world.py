@@ -1,24 +1,27 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+from agent import SensitiveAgent, AdjustAgent
 import gutil
 from enums import Policy
 from copy import copy
+
 
 class World:
   def __init__(self, agents):
     self.agents = agents
     self.pseudo_cum_regret = []
     self.hasSensitive = False
+    self.databank = agents[0].databank
     for agent in self.agents:
-      if agent.policy in [Policy.SENSITIVE, Policy.ADJUST]:
+      if isinstance(agent, (SensitiveAgent, AdjustAgent)):
         self.hasSensitive = True
         break
 
   def run_once(self): 
     self.act()
     if self.hasSensitive:
-      self.update_divergence()
+      self.databank.update_divergence()
     self.update_pseudo_cum_regret()
     return
 
@@ -31,9 +34,7 @@ class World:
   def act(self):
     [a.act() for a in self.agents]
     return
-
-  def update_divergence(self):
-    self.agents[0].knowledge.databank.update_divergence()
+    
 
   def encounter_all(self):
     """
@@ -65,7 +66,7 @@ class World:
     cum_regret = gutil.Counter()
     for a in self.agents:
       recent = a.get_recent()
-      rew_received = recent[a.rew_var]
+      rew_received = recent[a.reward_var]
       rew_optimal = a.environment.optimal_reward(gutil.only_given_keys(recent, a.environment.feat_vars))
       curr_regret = self.pseudo_cum_regret[-1][a] if self.pseudo_cum_regret else 0
       new_regret = curr_regret + (rew_optimal - rew_received)

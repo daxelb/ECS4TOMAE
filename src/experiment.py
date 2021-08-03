@@ -1,60 +1,75 @@
 from data import DataBank
 from sim import Sim
-from agent import Agent
+from agent import SoloAgent, NaiveAgent, SensitiveAgent, AdjustAgent
 from world import World
 from copy import copy
 from assignment_models import ActionModel, DiscreteModel, RandomModel
 from environment import Environment
 import plotly.graph_objs as go
 import time
-from enums import Policy
+from numpy import sqrt
+from enums import Policy, ASR
+import multiprocessing as mp
+import pandas as pd
 
 class Experiment:
-  def __init__(self, environment_dicts, pol, eps, dnc, sn, num_episodes, num_trials, show=False, save=False):
+  def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, show=False, save=False):
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
-    self.pol = pol
-    self.eps = eps
-    self.dnc = dnc
-    self.sn = sn
-    self.assignments = (pol, eps, dnc, sn)
-    self.ind_var_i = self.get_ind_var_index()
+    self.assignments = {
+      "policy": policy,
+      "div_node_conf": div_node_conf,
+      "asr": asr,
+      "epsilon": epsilon,
+      "rand_trials": int(num_episodes * epsilon),
+      "cooling_rate": cooling_rate,
+    }
+    self.ind_var = self.get_ind_var()
     self.num_episodes = num_episodes
     self.num_trials = num_trials
     self.show = show
     self.save = save
+    self.saved_data = pd.DataFrame(index=range(self.num_trials * self.num_episodes))
     
     
-  def get_ind_var_index(self):
-    ind_var_index = -99
-    for i, a in enumerate(self.assignments):
-      if isinstance(a, (list, tuple, set)):
-        assert ind_var_index == -99
-        ind_var_index = i
-    return ind_var_index
+  def get_ind_var(self):
+    ind_var = None
+    for var, assignment in self.assignments.items():
+      if isinstance(assignment, (list, tuple, set)):
+        assert ind_var is None
+        ind_var = var
+    return ind_var
   
   def get_assignment_permutations(self):
-    if self.ind_var_i == -99:
-      return [self.assignments]
+    if self.ind_var is None:
+      return self.assignments
     permutations = []
-    for ind_var_assignment in self.assignments[self.ind_var_i]:
-      permutation = list(self.assignments)
-      permutation[self.ind_var_i] = ind_var_assignment
+    for ind_var_assignment in self.assignments[self.ind_var]:
+      permutation = dict(self.assignments)
+      permutation[self.ind_var] = ind_var_assignment
       permutations.append(permutation)
     return permutations
   
-  def sim(self, line_name, line_hue, ass_perm):
+  def sim(self, line_name, line_hue, assignment_permutation):
     db = DataBank(self.environments[0].get_domains(), self.environments[0].get_act_var(), self.environments[0].get_rew_var())
-    pol = ass_perm[0]
-    eps = ass_perm[1]
-    dnc = ass_perm[2]
-    sn = ass_perm[3]
-    agents = [Agent(str(i), env, db, pol, eps, dnc, sn) for i, env in enumerate(self.environments)]
+    agents = []
+    policy = assignment_permutation.pop("policy")
+    for i, environment in enumerate(self.environments):
+      if policy == Policy.SOLO:
+        agents.append(SoloAgent(str(i), environment, db, **assignment_permutation))
+      elif policy == Policy.NAIVE:
+        agents.append(NaiveAgent(str(i), environment, db, **assignment_permutation))
+      elif policy == Policy.SENSITIVE:
+        agents.append(SensitiveAgent(str(i), environment, db, **assignment_permutation))
+      elif policy == Policy.ADJUST:
+        agents.append(AdjustAgent(str(i), environment, db, **assignment_permutation))
     sim = Sim(World(agents), self.num_episodes, self.num_trials)
     result = sim.multithreaded_sim()
+    self.saved_data[line_name] = result.iloc[:,-1:]
     x = list(range(self.num_episodes))
     y = result.mean(axis=0)
-    y_upper = result.max(axis=0)
-    y_lower = result.min(axis=0)
+    variance = result.var(axis=0)
+    y_upper = y + sqrt(variance)
+    y_lower = y - sqrt(variance)
     line_color = "hsla(" + line_hue + ",100%,50%,1)"
     error_band_color = "hsla(" + line_hue + ",100%,50%,0.125)"
     return [
@@ -93,10 +108,10 @@ class Experiment:
     permutations = self.get_assignment_permutations()
     for i, permutation in enumerate(permutations):
       line_name = ""
-      if self.ind_var_i == 0:
-        line_name = permutation[self.ind_var_i].value
-      elif self.ind_var_i != -99:
-        line_name = str(permutation[self.ind_var_i])
+      if self.ind_var in ("policy", "asr"):
+        line_name = permutation[self.ind_var].value
+      elif self.ind_var is not None:
+        line_name = str(permutation[self.ind_var])
       line_hue = str(int(360 * (i / len(permutations))))
       if i:
         print()
@@ -107,7 +122,6 @@ class Experiment:
       yaxis_title="Pseudo Cumulative Regret",
       xaxis_title="Episodes",
       title="graph pog",
-      # hovermode="x"
     )
     elapsed_time = time.time() - start_time
     hrs = elapsed_time // (60 * 60)
@@ -116,6 +130,11 @@ class Experiment:
     print("\nTime elapsed = {:02d}:{:02d}:{:.2f}".format(int(hrs), int(mins), sec))
     if self.show:
       plotly_fig.show()
+    if self.save:
+      date = time.strftime("%m%d", time.gmtime())
+      file_name = "../output/{}-{}agent-{}ep-{}n".format(date, len(self.environments), self.num_episodes, self.num_trials * mp.cpu_count())
+      plotly_fig.write_html(file_name + ".html")
+      self.saved_data.to_csv(file_name + "-last_episode_data.csv")
 
 if __name__ == "__main__":  
   baseline = {
@@ -135,13 +154,16 @@ if __name__ == "__main__":
   reversed_y = dict(baseline)
   reversed_y["Y"] = DiscreteModel(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
 
-  env_dicts = (baseline, baseline, reversed_z, reversed_z)
-  pol = [Policy.DEAF, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST]
-  eps = 0.03
-  dnc = 0.04
-  sn = 10
-  num_episodes = 25
-  num_trials = 1
-  experiment = Experiment(env_dicts, pol, eps, dnc, sn, num_episodes, num_trials, show=True, save=False)
+  experiment = Experiment(
+    environment_dicts=(baseline, baseline, reversed_z, reversed_z),
+    policy=Policy.SENSITIVE,
+    asr=[ASR.GREEDY, ASR.EPSILON_GREEDY],
+    epsilon=0.1,
+    cooling_rate=0.05,
+    div_node_conf=0.04, 
+    num_episodes=25,
+    num_trials=1,
+    show=True,
+    save=False
+  )
   experiment.run()
-  # plt.savefig("../output/0705-{}agent-{}ep-{}n".format(len(agents), sim.num_episodes, sim.num_trials * mp.cpu_count()))

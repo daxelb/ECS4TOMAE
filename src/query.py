@@ -152,13 +152,6 @@ class Query:
   def __eq__(self, other):
     return all(var in other.Q and self.Q[var] == other.Q[var] for var in self.Q) \
        and all(var in other.e and self.e[var] == other.e[var] for var in self.e)
-    # for var in self.Q:
-    #   if var not in other.Q or self.Q[var] != other.Q[var]:
-    #     return False
-    # for var in self.e:
-    #   if var not in other.e or self.e[var] != other.e[var]:
-    #     return False
-    # return True
   
   def __bool__(self):
     return len(self.Q_and_e()) != 0
