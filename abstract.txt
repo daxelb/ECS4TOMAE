@@ -7,15 +7,3 @@ A computer model was constructed to compare the effect of different communicatio
 The results of simulation demonstrates the superiority of an agent who can 1) induce causal differences between
 her own and another agent's environment and 2) deduce useful information from divergent data via 
 by "transport" adjustment formulae described by Bareinboim and Pearl.
-
-
-
-
-communication and adaptability are the foundations of human-like intelligence and the success of our species.
-One of the major issues in 
-
-Communication is the foundati
-
-In this paper, I demonstrate the utility and superiority of causal model-based reinforcement learning in multi-agent
-peer communication in the presence of divergent environments. 
-I  
