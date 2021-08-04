@@ -1,10 +1,10 @@
 {
-  "name": "ECSIMAC",
+  "name": "ECS4TIME",
   "version": "0.0.0",
-  "description": "Exploting Causal Structure in Multi-Agent Cooperation",
+  "description": "Exploting Causal Structure for Transportability in Multi-Agent Environments",
   "repository": {
     "type": "git",
-    "url": "https://github.com/damianbrowne/ECSIMAC"
+    "url": "https://github.com/damianbrowne/ECS4TIME"
   },
   "author": "Damián Browne",
   "contributors": [
