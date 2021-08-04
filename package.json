@@ -1,10 +1,29 @@
 {
-  "name": "Exploiting Causal Structure in Multi-Agent Cooperation",
+  "name": "ECSIMAC",
   "version": "0.0.0",
+  "description": "Exploting Causal Structure in Multi-Agent Cooperation",
   "repository": {
     "type": "git",
     "url": "https://github.com/damianbrowne/ECSIMAC"
   },
   "author": "Damián Browne",
-  "license": "MIT"
+  "contributors": [
+    {
+      "name": "Damián Browne",
+      "email": "Andrew.Forney@lmu.edu",
+      "url": "http://damianbrowne.github.io/"
+    },
+    {
+      "name": "Andrew Forney",
+      "email": "Andrew.Forney@lmu.edu",
+      "url": "http://forns.lmu.build/",
+    }
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "graphviz": ">=0.16",
+    "networkx": ">=2.5.1",
+    "numpy": ">=1.20.3",
+    "plotly": ">=5.1.0"
+  }
 }
