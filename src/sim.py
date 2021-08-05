@@ -36,7 +36,7 @@ class Sim:
     results[index] = sim.get_data()
 
   def multithreaded_sim(self):
-    num_threads = 1#mp.cpu_count()
+    num_threads = mp.cpu_count()
     jobs = []
     results = mp.Manager().list([None] * num_threads)
     for i in range(num_threads):
