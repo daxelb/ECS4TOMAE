@@ -19,7 +19,6 @@ class Agent:
     self.reward_var = environment.get_rew_var()
     self.reward_domain = environment.get_rew_dom()
     self.databank.add_agent(self)
-    # print(self.databank.keys())
       
   def get_recent(self):
     return self.databank[self][-1]
@@ -222,24 +221,24 @@ class AdjustAgent(SensitiveAgent):
 
   
   def thompson_sample(self, givens):
+    rewards = permutations(self.reward_domain)
     choice = None
     max_sample = 0
     for action in permutations(self.action_domain):
       alpha_total, beta_total = 0, 0
       for agent in self.databank:
         transport_formula = self.transport_formula(agent, givens)
+        transport_formula.assign(action)
         num_datapoints = self.get_num_datapoints(transport_formula, agent)
         if not num_datapoints:
           continue
-        transport_formula.assign(permutations(self.reward_domain)[1])
+        transport_formula.assign(rewards[1])
         alpha = self.solve_transport_formula(transport_formula, agent)
         alpha = 0 if alpha is None else alpha * num_datapoints
-        transport_formula.assign(permutations(self.reward_domain)[0])
-        beta = self.solve_transport_formula(transport_formula, agent)
-        beta = 0 if beta is None else beta * num_datapoints
+        beta = num_datapoints - alpha
         alpha_total += alpha
         beta_total += beta
-      sample = np.random.beta((alpha_total) + 1, (beta_total) + 1)
+      sample = np.random.beta(alpha_total + 1, beta_total + 1)
       if sample > max_sample:
         choice = action
         max_sample = sample
