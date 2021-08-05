@@ -15,12 +15,19 @@ import pandas as pd
 class Experiment:
   def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, show=False, save=False):
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
+    rand_trials = 0
+    if policy == ASR.EPSILON_FIRST:
+      if isinstance(epsilon, (tuple, list, set)):
+        rand_trials = [int(num_episodes * eps) for eps in epsilon]
+        epsilon = 0
+      else:
+        rand_trials = int(num_episodes * epsilon)
     self.assignments = {
       "policy": policy,
       "div_node_conf": div_node_conf,
       "asr": asr,
       "epsilon": epsilon,
-      "rand_trials": int(num_episodes * epsilon),
+      "rand_trials": rand_trials,
       "cooling_rate": cooling_rate,
     }
     self.ind_var = self.get_ind_var()
@@ -156,14 +163,14 @@ if __name__ == "__main__":
 
   experiment = Experiment(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy=Policy.SENSITIVE,
-    asr=[ASR.GREEDY, ASR.EPSILON_GREEDY],
-    epsilon=0.1,
+    policy=(Policy.SOLO, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST),
+    asr=ASR.GREEDY,
+    epsilon=0.075,
     cooling_rate=0.05,
     div_node_conf=0.04, 
-    num_episodes=25,
-    num_trials=1,
+    num_episodes=275,
+    num_trials=15,
     show=True,
-    save=False
+    save=True
   )
   experiment.run()
