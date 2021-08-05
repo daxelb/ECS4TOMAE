@@ -171,6 +171,6 @@ if __name__ == "__main__":
     num_episodes=200,
     num_trials=1,
     show=True,
-    save=False
+    save=True
   )
   experiment.run()
