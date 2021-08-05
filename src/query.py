@@ -105,16 +105,6 @@ class Query:
   def assign(self, var_or_dict, ass=None):
     return self.assign_many(var_or_dict) if ass is None else self.assign_one(var_or_dict, ass)
   
-  def assign_unassigned(self, var_or_dict, ass=None):
-    return self.assign_unassigned_many(var_or_dict) if ass is None else self.assign_unassigned_one(var_or_dict, ass)
-  
-  def assign_unassigned_one(self, var, ass):
-    if var in self.Q and self.Q[var] == None:
-      self.Q[var] = ass
-    if var in self.e and self.e[var] == None:
-      self.e[var] = ass
-    return self
-  
   def assign_one(self, var, ass):
     if var in self.Q:
       self.Q[var] = ass
@@ -125,6 +115,16 @@ class Query:
   def assign_many(self, domains):
     for var, ass in domains.items():
       self.assign_one(var, ass)
+    return self
+  
+  def assign_unassigned(self, var_or_dict, ass=None):
+    return self.assign_unassigned_many(var_or_dict) if ass is None else self.assign_unassigned_one(var_or_dict, ass)
+  
+  def assign_unassigned_one(self, var, ass):
+    if var in self.Q and self.Q[var] == None:
+      self.Q[var] = ass
+    if var in self.e and self.e[var] == None:
+      self.e[var] = ass
     return self
   
   def assign_unassigned_many(self, domains):
