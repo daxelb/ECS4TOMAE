@@ -168,8 +168,8 @@ if __name__ == "__main__":
     epsilon=0.075,
     cooling_rate=0.05,
     div_node_conf=0.04, 
-    num_episodes=200,
-    num_trials=1,
+    num_episodes=275,
+    num_trials=15,
     show=True,
     save=True
   )
