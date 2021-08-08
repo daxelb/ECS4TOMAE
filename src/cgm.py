@@ -157,7 +157,23 @@ class CausalGraph:
     for node in nx.topological_sort(self.dag):
       product.append(Query(node, self.get_parents(node)))
     return product
-  
+
+  def get_dist_as_dict(self, res):
+    if isinstance(res, str):
+      parents = sorted(list(self.get_parents(res)))
+      return {res: self.get_dist_as_dict(parents)}
+    elif isinstance(res, list):
+      if len(res) == 1:
+        res == res[0]
+      elif len(res) == 0:
+        return None
+      new_dict = {}
+      for node in res:
+        parents = sorted(list(self.get_parents(node)))
+        new_dict[node] = self.get_dist_as_dict(parents)
+      return new_dict
+    return res if res else None
+
   def get_node_dist(self, node):
     """
     Returns conditional probability distribution
@@ -579,5 +595,6 @@ if __name__ == "__main__":
   model = CausalGraph(nodes, edges, set_nodes={"X"})
   # print(model.get_all_backdoor_adjustment_sets("Y", "X", "Z"))
   # print(model.get_all_backdoor_paths("Y", "Z"))
-  bias_model = model.selection_diagram({"Z"})
-  print(model.from_cpts(Query("Y", {"X", "W"})).assign({"X": 1}))
+  print(model.get_dist_as_dictionaries("Y"))
+  # bias_model = model.selection_diagram({"Z"})
+  # print(model.from_cpts(Query("Y", {"X", "W"})).assign({"X": 1}))

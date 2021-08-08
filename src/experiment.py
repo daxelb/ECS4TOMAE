@@ -14,6 +14,7 @@ import pandas as pd
 
 class Experiment:
   def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, show=False, save=False):
+    self.start_time = time.time()
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     rand_trials = 0
     if policy == ASR.EPSILON_FIRST:
@@ -110,7 +111,6 @@ class Experiment:
     ]
       
   def run(self):
-    start_time = time.time()
     figure = []
     permutations = self.get_assignment_permutations()
     for i, permutation in enumerate(permutations):
@@ -130,11 +130,11 @@ class Experiment:
       xaxis_title="Episodes",
       title="graph pog",
     )
-    elapsed_time = time.time() - start_time
+    elapsed_time = time.time() - self.start_time
     hrs = elapsed_time // (60 * 60)
     mins = (elapsed_time // 60) 
     sec = elapsed_time % 60
-    print("\nTime elapsed = {:02d}:{:02d}:{:.2f}".format(int(hrs), int(mins), sec))
+    print("\nTime elapsed = {:02d}:{:02d}:{:02.2f}".format(int(hrs), int(mins), sec))
     if self.show:
       plotly_fig.show()
     if self.save:
@@ -168,9 +168,9 @@ if __name__ == "__main__":
     epsilon=0.075,
     cooling_rate=0.05,
     div_node_conf=0.04, 
-    num_episodes=200,
+    num_episodes=275,
     num_trials=1,
     show=True,
-    save=True
+    save=False
   )
   experiment.run()
