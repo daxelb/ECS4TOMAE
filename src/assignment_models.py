@@ -55,6 +55,30 @@ class DiscreteModel(AssignmentModel):
     self._ps = [np.array(w) / sum(w) for w in weights]
     self.domain = list(range(len(gutil.first_value(lookup_table))))
 
+  def prob(self, assignments, my_assignment=None):
+    assignment_domains = dict()
+    assignment_probs = dict()
+    for p in self.parents:
+      assignment_domains[p] = tuple(assignments[p].keys()) if isinstance(assignments[p], dict) else (assignments[p],)
+      assignment_probs[p] = tuple(assignments[p].values()) if isinstance(assignments[p], dict) else (1,)
+    prob_dist = gutil.Counter()
+    for a, probs in zip(gutil.permutations(assignment_domains), gutil.permutations(assignment_probs)):
+      for key, value in self.prob_helper(a, multiplier=np.prod(list(probs.values()))).items():
+        prob_dist[key] += value
+    return prob_dist if my_assignment is None else prob_dist
+
+  def prob_helper(self, assignments, my_assignment=None, multiplier=1):
+    a = tuple([assignments[p] for p in self.parents])
+    b = None
+    for m, p in zip(self._inputs, self._ps):
+      if a == m:
+        b = dict(zip(self._outputs, p * multiplier))
+    if b == None:
+      raise ValueError(
+          "It looks like an input was provided which doesn't have a lookup.")
+    return b if my_assignment is None else b[my_assignment]
+
+
   def model(self, **kwargs):
     a = tuple([kwargs[p] for p in self.parents])
     b = None

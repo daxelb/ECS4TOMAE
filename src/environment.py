@@ -5,6 +5,7 @@
 import inspect
 import math
 import gutil
+from util import hash_from_dict
 
 from scm import StructuralCausalModel
 from cgm import CausalGraph
@@ -63,7 +64,7 @@ class Environment:
       self.post = StructuralCausalModel(post_ass)
       
       self.feat_vars = self.get_feat_vars()
-      self.action_rewards = self.get_action_rewards()
+      self.assigned_optimal_actions()
   
   def get_domains(self):
     return self.domains
@@ -79,6 +80,9 @@ class Environment:
   
   def get_feat_vars(self):
     return self.cgm.get_parents(self.act_var)
+
+  def get_feat_doms(self):
+    return gutil.only_given_keys(self.domains, self.get_feat_vars())
   
   def get_act_feat_vars(self):
     return self.feat_vars.union(set(self.act_var))
@@ -92,39 +96,62 @@ class Environment:
   def get_rew_dom(self):
     return gutil.only_given_keys(self.domains, [self.rew_var])
 
-  def get_action_rewards(self, iterations=1000):
-    action_rewards = []
-    for p in gutil.permutations(self.get_act_feat_doms()):
-      action_reward = [p,0]
-      for _ in range(iterations):
-        action_reward[1] += self.post.sample(p)[self.rew_var]
-      action_reward[1] /= iterations
-      action_rewards.append(tuple(action_reward))
-    return action_rewards
-  
-  def optimal_action_rewards(self, givens={}):
-    action_rewards = []
-    for tup in self.action_rewards:
-      action_rewards.append((gutil.only_given_keys(tup[0], [self.act_var]), tup[1]))
-      for key in givens:
-        if tup[0][key] != givens[key]:
-          action_rewards = action_rewards[:-1]
-          break
-    best_rew = -math.inf
-    best = []
-    for tup in action_rewards:
-      best = [tup] if tup[1] > best_rew else best + [tup] if tup[1] == best_rew else best
-      best_rew = max(best_rew, tup[1])
-    return best
-  
-  def optimal_actions(self, givens={}):
-    return [tup[0] for tup in self.optimal_action_rewards(givens)]
-  
-  def optimal_reward(self, givens={}):
-    return self.optimal_action_rewards(givens)[0][1]
+  def assigned_optimal_actions(self):
+    self.optimal_action_reward = {}
+    self.optimal_actions = {}
+    for feat_combo in gutil.permutations(self.get_feat_doms()):
+      optimal_action = []
+      optimal_reward = float('-inf')
+      for action in gutil.permutations(self.get_act_dom()):
+        expected_reward = self.expected_reward({**action, **feat_combo})
+        if expected_reward > optimal_reward:
+          optimal_action = [action]
+          optimal_reward = expected_reward
+        elif expected_reward == optimal_reward:
+          optimal_action.append(action)
+      feat_combo_hash = hash_from_dict(feat_combo)
+      self.optimal_action_reward[feat_combo_hash] = optimal_reward
+      self.optimal_actions[feat_combo_hash] = optimal_action
+    return
+
   
   def selection_diagram(self, s_node_children):
     return self.cgm.selection_diagram(s_node_children)
+
+  def assign_dist_with_givens(self, dist, givens):
+    for var, parents in dist.items():
+      if var in givens:
+        dist[var] = givens[var]
+      elif isinstance(parents, dict):
+        self.assign_dist_with_givens(parents, givens)
+    return dist
+
+  def parse_dist_as_probs(self, assigned_dist):
+    for var, assignment in assigned_dist.items():
+      if isinstance(assignment, dict):
+        if any(isinstance(e, dict) for e in assignment.values()):
+          assigned_dist[var] = self.parse_dist_as_probs(assignment)
+        else:
+          assigned_dist[var] = self._assignment[var].prob(assignment)
+    return assigned_dist
+
+  def expected_reward(self, givens={}):
+    assigned_dist = self.assign_dist_with_givens(self.cgm.get_dist_as_dict(self.rew_var), givens)
+    reward_value_probs = self._assignment[self.rew_var].prob(self.parse_dist_as_probs(assigned_dist[self.rew_var]))
+    return self.expected_value(reward_value_probs)
+
+  def expected_value(self, value_probs):
+    expected_value = 0
+    for value, prob in value_probs.items():
+      expected_value += value * prob
+    return expected_value
+
+  def optimal_reward(self, feature_assignments={}):
+    return self.optimal_action_reward[hash_from_dict(feature_assignments)]
+
+  def optimal_actions(self, feature_assignments={}):
+    return self.optimal_actions[hash_from_dict(feature_assignments)]
+
 
   def __repr__(self):
     variables = ", ".join(map(str, sorted(self.cgm.dag.nodes())))
@@ -150,3 +177,22 @@ class Environment:
   
   def __getitem__(self, key):
     return self._assignment[key]
+
+if __name__ == "__main__":
+  baseline = {
+      "W": RandomModel((0.4, 0.6)),
+      "X": ActionModel(("W"), (0, 1)),
+      "Z": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+      "Y": DiscreteModel(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
+  }
+  e = Environment(baseline)
+  z = DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)})
+  y = DiscreteModel(("W", "Z"), {(0, 0): (1, 0), (0, 1): (
+      1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
+  print(e.expected_reward({"W": 1, "X": 1}))
+  # print(z.prob({"X": 1}))
+  # print(y.prob({"W": 1, "Z": 1}))
+  # print(y.prob({"W": 1, "Z": z.prob({"X": {0:0.4, 1:0.6}})}))
+  # print(z.expected_value({"X": 1}))
+  # print(y.expected_value({"Z": 1, "W": 1}))
+  # print(e._assignment["Z"].__call__(X=1))

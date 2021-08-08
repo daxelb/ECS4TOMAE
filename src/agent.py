@@ -63,16 +63,15 @@ class Agent:
   def thompson_sample(self, givens):
     pass
   
-  def ts_from_dataset(self, givens, dataset):
+  def ts_from_dataset(self, dataset, givens):
     choice = None
     max_sample = float('-inf')
     data = dataset.query(givens)
     reward_permutations = permutations(self.reward_domain)
     for action in permutations(self.action_domain):
-      data = data.query(action)
-      alpha = len(data.query(reward_permutations[1])) + 1
-      beta = len(data.query(reward_permutations[0])) + 1
-      sample = np.random.beta(alpha, beta)
+      alpha = len(data.query({**action, **reward_permutations[1]}))
+      beta = len(data.query({**action, **reward_permutations[0]}))
+      sample = np.random.beta(alpha + 1, beta + 1)
       if sample > max_sample:
         choice = action
         max_sample = sample
@@ -107,7 +106,7 @@ class SoloAgent(Agent):
     return optimal if optimal else self.choose_random()
   
   def thompson_sample(self, givens):
-    return self.ts_from_dataset(givens, self.databank[self])
+    return self.ts_from_dataset(self.databank[self], givens)
 
 class NaiveAgent(Agent):
   def __init__(self, *args, **kwargs):
@@ -118,7 +117,7 @@ class NaiveAgent(Agent):
     return optimal if optimal else self.choose_random()
   
   def thompson_sample(self, givens):
-    return self.ts_from_dataset(givens, self.databank.all_data())
+    return self.ts_from_dataset(self.databank.all_data(), givens)
 
 class SensitiveAgent(Agent):
   def __init__(self, *args, **kwargs):
@@ -129,7 +128,7 @@ class SensitiveAgent(Agent):
     return optimal if optimal else self.choose_random()
   
   def thompson_sample(self, givens):
-    return self.ts_from_dataset(givens, self.databank.sensitive_data(self))
+    return self.ts_from_dataset(self.databank.sensitive_data(self), givens)
     
     
 class AdjustAgent(SensitiveAgent):
