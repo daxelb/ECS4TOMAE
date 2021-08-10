@@ -164,13 +164,13 @@ if __name__ == "__main__":
   experiment = Experiment(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy=(Policy.SOLO, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST),
-    asr=ASR.THOMPSON_SAMPLING,
+    asr=ASR.EPSILON_DECREASING,
     epsilon=0.075,
     cooling_rate=0.05,
     div_node_conf=0.04, 
     num_episodes=275,
-    num_trials=1,
+    num_trials=20,
     show=True,
-    save=False
+    save=True
   )
   experiment.run()
