@@ -26,6 +26,9 @@ class Sim:
   def get_data(self):
     data = pd.DataFrame(columns=range(self.num_episodes))
     for trial in self.trials:
+      if self.world.is_community:
+        data.loc[len(data)] = trial
+        continue
       for agent in self.world.agents:
         data.loc[len(data)] = gutil.list_from_dicts(trial, agent)
     return data
@@ -36,7 +39,7 @@ class Sim:
     results[index] = sim.get_data()
 
   def multithreaded_sim(self):
-    num_threads = mp.cpu_count()
+    num_threads = 1#mp.cpu_count()
     jobs = []
     results = mp.Manager().list([None] * num_threads)
     for i in range(num_threads):

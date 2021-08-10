@@ -5,7 +5,8 @@ from enums import Policy, ASR
 import numpy as np
 from copy import copy
 class Agent:
-  def __init__(self, name, environment, databank, div_node_conf=None, asr=ASR.GREEDY, epsilon=0, rand_trials=0, cooling_rate=0):
+  def __init__(self, rng, name, environment, databank, div_node_conf=None, asr=ASR.GREEDY, epsilon=0, rand_trials=0, cooling_rate=0):
+    self.rng = rng
     self.name = name
     self.environment = environment
     self.databank = databank
@@ -24,21 +25,23 @@ class Agent:
     return self.databank[self][-1]
       
   def act(self):
-    givens = self.environment.pre.sample()
+    givens = self.environment.pre.sample(self.rng)
     choice = self.choose(givens)
     givens |= choice
-    observation = self.environment.post.sample(givens)
+    observation = self.environment.post.sample(self.rng, givens)
     self.databank[self].append(observation)
     
-  def set_seed(self, seed):
-    if isinstance(seed, int):
-      np.random.seed(seed)
-    
+  def rand(self):
+    return self.rng.random()
+  
+  def sample_distribution(self, alpha, beta):
+    return self.rng.beta(alpha, beta)
+      
   def choose(self, givens):
     if self.asr == ASR.GREEDY:
       return self.choose_optimal(givens)
     elif self.asr == ASR.EPSILON_GREEDY:
-      if np.random.rand() < self.epsilon:
+      if self.rand() < self.epsilon:
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == ASR.EPSILON_FIRST:
@@ -47,7 +50,7 @@ class Agent:
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == ASR.EPSILON_DECREASING:
-      if np.random.rand() < self.epsilon:
+      if self.rand() < self.epsilon:
         self.epsilon *= (1 - self.cooling_rate)
         return self.choose_random()
       return self.choose_optimal(givens)
@@ -58,7 +61,7 @@ class Agent:
     pass
   
   def choose_random(self):
-    return np.random.choice(permutations(self.action_domain))
+    return self.rng.choice(permutations(self.action_domain))
   
   def thompson_sample(self, givens):
     pass
@@ -71,20 +74,20 @@ class Agent:
     for action in permutations(self.action_domain):
       alpha = len(data.query({**action, **reward_permutations[1]}))
       beta = len(data.query({**action, **reward_permutations[0]}))
-      sample = np.random.beta(alpha + 1, beta + 1)
+      sample = self.sample_distribution(alpha + 1, beta + 1)
       if sample > max_sample:
         choice = action
         max_sample = sample
     return choice
   
   def __copy__(self):
-    return self.__class__(self.name, self.environment, copy(self.databank), self.div_node_conf, self.asr, self.epsilon, self.rand_trials, self.cooling_rate)
+    return self.__class__(self.rng, self.name, self.environment, copy(self.databank), self.div_node_conf, self.asr, self.epsilon, self.rand_trials, self.cooling_rate)
     
   def __hash__(self):
     return hash(self.name)
     
   def __reduce__(self):
-    return (self.__class__, (self.name, self.environment, self.databank, self.div_node_conf, self.asr, self.epsilon, self.rand_trials, self.cooling_rate))
+    return (self.__class__, (self.rng, self.name, self.environment, self.databank, self.div_node_conf, self.asr, self.epsilon, self.rand_trials, self.cooling_rate))
   
   def __str__(self):
     return self.__class__.__name__ + self.name
@@ -237,7 +240,7 @@ class AdjustAgent(SensitiveAgent):
         beta = num_datapoints - alpha
         alpha_total += alpha
         beta_total += beta
-      sample = np.random.beta(alpha_total + 1, beta_total + 1)
+      sample = self.sample_distribution(alpha_total + 1, beta_total + 1)
       if sample > max_sample:
         choice = action
         max_sample = sample

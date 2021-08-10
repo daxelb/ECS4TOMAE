@@ -7,13 +7,15 @@ from assignment_models import ActionModel, DiscreteModel, RandomModel
 from environment import Environment
 import plotly.graph_objs as go
 import time
-from numpy import sqrt
+from numpy import sqrt, random
 from enums import Policy, ASR
 import multiprocessing as mp
 import pandas as pd
 
 class Experiment:
-  def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, show=False, save=False):
+  def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, is_community=False, show=False, save=False, seed=None):
+    self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
+    self.rng = random.default_rng(seed)
     self.start_time = time.time()
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     rand_trials = 0
@@ -34,6 +36,7 @@ class Experiment:
     self.ind_var = self.get_ind_var()
     self.num_episodes = num_episodes
     self.num_trials = num_trials
+    self.is_community = is_community
     self.show = show
     self.save = save
     self.saved_data = pd.DataFrame(index=range(self.num_trials * self.num_episodes))
@@ -63,14 +66,14 @@ class Experiment:
     policy = assignment_permutation.pop("policy")
     for i, environment in enumerate(self.environments):
       if policy == Policy.SOLO:
-        agents.append(SoloAgent(str(i), environment, db, **assignment_permutation))
+        agents.append(SoloAgent(self.rng, str(i), environment, db, **assignment_permutation))
       elif policy == Policy.NAIVE:
-        agents.append(NaiveAgent(str(i), environment, db, **assignment_permutation))
+        agents.append(NaiveAgent(self.rng, str(i), environment, db, **assignment_permutation))
       elif policy == Policy.SENSITIVE:
-        agents.append(SensitiveAgent(str(i), environment, db, **assignment_permutation))
+        agents.append(SensitiveAgent(self.rng, str(i), environment, db, **assignment_permutation))
       elif policy == Policy.ADJUST:
-        agents.append(AdjustAgent(str(i), environment, db, **assignment_permutation))
-    sim = Sim(World(agents), self.num_episodes, self.num_trials)
+        agents.append(AdjustAgent(self.rng, str(i), environment, db, **assignment_permutation))
+    sim = Sim(World(agents, self.is_community), self.num_episodes, self.num_trials)
     result = sim.multithreaded_sim()
     self.saved_data[line_name] = result.iloc[:,-1:]
     x = list(range(self.num_episodes))
@@ -134,7 +137,8 @@ class Experiment:
     hrs = elapsed_time // (60 * 60)
     mins = (elapsed_time // 60) 
     sec = elapsed_time % 60
-    print("\nTime elapsed = {:02d}:{:02d}:{:02.2f}".format(int(hrs), int(mins), sec))
+    print("\nTime elapsed = {:02d}:{:02d}:{:05.2f}".format(int(hrs), int(mins), sec))
+    print("Seed:", self.seed)
     if self.show:
       plotly_fig.show()
     if self.save:
@@ -143,7 +147,7 @@ class Experiment:
       plotly_fig.write_html(file_name + ".html")
       self.saved_data.to_csv(file_name + "-last_episode_data.csv")
 
-if __name__ == "__main__":  
+if __name__ == "__main__":
   baseline = {
     "W": RandomModel((0.4, 0.6)),
     "X": ActionModel(("W"), (0, 1)),
@@ -163,14 +167,16 @@ if __name__ == "__main__":
 
   experiment = Experiment(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy=(Policy.SOLO, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST),
-    asr=ASR.EPSILON_DECREASING,
+    policy=(Policy.SOLO, Policy.NAIVE), #Policy.SENSITIVE, Policy.ADJUST
+    asr=ASR.THOMPSON_SAMPLING,
     epsilon=0.075,
     cooling_rate=0.05,
     div_node_conf=0.04, 
-    num_episodes=275,
-    num_trials=20,
+    num_episodes=100,
+    num_trials=1,
+    is_community=True,
     show=True,
-    save=True
+    save=False,
+    seed=None
   )
   experiment.run()

@@ -1,27 +1,24 @@
-import numpy as np
-import random
 from agent import SensitiveAgent, AdjustAgent
 import gutil
-from enums import Policy
 from copy import copy
 
 
 class World:
-  def __init__(self, agents):
+  def __init__(self, agents, is_community=False):
     self.agents = agents
+    self.is_community = is_community
     self.pseudo_cum_regret = []
-    self.hasSensitive = False
+    self.has_sensitive = any([isinstance(a, (SensitiveAgent, AdjustAgent)) for a in self.agents])
     self.databank = agents[0].databank
-    for agent in self.agents:
-      if isinstance(agent, (SensitiveAgent, AdjustAgent)):
-        self.hasSensitive = True
-        break
 
   def run_once(self): 
     self.act()
-    if self.hasSensitive:
+    if self.has_sensitive:
       self.databank.update_divergence()
-    self.update_pseudo_cum_regret()
+    if self.is_community:
+      self.update_community_pseudo_regret()
+    else:
+      self.update_agent_pseudo_regret()
     return
 
   def run(self, episodes=250):
@@ -33,35 +30,17 @@ class World:
   def act(self):
     [a.act() for a in self.agents]
     return
-    
 
-  def encounter_all(self):
-    """
-    An encountering policy in which the agent
-    encounters (and potentially communicates with)
-    all agents in the world.
-    """
+  def update_community_pseudo_regret(self):
+    cum_regret = self.pseudo_cum_regret[-1] if self.pseudo_cum_regret else 0
     for a in self.agents:
-      [a.encounter(f) for f in self.agents if a != f]
-    return
-    
-  def encounter_one(self):
-    """
-    An encountering policy where agents
-    encounter (and potentially communicate w/)
-    a single agent, chosen at random, rather than
-    (above) all agents.
-    """
-    for a in self.agents:
-      a.encounter(random.choice([f for f in self.agents if f != a]))
-    return
+      recent = a.get_recent()
+      rew_received = recent[a.reward_var]
+      rew_optimal = a.environment.optimal_reward(gutil.only_given_keys(recent, a.environment.feat_vars))
+      cum_regret += (rew_optimal - rew_received)
+    self.pseudo_cum_regret.append(cum_regret)
   
-  def update_pseudo_cum_regret(self):
-    """
-    Returns a dict of the cumulative 
-    regret of each agent (and total cum. regret)
-    at this episode.
-    """
+  def update_agent_pseudo_regret(self):
     cum_regret = gutil.Counter()
     for a in self.agents:
       recent = a.get_recent()
@@ -73,4 +52,4 @@ class World:
     self.pseudo_cum_regret.append(cum_regret)
   
   def __copy__(self):
-    return World(copy(self.agents))
+    return World(copy(self.agents), self.is_community)

@@ -11,14 +11,11 @@ class AssignmentModel:
         self.domain = domain
 
     def __call__(self, *args, **kwargs):
-        assert len(args) == 0
-        return self.model(**kwargs)
+        assert len(args) == 1
+        return self.model(args[0], **kwargs)
 
     def __repr__(self):
         return self.__class__.__name__ + "(Parents: {0}, Domains: {1})".format(self.parents, self.domain)
-    
-    # def __copy__(self):
-    #   return self.__class__(copy(self.parents), copy(self.name))
 
 class RandomModel(AssignmentModel):
   def __init__(self, probs):
@@ -26,8 +23,8 @@ class RandomModel(AssignmentModel):
     self.domain = list(range(len(probs)))
     self.parents = tuple()
 
-  def model(self, **kwargs):
-    return np.random.choice(self.domain, p=self._probs)
+  def model(self, rng, **kwargs):
+    return rng.choice(self.domain, p=self._probs)
   
   def __eq__(self, other):
     return isinstance(other, self.__class__) \
@@ -36,10 +33,7 @@ class RandomModel(AssignmentModel):
         
   def __repr__(self):
     return self.__class__.__name__ + "(Parents: {0}, Domains: {1}, Probabilities:{2})".format(self.parents, self.domain, self._probs)
-  
-  # def __copy__(self):
-  #   return self.__class__(copy(self._probs))
-    
+
 class DiscreteModel(AssignmentModel):
   def __init__(self, parents, lookup_table):
     assert len(parents) > 0
@@ -79,12 +73,12 @@ class DiscreteModel(AssignmentModel):
     return b if my_assignment is None else b[my_assignment]
 
 
-  def model(self, **kwargs):
+  def model(self, rng, **kwargs):
     a = tuple([kwargs[p] for p in self.parents])
     b = None
     for m, p in zip(self._inputs, self._ps):
       if a == m:
-        b = np.random.choice(self._outputs, p=p)
+        b = rng.choice(self._outputs, p=p)
 
     if b == None:
       raise ValueError(
@@ -106,15 +100,13 @@ class DiscreteModel(AssignmentModel):
         
   def __repr__(self):
     return self.__class__.__name__ + "(Parents: {0}, Probabilities: {1})".format(self.parents, self._ps)
-  
-  # def __copy__(self):
-  #   return self.__class__(copy(self.parents), copy(self.lookup_table))
+
 
 class ActionModel(AssignmentModel):
   def __init__(self, parents, domain):
     super().__init__(parents, domain)
 
-  def model(self, **kwargs):
+  def model(self, rng, **kwargs):
     return None
   
   def __eq__(self, other):

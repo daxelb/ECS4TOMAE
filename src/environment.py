@@ -3,7 +3,6 @@
 # The code has been imported and modified into this project for ease/consistency
 
 import inspect
-import math
 import gutil
 from util import hash_from_dict
 
