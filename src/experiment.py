@@ -78,9 +78,9 @@ class Experiment:
     self.saved_data[line_name] = result.iloc[:,-1:]
     x = list(range(self.num_episodes))
     y = result.mean(axis=0)
-    variance = result.var(axis=0)
-    y_upper = y + sqrt(variance)
-    y_lower = y - sqrt(variance)
+    sqrt_variance = sqrt(result.var(axis=0))
+    y_upper = y + sqrt_variance
+    y_lower = y - sqrt_variance
     line_color = "hsla(" + line_hue + ",100%,50%,1)"
     error_band_color = "hsla(" + line_hue + ",100%,50%,0.125)"
     return [
