@@ -6,21 +6,21 @@ from copy import copy
 
 
 class World:
-  def __init__(self, agents):
+  def __init__(self, agents, is_community=False):
     self.agents = agents
+    self.is_community = is_community
     self.pseudo_cum_regret = []
-    self.hasSensitive = False
+    self.has_sensitive = any([isinstance(a, (SensitiveAgent, AdjustAgent)) for a in self.agents])
     self.databank = agents[0].databank
-    for agent in self.agents:
-      if isinstance(agent, (SensitiveAgent, AdjustAgent)):
-        self.hasSensitive = True
-        break
 
   def run_once(self): 
     self.act()
-    if self.hasSensitive:
+    if self.has_sensitive:
       self.databank.update_divergence()
-    self.update_pseudo_cum_regret()
+    if self.is_community:
+      self.update_community_pseudo_regret()
+    else:
+      self.update_agent_pseudo_regret()
     return
 
   def run(self, episodes=250):
@@ -42,12 +42,7 @@ class World:
       cum_regret += (rew_optimal - rew_received)
     self.pseudo_cum_regret.append(cum_regret)
   
-  def update_pseudo_cum_regret(self):
-    """
-    Returns a dict of the cumulative 
-    regret of each agent (and total cum. regret)
-    at this episode.
-    """
+  def update_agent_pseudo_regret(self):
     cum_regret = gutil.Counter()
     for a in self.agents:
       recent = a.get_recent()
@@ -59,4 +54,4 @@ class World:
     self.pseudo_cum_regret.append(cum_regret)
   
   def __copy__(self):
-    return World(copy(self.agents))
+    return World(copy(self.agents), self.is_community)

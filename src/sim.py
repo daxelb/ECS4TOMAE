@@ -26,6 +26,9 @@ class Sim:
   def get_data(self):
     data = pd.DataFrame(columns=range(self.num_episodes))
     for trial in self.trials:
+      if self.world.is_community:
+        data.loc[len(data)] = trial
+        continue
       for agent in self.world.agents:
         data.loc[len(data)] = gutil.list_from_dicts(trial, agent)
     return data

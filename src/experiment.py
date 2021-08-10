@@ -13,7 +13,7 @@ import multiprocessing as mp
 import pandas as pd
 
 class Experiment:
-  def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, show=False, save=False):
+  def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, is_community=False, show=False, save=False):
     self.start_time = time.time()
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     rand_trials = 0
@@ -34,6 +34,7 @@ class Experiment:
     self.ind_var = self.get_ind_var()
     self.num_episodes = num_episodes
     self.num_trials = num_trials
+    self.is_community = is_community
     self.show = show
     self.save = save
     self.saved_data = pd.DataFrame(index=range(self.num_trials * self.num_episodes))
@@ -70,7 +71,7 @@ class Experiment:
         agents.append(SensitiveAgent(str(i), environment, db, **assignment_permutation))
       elif policy == Policy.ADJUST:
         agents.append(AdjustAgent(str(i), environment, db, **assignment_permutation))
-    sim = Sim(World(agents), self.num_episodes, self.num_trials)
+    sim = Sim(World(agents, self.is_community), self.num_episodes, self.num_trials)
     result = sim.multithreaded_sim()
     self.saved_data[line_name] = result.iloc[:,-1:]
     x = list(range(self.num_episodes))
@@ -163,14 +164,15 @@ if __name__ == "__main__":
 
   experiment = Experiment(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy=(Policy.SOLO, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST),
+    policy=(Policy.SOLO, Policy.NAIVE), #Policy.SENSITIVE, Policy.ADJUST
     asr=ASR.THOMPSON_SAMPLING,
     epsilon=0.075,
     cooling_rate=0.05,
     div_node_conf=0.04, 
-    num_episodes=275,
+    num_episodes=100,
     num_trials=1,
+    is_community=True,
     show=True,
-    save=False
+    save=True
   )
   experiment.run()
