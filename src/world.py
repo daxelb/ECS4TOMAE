@@ -1,5 +1,3 @@
-import numpy as np
-import random
 from agent import SensitiveAgent, AdjustAgent
 import gutil
 from copy import copy
