@@ -7,13 +7,15 @@ from assignment_models import ActionModel, DiscreteModel, RandomModel
 from environment import Environment
 import plotly.graph_objs as go
 import time
-from numpy import sqrt
+from numpy import sqrt, random
 from enums import Policy, ASR
 import multiprocessing as mp
 import pandas as pd
 
 class Experiment:
-  def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, is_community=False, show=False, save=False):
+  def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, is_community=False, show=False, save=False, seed=None):
+    seed = int(random.rand() * 2**32 - 1) if seed is None else seed
+    self.rng = random.default_rng(seed)
     self.start_time = time.time()
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     rand_trials = 0
@@ -64,13 +66,13 @@ class Experiment:
     policy = assignment_permutation.pop("policy")
     for i, environment in enumerate(self.environments):
       if policy == Policy.SOLO:
-        agents.append(SoloAgent(str(i), environment, db, **assignment_permutation))
+        agents.append(SoloAgent(self.rng, str(i), environment, db, **assignment_permutation))
       elif policy == Policy.NAIVE:
-        agents.append(NaiveAgent(str(i), environment, db, **assignment_permutation))
+        agents.append(NaiveAgent(self.rng, str(i), environment, db, **assignment_permutation))
       elif policy == Policy.SENSITIVE:
-        agents.append(SensitiveAgent(str(i), environment, db, **assignment_permutation))
+        agents.append(SensitiveAgent(self.rng, str(i), environment, db, **assignment_permutation))
       elif policy == Policy.ADJUST:
-        agents.append(AdjustAgent(str(i), environment, db, **assignment_permutation))
+        agents.append(AdjustAgent(self.rng, str(i), environment, db, **assignment_permutation))
     sim = Sim(World(agents, self.is_community), self.num_episodes, self.num_trials)
     result = sim.multithreaded_sim()
     self.saved_data[line_name] = result.iloc[:,-1:]
@@ -144,7 +146,7 @@ class Experiment:
       plotly_fig.write_html(file_name + ".html")
       self.saved_data.to_csv(file_name + "-last_episode_data.csv")
 
-if __name__ == "__main__":  
+if __name__ == "__main__":
   baseline = {
     "W": RandomModel((0.4, 0.6)),
     "X": ActionModel(("W"), (0, 1)),
@@ -173,6 +175,7 @@ if __name__ == "__main__":
     num_trials=1,
     is_community=True,
     show=True,
-    save=True
+    save=False,
+    seed=123
   )
   experiment.run()

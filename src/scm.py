@@ -50,7 +50,7 @@ class StructuralCausalModel:
         .format(classname=self.__class__.__name__,vars=variables))
 
   
-  def sample(self, set_values={}):
+  def sample(self, rng, set_values={}):
     """
     Sample from CSM
 
@@ -78,7 +78,7 @@ class StructuralCausalModel:
           parent: samples[parent]
           for parent in c_model.parents
           }
-        samples[node] = c_model(**parent_samples)
+        samples[node] = c_model(rng, **parent_samples)
     return samples
 
   def do(self, node):
