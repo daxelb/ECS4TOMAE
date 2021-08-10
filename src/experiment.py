@@ -14,7 +14,7 @@ import pandas as pd
 
 class Experiment:
   def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, is_community=False, show=False, save=False, seed=None):
-    seed = int(random.rand() * 2**32 - 1) if seed is None else seed
+    self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(seed)
     self.start_time = time.time()
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
@@ -137,7 +137,8 @@ class Experiment:
     hrs = elapsed_time // (60 * 60)
     mins = (elapsed_time // 60) 
     sec = elapsed_time % 60
-    print("\nTime elapsed = {:02d}:{:02d}:{:02.2f}".format(int(hrs), int(mins), sec))
+    print("\nTime elapsed = {:02d}:{:02d}:{:05.2f}".format(int(hrs), int(mins), sec))
+    print("Seed:", self.seed)
     if self.show:
       plotly_fig.show()
     if self.save:
@@ -176,6 +177,6 @@ if __name__ == "__main__":
     is_community=True,
     show=True,
     save=False,
-    seed=123
+    seed=None
   )
   experiment.run()
