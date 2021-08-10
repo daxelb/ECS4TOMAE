@@ -1,5 +1,5 @@
 import math
-import random
+from numpy import random
 
 def avg_list(lists):
   """
