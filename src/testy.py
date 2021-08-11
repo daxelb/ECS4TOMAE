@@ -27,5 +27,10 @@ class Episode:
     return new_list
       
 if __name__ == "__main__":
-  episode = Episode()
-  print(episode.list_from_dicts([{"adjust": {"0": 1, "2": 2}, "deaf": {"0": 1, "2": 0}}, {"adjust": {"0": 5, "2": 4}, "deaf": {"0": 3, "2": 2}}], "adjust", "0"))
+  # episode = Episode()
+  # print(episode.list_from_dicts([{"adjust": {"0": 1, "2": 2}, "deaf": {"0": 1, "2": 0}}, {"adjust": {"0": 5, "2": 4}, "deaf": {"0": 3, "2": 2}}], "adjust", "0"))
+  import pandas as pd
+  d = {"a": [1,2,3], "b": [0,2,4], "c": [10,20,30]}
+  df = pd.DataFrame(data=d.values(),columns=["A","B","C"]).sum()
+  print(df)
+  

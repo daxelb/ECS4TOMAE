@@ -261,8 +261,7 @@ class AdjustAgent(SensitiveAgent):
         alpha = 0 if alpha is None else alpha * num_datapoints
         beta = num_datapoints - alpha
         alpha_total += alpha
-        beta_total += 
-        
+        beta_total += beta
       sample = self.rng.beta(alpha_total + 1, beta_total + 1)
       if sample > max_sample:
         choice = action
