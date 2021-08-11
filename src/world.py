@@ -31,16 +31,16 @@ class World:
     [a.act() for a in self.agents]
     return
 
-  def update_community_pseudo_regret(self):
-    cum_regret = self.pseudo_cum_regret[-1] if self.pseudo_cum_regret else 0
+  def update_community_pseudo_regret(self, ind_var):
+    cum_regret = self.pseudo_cum_regret[-1][ind_var] if self.pseudo_cum_regret else 0
     for a in self.agents:
       recent = a.get_recent()
       rew_received = recent[a.reward_var]
       rew_optimal = a.environment.optimal_reward(gutil.only_given_keys(recent, a.environment.feat_vars))
       cum_regret += (rew_optimal - rew_received)
-    self.pseudo_cum_regret.append(cum_regret)
+    self.pseudo_cum_regret.append({ind_var: cum_regret})
   
-  def update_agent_pseudo_regret(self):
+  def update_agent_pseudo_regret(self, ind_var):
     cum_regret = gutil.Counter()
     for a in self.agents:
       recent = a.get_recent()
