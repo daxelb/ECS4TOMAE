@@ -8,7 +8,6 @@ from environment import Environment
 import plotly.graph_objs as go
 import time
 from numpy import sqrt, random
-from enums import Policy, ASR
 import multiprocessing as mp
 import pandas as pd
 
@@ -19,7 +18,7 @@ class Experiment:
     self.start_time = time.time()
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     rand_trials = 0
-    if policy == ASR.EPSILON_FIRST:
+    if policy == "EF":
       if isinstance(epsilon, (tuple, list, set)):
         rand_trials = [int(num_episodes * eps) for eps in epsilon]
         epsilon = 0
@@ -65,13 +64,13 @@ class Experiment:
     agents = []
     policy = assignment_permutation.pop("policy")
     for i, environment in enumerate(self.environments):
-      if policy == Policy.SOLO:
+      if policy == "Solo":
         agents.append(SoloAgent(self.rng, str(i), environment, db, **assignment_permutation))
-      elif policy == Policy.NAIVE:
+      elif policy == "Naive":
         agents.append(NaiveAgent(self.rng, str(i), environment, db, **assignment_permutation))
-      elif policy == Policy.SENSITIVE:
+      elif policy == "Sensitive":
         agents.append(SensitiveAgent(self.rng, str(i), environment, db, **assignment_permutation))
-      elif policy == Policy.ADJUST:
+      elif policy == "Adjust":
         agents.append(AdjustAgent(self.rng, str(i), environment, db, **assignment_permutation))
     sim = Sim(World(agents, self.is_community), self.num_episodes, self.num_trials)
     result = sim.multithreaded_sim()
@@ -117,11 +116,7 @@ class Experiment:
     figure = []
     permutations = self.get_assignment_permutations()
     for i, permutation in enumerate(permutations):
-      line_name = ""
-      if self.ind_var in ("policy", "asr"):
-        line_name = permutation[self.ind_var].value
-      elif self.ind_var is not None:
-        line_name = str(permutation[self.ind_var])
+      line_name = str(permutation[self.ind_var]) if self.ind_var is not None else ""
       line_hue = str(int(360 * (i / len(permutations))))
       if i:
         print()
@@ -137,7 +132,7 @@ class Experiment:
     hrs = elapsed_time // (60 * 60)
     mins = (elapsed_time // 60) 
     sec = elapsed_time % 60
-    print("\nTime elapsed = {:02d}:{:02d}:{:05.2f}".format(int(hrs), int(mins), sec))
+    print("\n\nTime elapsed: {:02d}:{:02d}:{:05.2f}".format(int(hrs), int(mins), sec))
     print("Seed:", self.seed)
     if self.show:
       plotly_fig.show()
@@ -167,8 +162,8 @@ if __name__ == "__main__":
 
   experiment = Experiment(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy=(Policy.SOLO, Policy.NAIVE), #Policy.SENSITIVE, Policy.ADJUST
-    asr=ASR.THOMPSON_SAMPLING,
+    policy=("Solo", "Naive"), #"Sensitive", "Adjust"
+    asr="TS",
     epsilon=0.075,
     cooling_rate=0.05,
     div_node_conf=0.04, 

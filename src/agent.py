@@ -1,11 +1,10 @@
 from gutil import permutations, only_dicts_with_givens, Counter, max_key
 from query import Product
 from util import hash_from_dict, dict_from_hash
-from enums import Policy, ASR
 import numpy as np
 from copy import copy
 class Agent:
-  def __init__(self, rng, name, environment, databank, div_node_conf=None, asr=ASR.GREEDY, epsilon=0, rand_trials=0, cooling_rate=0):
+  def __init__(self, rng, name, environment, databank, div_node_conf=None, asr="EG", epsilon=0, rand_trials=0, cooling_rate=0):
     self.rng = rng
     self.name = name
     self.environment = environment
@@ -38,23 +37,23 @@ class Agent:
     return self.rng.beta(alpha, beta)
       
   def choose(self, givens):
-    if self.asr == ASR.GREEDY:
+    if self.asr == "G":
       return self.choose_optimal(givens)
-    elif self.asr == ASR.EPSILON_GREEDY:
+    elif self.asr == "EG":
       if self.rand() < self.epsilon:
         return self.choose_random()
       return self.choose_optimal(givens)
-    elif self.asr == ASR.EPSILON_FIRST:
+    elif self.asr == "EF":
       if self.rand_trials > 0:
         self.rand_trials -= 1
         return self.choose_random()
       return self.choose_optimal(givens)
-    elif self.asr == ASR.EPSILON_DECREASING:
+    elif self.asr == "ED":
       if self.rand() < self.epsilon:
         self.epsilon *= (1 - self.cooling_rate)
         return self.choose_random()
       return self.choose_optimal(givens)
-    elif self.asr == ASR.THOMPSON_SAMPLING:
+    elif self.asr == "TS":
       return self.thompson_sample(givens)
   
   def choose_optimal(self, givens):
@@ -93,7 +92,7 @@ class Agent:
     return self.__class__.__name__ + self.name
   
   def __repr__(self):
-    return "<" + self.__class__.__name__ + self.name + ": " + self.asr.value + ">"
+    return "<" + self.__class__.__name__ + self.name + ": " + self.asr + ">"
   
   def __eq__(self, other):
     return isinstance(other, self.__class__) \
