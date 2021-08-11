@@ -9,9 +9,11 @@ import time
 from numpy import sqrt, random
 import multiprocessing as mp
 import pandas as pd
+from os import mkdir
+import json
 
-class Experiment:
-  def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, is_community=False, show=False, save=False, seed=None):
+class Sim:
+  def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, is_community=False, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(seed)
     self.start_time = time.time()
@@ -41,6 +43,7 @@ class Experiment:
     self.show = show
     self.save = save
     self.saved_data = pd.DataFrame(index=range(self.num_trials * self.num_episodes))
+    self.values = self.get_values(locals())
     
     
   def get_ind_var(self):
@@ -135,7 +138,7 @@ class Experiment:
         results[ind_var] = results[ind_var].append(df, ignore_index=True)
     return results
   
-  def get_plot(self, results):
+  def get_plot(self, results, plot_title):
     figure = []
     x = list(range(self.num_episodes))
     for i, ind_var in enumerate(results):
@@ -180,11 +183,11 @@ class Experiment:
     plotly_fig.update_layout(
       yaxis_title="Pseudo Cumulative Regret",
       xaxis_title="Episodes",
-      title="graph pog",
+      title=plot_title,
     )
     return plotly_fig
     
-  def display_and_save(self, plot):
+  def display_and_save(self, plot, plot_title):
     elapsed_time = time.time() - self.start_time
     print("\nTime elapsed: {:02d}:{:02d}:{:05.2f}".format(
       int(elapsed_time // (60 * 60)),
@@ -192,26 +195,43 @@ class Experiment:
       elapsed_time % 60
     ))
     print("Seed: %d" % self.seed)
-    N = self.num_threads * self.num_trials if self.is_community else self.num_threads * self.num_trials * self.num_agents
+    N = self.get_N()
     print("N=%d" % N)
     if self.show:
       plot.show()
     if self.save:
       date = time.strftime("%m%d", time.gmtime())
-      file_name = "../output/{}-{}agent-{}ep-{}n".format(date, len(self.environments), self.num_episodes, self.num_trials * mp.cpu_count())
-      plot.write_html(file_name + ".html")
-      self.saved_data.to_csv(file_name + "-last_episode_data.csv")
+      file_name = "{}_E{}_N{}_{}".format(date, self.num_episodes, N, plot_title)
+      dir_path = "../output/%s" % file_name
+      mkdir(dir_path)
+      plot.write_html(dir_path + "/plot.html")
+      self.saved_data.to_csv(dir_path + "/last_episode_data.csv")
+      with open(dir_path + '/values.json', 'w') as outfile:
+        json.dump(self.values, outfile)
       
-  def run(self):
+  def run(self, plot_title=""):
     results = self.combine_results(
       self.multithreaded_sim(
         self.world_generator()
       )
     )
-    self.display_and_save(self.get_plot(results))
+    self.display_and_save(self.get_plot(results, plot_title), plot_title)
     
-    
-    
+  def get_N(self):
+    if self.is_community:
+      return self.num_threads * self.num_trials
+    return self.num_threads * self.num_trials * self.num_agents
+  
+  def get_values(self, locals):
+    values = {key: val for key, val in locals.items() if key != 'self'}
+    parsed_env_dicts = []
+    for env in values["environment_dicts"]:
+      parsed_env = {}
+      for node, model in env.items():
+        parsed_env[node] = str(model)
+      parsed_env_dicts.append(parsed_env)
+    values["environment_dicts"] = tuple(parsed_env_dicts)
+    return values
 
 if __name__ == "__main__":
   baseline = {
@@ -231,19 +251,18 @@ if __name__ == "__main__":
   reversed_y = dict(baseline)
   reversed_y["Y"] = DiscreteModel(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
 
-  experiment = Experiment(
+  experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy=("Solo", "Naive", "Sensitive", "Adjust"), 
+    policy=("Solo", "Sensitive", "Adjust"), 
     asr="EF",
     epsilon=0.075,
     cooling_rate=0.05,
     div_node_conf=0.04, 
-    num_episodes=60,
+    num_episodes=50,
     num_trials=1,
     is_community=False,
     show=True,
-    save=False,
-    seed=None
+    save=True,
+    seed=87901773
   )
-  # print(len(experiment.world_generator()[0]))
-  experiment.run()
+  experiment.run(plot_title="Cumulative Pseudo Regret of Agents using Epsilon First ASR")

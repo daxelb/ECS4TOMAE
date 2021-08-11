@@ -8,19 +8,19 @@ class AssignmentModel:
     """
     def __init__(self, parents, domain):
         self.parents = parents
-        self.domain = domain
+        self.domain = tuple(domain)
 
     def __call__(self, *args, **kwargs):
         assert len(args) == 1
         return self.model(args[0], **kwargs)
 
     def __repr__(self):
-        return self.__class__.__name__ + "(Parents: {0}, Domains: {1})".format(self.parents, self.domain)
+        return self.__class__.__name__ + "(Parents: {}, Domains: {})".format(self.parents, self.domain)
 
 class RandomModel(AssignmentModel):
   def __init__(self, probs):
     self._probs = probs
-    self.domain = list(range(len(probs)))
+    self.domain = tuple(range(len(probs)))
     self.parents = tuple()
 
   def model(self, rng, **kwargs):
@@ -32,7 +32,7 @@ class RandomModel(AssignmentModel):
         and self._probs == other._probs
         
   def __repr__(self):
-    return self.__class__.__name__ + "(Parents: {0}, Domains: {1}, Probabilities:{2})".format(self.parents, self.domain, self._probs)
+    return self.__class__.__name__ + "(Domains: {}, Probabilities:{})".format(self.domain, self._probs)
 
 class DiscreteModel(AssignmentModel):
   def __init__(self, parents, lookup_table):
@@ -47,7 +47,7 @@ class DiscreteModel(AssignmentModel):
     assert all(len(w) == output_length for w in weights)
     self._outputs = np.arange(output_length)
     self._ps = [np.array(w) / sum(w) for w in weights]
-    self.domain = list(range(len(gutil.first_value(lookup_table))))
+    self.domain = tuple(range(len(gutil.first_value(lookup_table))))
 
   def prob(self, assignments, my_assignment=None):
     assignment_domains = dict()
@@ -99,7 +99,7 @@ class DiscreteModel(AssignmentModel):
         and (set(self._outputs) == set(other._outputs))
         
   def __repr__(self):
-    return self.__class__.__name__ + "(Parents: {0}, Probabilities: {1})".format(self.parents, self._ps)
+    return self.__class__.__name__ + "(Parents: {}, Probabilities: {})".format(self.parents, self._ps)
 
 
 class ActionModel(AssignmentModel):
@@ -115,4 +115,4 @@ class ActionModel(AssignmentModel):
         and set(self.parents) == set(other.parents)
         
   def __repr__(self):
-    return self.__class__.__name__ + "(Parents: {0}, Domains: {1})".format(self.parents, self.domain)
+    return self.__class__.__name__ + "(Parents: {}, Domains: {})".format(self.parents, self.domain)
