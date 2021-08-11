@@ -5,7 +5,7 @@
 import inspect
 import gutil
 from util import hash_from_dict
-
+from data import DataBank
 from scm import StructuralCausalModel
 from cgm import CausalGraph
 from assignment_models import AssignmentModel, ActionModel, DiscreteModel, RandomModel
@@ -150,6 +150,9 @@ class Environment:
 
   def optimal_actions(self, feature_assignments={}):
     return self.optimal_actions[hash_from_dict(feature_assignments)]
+  
+  def create_empty_databank(self):
+    return DataBank(self.get_domains(), self.get_act_var(), self.get_rew_var())
 
 
   def __repr__(self):

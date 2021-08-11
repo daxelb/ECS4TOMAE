@@ -12,8 +12,8 @@ class Agent:
     self.div_node_conf = div_node_conf
     self.asr = asr
     self.epsilon = epsilon
-    self.cooling_rate = cooling_rate
     self.rand_trials = rand_trials
+    self.cooling_rate = cooling_rate
     self.action_var = environment.get_act_var()
     self.action_domain = environment.get_act_dom()
     self.reward_var = environment.get_rew_var()
@@ -22,6 +22,23 @@ class Agent:
       
   def get_recent(self):
     return self.databank[self][-1]
+  
+  def get_ind_var_value(self, ind_var):
+    if ind_var == "div_node_conf":
+      return self.div_node_conf
+    elif ind_var == "policy":
+      return self.get_policy()
+    elif ind_var == "asr":
+      return self.asr
+    elif ind_var == "epsilon":
+      return self.epsilon
+    elif ind_var == "rand_trials":
+      return self.rand_trials
+    elif ind_var == "cooling_rate":
+      return self.cooling_rate
+    else:
+      raise ValueError("Input independent variable is not a property of", str(self))
+    
       
   def act(self):
     givens = self.environment.pre.sample(self.rng)
@@ -29,18 +46,12 @@ class Agent:
     givens |= choice
     observation = self.environment.post.sample(self.rng, givens)
     self.databank[self].append(observation)
-    
-  def rand(self):
-    return self.rng.random()
-  
-  def sample_distribution(self, alpha, beta):
-    return self.rng.beta(alpha, beta)
       
   def choose(self, givens):
     if self.asr == "G":
       return self.choose_optimal(givens)
     elif self.asr == "EG":
-      if self.rand() < self.epsilon:
+      if self.rng.random() < self.epsilon:
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == "EF":
@@ -49,7 +60,7 @@ class Agent:
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == "ED":
-      if self.rand() < self.epsilon:
+      if self.rng.random() < self.epsilon:
         self.epsilon *= (1 - self.cooling_rate)
         return self.choose_random()
       return self.choose_optimal(givens)
@@ -73,7 +84,7 @@ class Agent:
     for action in permutations(self.action_domain):
       alpha = len(data.query({**action, **reward_permutations[1]}))
       beta = len(data.query({**action, **reward_permutations[0]}))
-      sample = self.sample_distribution(alpha + 1, beta + 1)
+      sample = self.rng.beta(alpha + 1, beta + 1)
       if sample > max_sample:
         choice = action
         max_sample = sample
@@ -103,6 +114,9 @@ class SoloAgent(Agent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
+  def get_policy(self):
+    return "Solo"
+    
   def choose_optimal(self, givens):
     optimal = self.databank[self].optimal_choice(self.action_domain, self.reward_var, givens)
     return optimal if optimal else self.choose_random()
@@ -114,6 +128,9 @@ class NaiveAgent(Agent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
+  def get_policy(self):
+    return "Naive"
+    
   def choose_optimal(self, givens):
     optimal = self.databank.all_data().optimal_choice(self.action_domain, self.reward_var, givens)
     return optimal if optimal else self.choose_random()
@@ -124,6 +141,9 @@ class NaiveAgent(Agent):
 class SensitiveAgent(Agent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
+    
+  def get_policy(self):
+    return "Sensitive"
     
   def choose_optimal(self, givens):
     optimal = self.databank.sensitive_data(self).optimal_choice(self.action_domain, self.reward_var, givens)
@@ -137,6 +157,9 @@ class AdjustAgent(SensitiveAgent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     self.action_var = self.environment.get_act_var()
+    
+  def get_policy(self):
+    return "Adjust"
     
   def div_nodes(self, other):
     return self.databank.div_nodes(self, other)
@@ -239,7 +262,7 @@ class AdjustAgent(SensitiveAgent):
         beta = num_datapoints - alpha
         alpha_total += alpha
         beta_total += beta
-      sample = self.sample_distribution(alpha_total + 1, beta_total + 1)
+      sample = self.rng.beta(alpha_total + 1, beta_total + 1)
       if sample > max_sample:
         choice = action
         max_sample = sample
