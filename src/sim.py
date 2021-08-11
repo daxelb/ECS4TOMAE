@@ -253,16 +253,16 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy=("Solo", "Sensitive", "Adjust"), 
-    asr="EF",
-    epsilon=0.075,
-    cooling_rate=0.05,
+    policy=("Solo", "Naive", "Sensitive", "Adjust"), 
+    asr="ED",
+    epsilon=1,
+    cooling_rate=0.076,
     div_node_conf=0.04, 
-    num_episodes=50,
-    num_trials=1,
+    num_episodes=250,
+    num_trials=15,
     is_community=False,
     show=True,
     save=True,
-    seed=87901773
+    seed=None
   )
-  experiment.run(plot_title="Cumulative Pseudo Regret of Agents using Epsilon First ASR")
+  experiment.run(plot_title="CPR of Individual Agents using Epsilon Decreasing ASR (Epsilon-1, Cooling Rate=0.076)")
