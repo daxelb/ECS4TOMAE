@@ -245,8 +245,8 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy="Solo", 
-    asr=("EG", "EF", "ED"),
+    policy=("Solo", "Naive", "Sensitive", "Adjust"),
+    asr="EF",
     EG_epsilon=0.1,
     EF_rand_trials=7,
     ED_cooling_rate=0.867,
@@ -257,7 +257,7 @@ if __name__ == "__main__":
     rand_envs=True,
     node_mutation_chance=0.2,
     show=True,
-    save=False,
+    save=True,
     seed=None
   )
-  experiment.run(plot_title="ksajhdbhbsdjfabjhfahjab")
+  experiment.run(plot_title="Mean Agent CPR across Communication Polcies using Randomized Environments")

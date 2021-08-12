@@ -1,9 +1,0 @@
-  It can be said that the success of the human species is largely attributed to our unrivaled communicative capabilities.
-While the sheer bandwidth of human language provides large quantities of data transfer, it is intelligent and accurate
-inference on communicated information that drives our prosperity and adaptability as a social, cooperative species.
-
-  In this paper, I apply causal reinforcement learning--a model-based RL approach--to multi-agent communication across divergent agent environments.
-A computer model was constructed to compare the effect of different communication policies.
-The results of simulation demonstrates the superiority of an agent who can 1) induce causal differences between
-her own and another agent's environment and 2) deduce useful information from divergent data via 
-by "transport" adjustment formulae described by Bareinboim and Pearl.
