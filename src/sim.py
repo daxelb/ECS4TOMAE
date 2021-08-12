@@ -103,12 +103,13 @@ class Sim:
   
   def simulate(self, results, index):
     trial_result = {}
-    worlds = self.world_generator()
-    for i, world in enumerate(worlds):
-      for j in range(self.num_episodes - 1):
-        world.run_once()
-        printProgressBar(i+((j+1)/(self.num_episodes - 1)), len(worlds))
-      self.update_trial_result(trial_result, world)
+    for i in range(self.num_trials):
+      worlds = self.world_generator()
+      for j, world in enumerate(worlds):
+        for k in range(self.num_episodes - 1):
+          world.run_once()
+          printProgressBar(i*len(worlds)+j+(k+1)/(self.num_episodes - 1), self.num_trials * len(worlds))
+        self.update_trial_result(trial_result, world)
     results[index] = trial_result
   
   def update_trial_result(self, trial_result, world):
