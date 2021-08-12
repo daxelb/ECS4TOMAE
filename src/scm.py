@@ -6,7 +6,7 @@ import inspect
 import networkx as nx
 
 from cgm import CausalGraph
-from assignment_models import ActionModel, AssignmentModel
+from assignment_models import ActionModel
 
 class StructuralCausalModel:
   def __init__(self, assignment):
@@ -21,24 +21,11 @@ class StructuralCausalModel:
     for node, model in assignment.items():
       if model is None:
         set_nodes.append(node)
-      elif isinstance(model, AssignmentModel):
+      else:
         edges.extend([
           (parent, node)
           for parent in model.parents
           ])
-      elif callable(model):
-        sig = inspect.signature(model)
-        parents = [
-          parent
-          for parent in sig.parameters.keys()
-          if parent != "n_samples"
-        ]
-        self.assignment[node] = AssignmentModel(parents, model)
-        edges.extend([(p, node) for p in parents])
-      else:
-        raise ValueError("Model must be either callable or None. "
-            "Instead got {} for node {}."
-            .format(model, node))
 
       self.cgm = CausalGraph(
         nodes=nodes, edges=edges, set_nodes=set_nodes

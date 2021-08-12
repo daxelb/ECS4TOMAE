@@ -1,30 +1,28 @@
 import numpy as np
 import gutil
 from copy import copy
-class AssignmentModel:
-    """
-    Basically just a hack to allow me to provide information about the
-    arguments of a dynamically generated function.
-    """
-    def __init__(self, parents, domain):
-        self.parents = parents
-        self.domain = tuple(domain)
 
-    def __call__(self, *args, **kwargs):
-        assert len(args) == 1
-        return self.model(args[0], **kwargs)
-
-    def __repr__(self):
-        return self.__class__.__name__ + "(Parents: {}, Domains: {})".format(self.parents, self.domain)
-
-class RandomModel(AssignmentModel):
+def randomize(rng, iter):
+  new_iter = []
+  num_elements = len(iter)
+  for i in range(num_elements):
+    if i == num_elements - 1:
+      new_iter.append(1-sum(new_iter))
+      break
+    new_iter.append(rng.uniform(0,1-sum(new_iter)))
+  rng.shuffle(new_iter)
+  return tuple(new_iter)
+class RandomModel:
   def __init__(self, probs):
-    self._probs = probs
+    self._probs = tuple(probs)
     self.domain = tuple(range(len(probs)))
     self.parents = tuple()
 
   def model(self, rng, **kwargs):
     return rng.choice(self.domain, p=self._probs)
+  
+  def randomize(self, rng):
+    return RandomModel(randomize(rng, self._probs))
   
   def __eq__(self, other):
     return isinstance(other, self.__class__) \
@@ -32,9 +30,13 @@ class RandomModel(AssignmentModel):
         and self._probs == other._probs
         
   def __repr__(self):
-    return self.__class__.__name__ + "(Domains: {}, Probabilities:{})".format(self.domain, self._probs)
+    return "RandomModel(Domains: {}, Probabilities:{})".format(self.domain, self._probs)
+  
+  def __call__(self, *args, **kwargs):
+    assert len(args) == 1
+    return self.model(args[0], **kwargs)
 
-class DiscreteModel(AssignmentModel):
+class DiscreteModel:
   def __init__(self, parents, lookup_table):
     assert len(parents) > 0
     self.lookup_table = lookup_table
@@ -85,6 +87,12 @@ class DiscreteModel(AssignmentModel):
           "It looks like an input was provided which doesn't have a lookup.")
     return int(b)
   
+  def randomize(self, rng):
+    new_table = dict(self.lookup_table)
+    for input, probs in new_table.items():
+      new_table[input] = randomize(rng, probs)
+    return DiscreteModel(self.parents, new_table)
+  
   def __eq__(self, other):
     if len(self._ps) != len(other._ps):
       return False
@@ -99,15 +107,20 @@ class DiscreteModel(AssignmentModel):
         and (set(self._outputs) == set(other._outputs))
         
   def __repr__(self):
-    return self.__class__.__name__ + "(Parents: {}, Probabilities: {})".format(self.parents, self._ps)
+    return "DiscreteModel(Parents: {}, Probabilities: {})".format(self.parents, self._ps)
+  
+  def __call__(self, *args, **kwargs):
+    assert len(args) == 1
+    return self.model(args[0], **kwargs)
 
 
-class ActionModel(AssignmentModel):
+class ActionModel:
   def __init__(self, parents, domain):
-    super().__init__(parents, domain)
-
-  def model(self, rng, **kwargs):
-    return None
+    self.parents = parents
+    self.domain = tuple(domain)
+    
+  def randomize(self, rng=None):
+    return ActionModel(self.parents, self.domain)
   
   def __eq__(self, other):
     return isinstance(other, self.__class__) \
@@ -115,4 +128,4 @@ class ActionModel(AssignmentModel):
         and set(self.parents) == set(other.parents)
         
   def __repr__(self):
-    return self.__class__.__name__ + "(Parents: {}, Domains: {})".format(self.parents, self.domain)
+    return "ActionModel(Parents: {0}, Domains: {1})".format(self.parents, self.domain)

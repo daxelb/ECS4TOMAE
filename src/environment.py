@@ -8,8 +8,20 @@ from util import hash_from_dict
 from data import DataBank
 from scm import StructuralCausalModel
 from cgm import CausalGraph
-from assignment_models import AssignmentModel, ActionModel, DiscreteModel, RandomModel
+from assignment_models import ActionModel, DiscreteModel, RandomModel
 
+def environment_generator(rng, env_dict_template, num_environments, chance_of_mutation, rew_var="Y"):
+  base_dict = dict(env_dict_template)
+  for node, model in base_dict.items():
+    base_dict[node] = model.randomize(rng)
+  environments = [Environment(base_dict, rew_var)]
+  for _ in range(num_environments - 1):
+    new_dict = dict(base_dict)
+    for node, model in new_dict.items():
+      if rng.random() < chance_of_mutation:
+        new_dict[node] = model.randomize(rng)
+    environments.append(Environment(new_dict, rew_var))
+  return environments
 
 class Environment:
   def __init__(self, assignment, rew_var="Y"):
@@ -29,7 +41,7 @@ class Environment:
           if model is None:
               set_nodes.append(node)
 
-          elif isinstance(model, AssignmentModel):
+          else:
               self.domains[node] = model.domain
               if isinstance(model, ActionModel):
                 assert self.act_var == None
@@ -38,21 +50,6 @@ class Environment:
                   (parent, node)
                   for parent in model.parents
               ])
-
-          elif callable(model):
-              sig = inspect.signature(model)
-              parents = [
-                  parent
-                  for parent in sig.parameters.keys()
-                  if parent != "n_samples"
-              ]
-              self._assignment[node] = AssignmentModel(parents, model)
-              edges.extend([(p, node) for p in parents])
-
-          else:
-              raise ValueError("Model must be either callable or None. "
-                                "Instead got {} for node {}."
-                                .format(model, node))
 
       self.cgm = CausalGraph(nodes=nodes, edges=edges, set_nodes=set_nodes)
 
@@ -189,8 +186,7 @@ if __name__ == "__main__":
   }
   e = Environment(baseline)
   z = DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)})
-  y = DiscreteModel(("W", "Z"), {(0, 0): (1, 0), (0, 1): (
-      1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
+  y = DiscreteModel(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
   print(e.expected_reward({"W": 1, "X": 1}))
   # print(z.prob({"X": 1}))
   # print(y.prob({"W": 1, "Z": 1}))

@@ -2,8 +2,7 @@ from agent import SoloAgent, NaiveAgent, SensitiveAgent, AdjustAgent
 from world import World
 from assignment_models import ActionModel, DiscreteModel, RandomModel
 from gutil import printProgressBar
-from itertools import cycle
-from environment import Environment
+from environment import Environment, environment_generator
 import plotly.graph_objs as go
 import time
 from numpy import sqrt, random
@@ -11,12 +10,15 @@ import multiprocessing as mp
 import pandas as pd
 from os import mkdir
 import json
+from copy import copy
 
 class Sim:
-  def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, is_community=False, show=True, save=False, seed=None):
+  def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(seed)
     self.start_time = time.time()
+    self.rand_envs = rand_envs
+    self.nmc = node_mutation_chance
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     self.num_agents = len(self.environments)
     rand_trials = 0
@@ -79,14 +81,21 @@ class Sim:
       
   def world_generator(self):
     num_ass_perms = len(self.ass_perms)
-    agent_assignments = [dict(ass) for ass in self.ass_perms for _ in range(int(self.num_trials * self.num_threads * self.num_agents))]
+    assignments = [dict(ass) for ass in self.ass_perms for _ in range(int(self.num_trials * self.num_threads * self.num_agents))]
     if not self.is_community:
-      self.rng.shuffle(agent_assignments)
-    env_cycle = cycle(self.environments)
+      self.rng.shuffle(assignments)
+    envs =  [env for _ in range(int(len(assignments) / len(self.environments))) for env in environment_generator(
+              self.rng,
+              self.environments[0]._assignment,
+              len(self.environments),
+              self.nmc,
+              self.environments[0].rew_var
+            )] if self.rand_envs else \
+            [copy(env) for env in self.environments for _ in range(int(self.num_trials * self.num_threads * len(self.ass_perms)))]
     worlds = []
     for _ in range(num_ass_perms * self.num_trials * self.num_threads):
       databank = self.environments[0].create_empty_databank()
-      agents = [self.agent_maker(str(i), next(env_cycle), databank, agent_assignments.pop()) for i in range(self.num_agents)]
+      agents = [self.agent_maker(str(i), envs.pop(), databank, assignments.pop()) for i in range(self.num_agents)]
       worlds.append(World(agents, self.is_community))
     return [list(worlds[i::self.num_threads]) for i in range(self.num_threads)]
   
@@ -258,9 +267,11 @@ if __name__ == "__main__":
     epsilon=1,
     cooling_rate=0.076,
     div_node_conf=0.04, 
-    num_episodes=250,
-    num_trials=15,
+    num_episodes=75,
+    num_trials=1,
     is_community=False,
+    rand_envs=True,
+    node_mutation_chance=0.3,
     show=True,
     save=True,
     seed=None
