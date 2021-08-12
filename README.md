@@ -9,4 +9,4 @@ Source code for simulating and comparing agent peer-communication policies descr
 4. Optionally modify parameters in `sim.py` under `if __name__ == "__main__":`
 5. Navigate to the `src` folder in the terminal
 6. Run a sim/experiment with `python sim.py`
-  1. [!] Must be run using Python 3.9
+    1. [!] Must be run using Python 3.9
