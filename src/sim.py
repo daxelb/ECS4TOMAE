@@ -13,28 +13,21 @@ import json
 from copy import copy
 
 class Sim:
-  def __init__(self, environment_dicts, policy, div_node_conf, asr, epsilon, cooling_rate, num_episodes, num_trials, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
+  def __init__(self, environment_dicts, policy, div_node_conf, asr, EG_epsilon, EF_rand_trials, ED_cooling_rate, num_episodes, num_trials, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
-    self.rng = random.default_rng(seed)
+    self.rng = random.default_rng(self.seed)
     self.start_time = time.time()
     self.rand_envs = rand_envs
     self.nmc = node_mutation_chance
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     self.num_agents = len(self.environments)
-    rand_trials = 0
-    if policy == "EF":
-      if isinstance(epsilon, (tuple, list, set)):
-        rand_trials = [int(num_episodes * eps) for eps in epsilon]
-        epsilon = 0
-      else:
-        rand_trials = int(num_episodes * epsilon)
     self.assignments = {
       "policy": policy,
       "div_node_conf": div_node_conf,
       "asr": asr,
-      "epsilon": epsilon,
-      "rand_trials": rand_trials,
-      "cooling_rate": cooling_rate,
+      "epsilon": EG_epsilon,
+      "rand_trials": EF_rand_trials,
+      "cooling_rate": ED_cooling_rate,
     }
     self.ind_var = self.get_ind_var()
     self.num_episodes = num_episodes
@@ -250,16 +243,15 @@ if __name__ == "__main__":
   reversed_y = dict(baseline)
   reversed_y["Y"] = DiscreteModel(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
 
-  envs = [e._assignment for e in environment_generator(random.default_rng(), baseline, 4, 0.166667, "Y")]
-
   experiment = Sim(
-    environment_dicts=tuple(envs),
-    policy=("Solo", "Naive", "Sensitive", "Adjust"), 
-    asr="ED",
-    epsilon=1,
-    cooling_rate=0.076,
+    environment_dicts=(baseline, baseline, reversed_z, reversed_z),
+    policy="Solo", 
+    asr=("EG", "EF", "ED"),
+    EG_epsilon=0.1,
+    EF_rand_trials=7,
+    ED_cooling_rate=0.867,
     div_node_conf=0.04, 
-    num_episodes=75,
+    num_episodes=70,
     num_trials=1,
     is_community=False,
     rand_envs=True,
@@ -268,4 +260,4 @@ if __name__ == "__main__":
     save=False,
     seed=None
   )
-  experiment.run(plot_title="CPR of Individual Agents using Epsilon Decreasing ASR (Epsilon-1, Cooling Rate=0.076)")
+  experiment.run(plot_title="ksajhdbhbsdjfabjhfahjab")

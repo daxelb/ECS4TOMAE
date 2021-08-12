@@ -11,7 +11,7 @@ class Agent:
     self.databank = databank
     self.div_node_conf = div_node_conf
     self.asr = asr
-    self.epsilon = epsilon
+    self.epsilon = 1 if asr == "ED" else epsilon
     self.rand_trials = rand_trials
     self.cooling_rate = cooling_rate
     self.action_var = environment.get_act_var()
@@ -61,7 +61,7 @@ class Agent:
       return self.choose_optimal(givens)
     elif self.asr == "ED":
       if self.rng.random() < self.epsilon:
-        self.epsilon *= (1 - self.cooling_rate)
+        self.epsilon *= self.cooling_rate
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == "TS":
