@@ -3,7 +3,7 @@
 Source code for simulating and comparing agent peer-communication policies described in the titular paper. 
 
 ## Getting Started
-[!] Must be run using Python 3.9
+[!] Must use Python 3.9
 1. Clone the repository
 2. Navigate to the destination folder in a terminal window
 3. Run `python -m pip install -r "requirements.txt` to download and install project dependencies
