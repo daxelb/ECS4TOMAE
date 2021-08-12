@@ -19,6 +19,7 @@ class StructuralCausalModel:
     set_nodes = []
     edges = []
     for node, model in assignment.items():
+      # REVISIT - could probably delete this
       if model is None:
         set_nodes.append(node)
       else:

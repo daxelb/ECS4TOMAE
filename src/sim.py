@@ -80,37 +80,30 @@ class Sim:
       raise ValueError("Policy type %s is not supported." % policy)
       
   def world_generator(self):
-    num_ass_perms = len(self.ass_perms)
-    assignments = [dict(ass) for ass in self.ass_perms for _ in range(int(self.num_trials * self.num_threads * self.num_agents))]
+    assignments = [dict(ass) for ass in self.ass_perms for _ in range(int(self.num_agents))]
     if not self.is_community:
       self.rng.shuffle(assignments)
-    envs =  [env for _ in range(int(len(assignments) / len(self.environments))) for env in environment_generator(
-              self.rng,
-              self.environments[0]._assignment,
-              len(self.environments),
-              self.nmc,
-              self.environments[0].rew_var
-            )] if self.rand_envs else \
-            [copy(env) for env in self.environments for _ in range(int(self.num_trials * self.num_threads * len(self.ass_perms)))]
     worlds = []
-    for _ in range(num_ass_perms * self.num_trials * self.num_threads):
+    for _ in range(len(self.ass_perms)):
       databank = self.environments[0].create_empty_databank()
-      agents = [self.agent_maker(str(i), envs.pop(), databank, assignments.pop()) for i in range(self.num_agents)]
+      envs = environment_generator(self.rng, self.environments[0]._assignment, len(self.environments), self.nmc, self.environments[0].rew_var) if self.rand_envs else self.environments
+      agents = [self.agent_maker(str(i), envs[i], databank, assignments.pop()) for i in range(self.num_agents)]
       worlds.append(World(agents, self.is_community))
-    return [list(worlds[i::self.num_threads]) for i in range(self.num_threads)]
+    return worlds
   
-  def multithreaded_sim(self, worlds):
+  def multithreaded_sim(self):
     jobs = []
     results = mp.Manager().list([None] * self.num_threads)
-    for i, thread_worlds in enumerate(worlds):
-      job = mp.Process(target=self.simulate, args=(thread_worlds, results, i))
+    for i in range(self.num_threads):
+      job = mp.Process(target=self.simulate, args=(results, i))
       jobs.append(job)
       job.start()
     [job.join() for job in jobs]
     return results
   
-  def simulate(self, worlds, results, index):
+  def simulate(self, results, index):
     trial_result = {}
+    worlds = self.world_generator()
     for i, world in enumerate(worlds):
       for j in range(self.num_episodes - 1):
         world.run_once()
@@ -219,11 +212,7 @@ class Sim:
         json.dump(self.values, outfile)
       
   def run(self, plot_title=""):
-    results = self.combine_results(
-      self.multithreaded_sim(
-        self.world_generator()
-      )
-    )
+    results = self.combine_results(self.multithreaded_sim())
     self.display_and_save(self.get_plot(results, plot_title), plot_title)
     
   def get_N(self):
@@ -260,8 +249,10 @@ if __name__ == "__main__":
   reversed_y = dict(baseline)
   reversed_y["Y"] = DiscreteModel(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
 
+  envs = [e._assignment for e in environment_generator(random.default_rng(), baseline, 4, 0.166667, "Y")]
+
   experiment = Sim(
-    environment_dicts=(baseline, baseline, reversed_z, reversed_z),
+    environment_dicts=tuple(envs),
     policy=("Solo", "Naive", "Sensitive", "Adjust"), 
     asr="ED",
     epsilon=1,
@@ -273,7 +264,7 @@ if __name__ == "__main__":
     rand_envs=True,
     node_mutation_chance=0.3,
     show=True,
-    save=True,
+    save=False,
     seed=None
   )
   experiment.run(plot_title="CPR of Individual Agents using Epsilon Decreasing ASR (Epsilon-1, Cooling Rate=0.076)")

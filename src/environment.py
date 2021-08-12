@@ -10,19 +10,14 @@ from scm import StructuralCausalModel
 from cgm import CausalGraph
 from assignment_models import ActionModel, DiscreteModel, RandomModel
 
-def environment_generator(rng, env_dict_template, num_environments, chance_of_mutation, rew_var="Y"):
-  base_dict = dict(env_dict_template)
-  for node, model in base_dict.items():
-    base_dict[node] = model.randomize(rng)
+def environment_generator(rng, template, num_envs, rand_prob, rew_var="Y"):
+  base_dict = {node: model.randomize(rng) for node, model in template.items()}
   environments = [Environment(base_dict, rew_var)]
-  for _ in range(num_environments - 1):
-    new_dict = dict(base_dict)
-    for node, model in new_dict.items():
-      if rng.random() < chance_of_mutation:
-        new_dict[node] = model.randomize(rng)
-    environments.append(Environment(new_dict, rew_var))
+  for _ in range(num_envs - 1):
+    environments.append(Environment({node: model.randomize(rng, rand_prob) for node, model in base_dict.items()}, rew_var))
   return environments
 
+# REVISIT - update indentation to 2 spaces instead of 4
 class Environment:
   def __init__(self, assignment, rew_var="Y"):
       """
@@ -38,6 +33,7 @@ class Environment:
       edges = []
 
       for node, model in assignment.items():
+        # REVISIT - could probably delete this
           if model is None:
               set_nodes.append(node)
 

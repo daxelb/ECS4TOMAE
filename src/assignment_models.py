@@ -21,7 +21,9 @@ class RandomModel:
   def model(self, rng, **kwargs):
     return rng.choice(self.domain, p=self._probs)
   
-  def randomize(self, rng):
+  def randomize(self, rng, rand_prob=1.0):
+    if rand_prob != 1.0 and rng.random() >= rand_prob:
+      return self
     return RandomModel(randomize(rng, self._probs))
   
   def __eq__(self, other):
@@ -87,7 +89,9 @@ class DiscreteModel:
           "It looks like an input was provided which doesn't have a lookup.")
     return int(b)
   
-  def randomize(self, rng):
+  def randomize(self, rng, rand_prob=1.0):
+    if rand_prob != 1.0 and rng.random() >= rand_prob:
+      return self
     new_table = dict(self.lookup_table)
     for input, probs in new_table.items():
       new_table[input] = randomize(rng, probs)
@@ -119,7 +123,7 @@ class ActionModel:
     self.parents = parents
     self.domain = tuple(domain)
     
-  def randomize(self, rng=None):
+  def randomize(self, rng=None, rand_prob=1):
     return ActionModel(self.parents, self.domain)
   
   def __eq__(self, other):
