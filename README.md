@@ -5,10 +5,8 @@ Source code for simulating and comparing agent peer-communication policies descr
 ## Getting Started
 Must be run using Python 3.9
 1. Clone the repository
-1. In a terminal, run the following command from the destination folder
-```
-\ECS4TIME>python -m pip install -r "requirements.txt"
-```
-1. Optionally modify parameters at the bottom of sim.py, under `if __name__ == "__main__":`
-1. In the terminal window, navigate to the `src` folder
-1. Run using `python sim.py`
+1. Navigate to the destination folder in a terminal window
+1. Run `python -m pip install -r "requirements.txt` to download and install project dependencies
+1. Optionally modify parameters in `sim.py` under `if __name__ == "__main__":`
+1. Navigate to the `src` folder in the terminal
+1. Run a sim/experiment with `python sim.py`
