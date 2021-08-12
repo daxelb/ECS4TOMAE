@@ -143,7 +143,7 @@ class Sim:
   def get_plot(self, results, plot_title):
     figure = []
     x = list(range(self.num_episodes))
-    for i, ind_var in enumerate(results):
+    for i, ind_var in enumerate(sorted(results)):
       line_hue = str(int(360 * (i / len(results))))
       df = results[ind_var]
       y = df.mean(axis=0)
@@ -262,7 +262,7 @@ if __name__ == "__main__":
     num_trials=1,
     is_community=False,
     rand_envs=True,
-    node_mutation_chance=0.3,
+    node_mutation_chance=0.2,
     show=True,
     save=False,
     seed=None
