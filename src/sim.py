@@ -246,18 +246,18 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy=("Solo", "Naive", "Sensitive", "Adjust"),
-    asr="EF",
-    EG_epsilon=0.1,
-    EF_rand_trials=7,
-    ED_cooling_rate=0.867,
+    asr="EG",
+    EG_epsilon=0.08,
+    EF_rand_trials=20,
+    ED_cooling_rate=0.95123,
     div_node_conf=0.04, 
-    num_episodes=70,
-    num_trials=1,
+    num_episodes=250,
+    num_trials=15,
     is_community=False,
-    rand_envs=True,
+    rand_envs=False,
     node_mutation_chance=0.2,
     show=True,
     save=True,
     seed=None
   )
-  experiment.run(plot_title="Mean Agent CPR across Communication Polcies using Randomized Environments")
+  experiment.run(plot_title="Mean Agent CPR using Epsilon Greedy ASR (Epsilon=0.08)")
