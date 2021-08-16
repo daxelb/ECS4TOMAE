@@ -72,28 +72,28 @@ class Sim:
       permutations.append(permutation)
     return permutations
       
-  def agent_maker(self, name, environment, databank, assignments):
+  def agent_maker(self, rng, name, environment, databank, assignments):
     policy = assignments.pop("policy")
     if policy == "Solo":
-      return SoloAgent(self.rng, name, environment, databank, **assignments)
+      return SoloAgent(rng, name, environment, databank, **assignments)
     elif policy == "Naive":
-      return NaiveAgent(self.rng, name, environment, databank, **assignments)
+      return NaiveAgent(rng, name, environment, databank, **assignments)
     elif policy == "Sensitive":
-      return SensitiveAgent(self.rng, name, environment, databank, **assignments)
+      return SensitiveAgent(rng, name, environment, databank, **assignments)
     elif policy == "Adjust":
-      return AdjustAgent(self.rng, name, environment, databank, **assignments)
+      return AdjustAgent(rng, name, environment, databank, **assignments)
     else:
       raise ValueError("Policy type %s is not supported." % policy)
       
-  def world_generator(self):
+  def world_generator(self, rng):
     assignments = [dict(ass) for ass in self.ass_perms for _ in range(int(self.num_agents))]
     if not self.is_community:
-      self.rng.shuffle(assignments)
+      rng.shuffle(assignments)
     worlds = []
     for _ in range(len(self.ass_perms)):
       databank = self.environments[0].create_empty_databank()
-      envs = environment_generator(self.rng, self.environments[0]._assignment, len(self.environments), self.nmc, self.environments[0].rew_var) if self.rand_envs else self.environments
-      agents = [self.agent_maker(str(i), envs[i], databank, assignments.pop()) for i in range(self.num_agents)]
+      envs = environment_generator(rng, self.environments[0]._assignment, len(self.environments), self.nmc, self.environments[0].rew_var) if self.rand_envs else self.environments
+      agents = [self.agent_maker(rng, str(i), envs[i], databank, assignments.pop()) for i in range(self.num_agents)]
       worlds.append(World(agents, self.num_episodes, self.is_community))
     return worlds
   
@@ -108,9 +108,10 @@ class Sim:
     return results
   
   def simulate(self, results, index):
+    rng = random.default_rng(self.seed - index)
     trial_result = {}
     for i in range(self.num_trials):
-      worlds = self.world_generator()
+      worlds = self.world_generator(rng)
       for j, world in enumerate(worlds):
         for k in range(self.num_episodes):
           world.run_episode(k)
@@ -138,6 +139,9 @@ class Sim:
   def combine_results(self, trial_results):
     results = {}
     for tr in trial_results:
+      print()
+      print(list(tr.values())[0])
+      print()
       for ind_var, trial_res in tr.items():
         if ind_var not in results:
           results[ind_var] = trial_res
@@ -270,6 +274,6 @@ if __name__ == "__main__":
     node_mutation_chance=0.2,
     show=True,
     save=False,
-    seed=None
+    seed=1009030484
   )
   experiment.run(plot_title="Comparison of Adjust Agent CPR w/ Different Epsilon Values using Epsilon Greedy ASR")

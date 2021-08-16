@@ -89,6 +89,9 @@ class Agent:
         choice = action
         max_sample = sample
     return choice
+  
+  def get_policy(self):
+    return self.__class__.__name__[:-5]
 
   def __hash__(self):
     return hash(self.name)
@@ -111,11 +114,8 @@ class SoloAgent(Agent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
-  def get_policy(self):
-    return "Solo"
-    
   def choose_optimal(self, givens):
-    optimal = self.databank[self].optimal_choice(self.action_domain, self.reward_var, givens)
+    optimal = self.databank[self].optimal_choice(self.rng, self.action_domain, self.reward_var, givens)
     return optimal if optimal else self.choose_random()
   
   def thompson_sample(self, givens):
@@ -125,11 +125,8 @@ class NaiveAgent(Agent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
-  def get_policy(self):
-    return "Naive"
-    
   def choose_optimal(self, givens):
-    optimal = self.databank.all_data().optimal_choice(self.action_domain, self.reward_var, givens)
+    optimal = self.databank.all_data().optimal_choice(self.rng, self.action_domain, self.reward_var, givens)
     return optimal if optimal else self.choose_random()
   
   def thompson_sample(self, givens):
@@ -139,11 +136,8 @@ class SensitiveAgent(Agent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     
-  def get_policy(self):
-    return "Sensitive"
-    
   def choose_optimal(self, givens):
-    optimal = self.databank.sensitive_data(self).optimal_choice(self.action_domain, self.reward_var, givens)
+    optimal = self.databank.sensitive_data(self).optimal_choice(self.rng, self.action_domain, self.reward_var, givens)
     return optimal if optimal else self.choose_random()
   
   def thompson_sample(self, givens):
@@ -154,9 +148,6 @@ class AdjustAgent(SensitiveAgent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     self.action_var = self.environment.get_act_var()
-    
-  def get_policy(self):
-    return "Adjust"
     
   def div_nodes(self, other):
     return self.databank.div_nodes(self, other)
@@ -237,7 +228,7 @@ class AdjustAgent(SensitiveAgent):
         for i in range(len(action_rewards[act][rew][0])):
           reward_prob += action_rewards[act][rew][1][i] * (action_rewards[act][rew][0][i] / weight_total)
         weighted_act_rew[act] += reward_prob * float(rew.split("=",1)[1])
-    optimal = dict_from_hash(max_key(weighted_act_rew))
+    optimal = dict_from_hash(max_key(self.rng, weighted_act_rew))
     return optimal if optimal else self.choose_random()
 
   

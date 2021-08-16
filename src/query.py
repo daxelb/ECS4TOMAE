@@ -30,7 +30,7 @@ class Query:
   
   def query_var(self):
     assert len(self.Q) == 1
-    return gutil.first_key(self.Q)
+    return list(self.Q.keys())[0]
   
   def get_assignments(self, dictionary=None):
     if dictionary is None:
@@ -162,10 +162,6 @@ class Queries(MutableSequence):
     for q in self:
       vars |= q.get_vars()
     return vars
-
-  def remove_dupes(self):
-    # assert not isinstance(self, (Summation, Product))
-    gutil.remove_dupes(self._list)
     
   def Q(self):
     Q = dict()

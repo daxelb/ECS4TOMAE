@@ -1,31 +1,4 @@
 import math
-from numpy import random
-
-def avg_list(lists):
-  """
-  Returns averaged values of elements in list of lists
-  Ex:
-    lists = [[0,1,2],[5,2,1],[4,3,0]]
-      => [(0+5+4)/3, (1+2+3)/3, (2+1+0)/3]
-      => [3,2,1]
-  """
-  averaged_list = [0] * len(lists[0])
-  for lst in lists:
-    for i, e in enumerate(lst):
-      averaged_list[i] += e / len(lists)
-  return averaged_list
-
-def first_value(dictionary):
-  """
-  Returns the value of the first entry in a dictionary.
-  """
-  return list(dictionary.values())[0]
-
-def first_key(dictionary):
-  """
-  Returns the key of the first entry in a dictionary.
-  """
-  return list(dictionary.keys())[0]
 
 def remove_dupes(lst):
   """
@@ -64,7 +37,7 @@ def dict_to_tuple_list(dictionary):
     res.append((key, val))
   return res
 
-def max_key(dictionary):
+def max_key(rng, dictionary):
   """
   Returns the key in the dictionary whose value
   is the maximum of all values in the dictionary.
@@ -84,7 +57,7 @@ def max_key(dictionary):
       keys = [key]
     elif val == max_val:
       keys.append(key)
-  return random.choice(keys) if keys else None
+  return rng.choice(keys) if keys else None
 
 def permutations(dictionary):
   """
@@ -94,9 +67,7 @@ def permutations(dictionary):
   """
   num_combos = num_permutations(dictionary.values())
   combos = [{} for _ in range(num_combos)]
-  for item in dictionary.items():
-    var = item[0]
-    domain = item[1]
+  for var, domain in sorted(dictionary.items()):
     num_combos /= len(domain)
     count = 0
     pos_val_index = 0
@@ -113,7 +84,7 @@ def num_permutations(list_of_lists):
   Returns the number of permutations from an input
   list of lists, representing domains.
   """
-  if not len(list_of_lists):
+  if not list_of_lists:
     return 0
   count = 1
   for lst in list_of_lists:
@@ -140,19 +111,6 @@ def only_dicts_with_givens(dicts, assignments={}):
         break
   return res
 
-def num_matches(dict1, dict2):
-  num = 0
-  for key in dict1:
-    if key in dict2 and dict1[key] == dict2[key]:
-      num += 1
-  return num
-
-def dict_from_tuples(tuples):
-  res = {}
-  for tup in tuples:
-    res[tup[0]] = tup[1]
-  return res
-
 def only_given_keys(dictionary, keys):
   """
   Outputs a dictionary with the key:values of an
@@ -164,17 +122,6 @@ def only_given_keys(dictionary, keys):
     if key not in keys:
       del res[key]
   return res
-
-def is_entry_in_dicts(dicts, entry):
-  for d in dicts:
-    for i in range(len(d)):
-      key = list(d.keys())[i]
-      if i == len(d) - 1:
-        if d[key] == entry[key]:
-          return True
-      if d[key] != entry[key]:
-        break
-  return False
 
 def avg(lst):
   """
@@ -214,3 +161,5 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     #     print()
 
   
+if __name__ == "__main__":
+  print(num_permutations())

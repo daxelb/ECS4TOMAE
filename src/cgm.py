@@ -80,8 +80,7 @@ class CausalGraph:
   def get_children(self, nodes):
     if isinstance(nodes, str):
       return set(self.dag.successors(nodes))
-    children = set()
-    [children.update(self.dag.successors(node)) for node in nodes]
+    children = set.union(*[self.dag.successors(node) for node in nodes])
     return children
   
   def get_ancestors(self, nodes):
@@ -202,10 +201,7 @@ class CausalGraph:
     ]
     
   def get_s_node_children(self):
-    children = []
-    [children.extend(self.get_children(n)) for n in self.s_nodes]
-    gutil.remove_dupes(children)
-    return sorted(children)
+    return set.union(*[self.get_children(n) for n in self.s_nodes])
     
   def do(self, node):
     """

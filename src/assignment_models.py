@@ -51,7 +51,7 @@ class DiscreteModel:
     assert all(len(w) == output_length for w in weights)
     self._outputs = np.arange(output_length)
     self._ps = [np.array(w) / sum(w) for w in weights]
-    self.domain = tuple(range(len(gutil.first_value(lookup_table))))
+    self.domain = tuple(range(len(list(lookup_table.values())[0])))
 
   def prob(self, assignments, my_assignment=None):
     assignment_domains = dict()
