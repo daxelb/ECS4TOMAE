@@ -50,16 +50,18 @@ class DataBank:
       self.add_agent(key)
   
   def add_agent(self, new_agent):
-    if new_agent in self.data:
+    if new_agent in self:
       return
     self.data[new_agent] = DataSet()
     self.divergence[new_agent] = {}
-    for existing_agent in self.data.keys():
-      self.divergence[new_agent][existing_agent] = {}
-      self.divergence[existing_agent][new_agent] = {}
+    for a in self.data.keys():
+      self.divergence[new_agent][a] = {}
+      self.divergence[a][new_agent] = {}
       for node in self.get_non_act_nodes():
-        self.divergence[existing_agent][new_agent][node] = 1
-        self.divergence[new_agent][existing_agent][node] = 1
+        div_val = 1 if a != new_agent else 0
+        self.divergence[a][new_agent][node] = div_val
+        self.divergence[new_agent][a][node] = div_val
+    
         
   def get_non_act_nodes(self):
     return [node for node in self.vars if node != self.act_var]
@@ -75,10 +77,9 @@ class DataBank:
       # if len(P_data) < P_agent.samps_needed:
       #     break
       for Q_agent, Q_data in self.data.items():
+        if P_agent == Q_agent:
+          continue
         for node in self.get_non_act_nodes():
-          if P_agent == Q_agent:
-            self.divergence[P_agent][Q_agent][node] = 0
-            continue
           query = P_agent.environment.cgm.get_node_dist(node)
           self.divergence[P_agent][Q_agent][node] = util.kl_divergence(self.domains, P_data, Q_data, query)
     return
