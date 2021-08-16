@@ -10,7 +10,6 @@ import multiprocessing as mp
 import pandas as pd
 from os import mkdir
 import json
-from copy import copy
 
 class Sim:
   def __init__(self, environment_dicts, policy, div_node_conf, asr, num_episodes, num_trials, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
@@ -81,7 +80,7 @@ class Sim:
       databank = self.environments[0].create_empty_databank()
       envs = environment_generator(self.rng, self.environments[0]._assignment, len(self.environments), self.nmc, self.environments[0].rew_var) if self.rand_envs else self.environments
       agents = [self.agent_maker(str(i), envs[i], databank, assignments.pop()) for i in range(self.num_agents)]
-      worlds.append(World(agents, self.is_community))
+      worlds.append(World(agents, self.num_episodes, self.is_community))
     return worlds
   
   def multithreaded_sim(self):
@@ -99,9 +98,9 @@ class Sim:
     for i in range(self.num_trials):
       worlds = self.world_generator()
       for j, world in enumerate(worlds):
-        for k in range(self.num_episodes - 1):
-          world.run_once()
-          printProgressBar(i*len(worlds)+j+(k+1)/(self.num_episodes - 1), self.num_trials * len(worlds))
+        for k in range(self.num_episodes):
+          world.run_episode(k)
+          printProgressBar(i*len(worlds)+j+(k+1)/(self.num_episodes), self.num_trials * len(worlds))
         self.update_trial_result(trial_result, world)
     results[index] = trial_result
   
@@ -127,9 +126,9 @@ class Sim:
     for tr in trial_results:
       for ind_var, trial_res in tr.items():
         if ind_var not in results:
-          results[ind_var] = [trial_res]
+          results[ind_var] = trial_res
           continue
-        results[ind_var] = results[ind_var].append(trial_res)
+        results[ind_var].extend(trial_res)
     return results
   
   def get_plot(self, results, plot_title):
@@ -245,8 +244,8 @@ if __name__ == "__main__":
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy=("Solo", "Naive", "Sensitive", "Adjust"),
     asr="EG",
-    num_episodes=225,
-    num_trials=2,
+    num_episodes=25,
+    num_trials=10,
     div_node_conf=0.04,
     EG_epsilon=0.05,
     # EG_epsilon=(0.04, 0.06, 0.08, 0.1),
