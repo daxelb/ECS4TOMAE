@@ -12,9 +12,6 @@ class DataSet(list):
   def is_empty(self):
     return len(self) == 0
     
-  # def get_recent(self):
-  #   return self[-1]
-    
   def query(self, query_dict):
     res = DataSet()
     for e in self:
@@ -40,7 +37,6 @@ class DataSet(list):
         best_choice = choice
         best_rew = expected_rew
     return best_choice
-
 
 
 class DataBank:
@@ -108,17 +104,9 @@ class DataBank:
   
   def __iter__(self):
     return self.data.__iter__()
-    # return self.data[0]
-  
-  def __next__(self):
-    return self.data.__next__()
-    # return self
 
   def __getitem__(self, key):
     return self.data[key]
   
   def __reduce__(self):
     return type(self), (self.domains, self.act_var, self.rew_var, self.data, self.divergence)
-  
-  def __copy__(self):
-    return self.__class__(self.domains, self.act_var, self.rew_var, self.data, self.divergence)

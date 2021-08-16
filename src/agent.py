@@ -89,10 +89,7 @@ class Agent:
         choice = action
         max_sample = sample
     return choice
-  
-  def __copy__(self):
-    return self.__class__(self.rng, self.name, self.environment, copy(self.databank), self.div_node_conf, self.asr, self.epsilon, self.rand_trials, self.cooling_rate)
-    
+
   def __hash__(self):
     return hash(self.name)
     

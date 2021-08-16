@@ -29,9 +29,6 @@ class World:
       new_regret = curr_regret + (rew_optimal - rew_received)
       self.pseudo_cum_regret[a][ep] = new_regret
   
-  def __copy__(self):
-    return World(copy(self.agents), self.is_community)
-  
   def __eq__(self, other):
     return self.__class__ == other.__class__ and \
            self.agents == other.agents and \

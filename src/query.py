@@ -85,19 +85,15 @@ class Query:
 
   def num_consistent(self, data):
     return len(data.query(self.parse_as_df_query())) if self else len(data)
-    # Q_and_e = self.Q_and_e()
-    # return sum([all([Q_and_e[var] == dp[var] for var in Q_and_e]) for dp in data])
 
   def uncomputed_prob(self, data):
-    assert self.all_assigned()
+    # assert self.all_assigned()
     return (Query(self.Q_and_e()).num_consistent(data), Query(self.e).num_consistent(data))
   
   def solve(self, data):
-    assert self.all_assigned()
+    # assert self.all_assigned()
     query_space = data.query(self.e)
-    if query_space.is_empty():
-      return None
-    return len(query_space.query(self.Q)) / len(query_space)
+    return len(query_space.query(self.Q)) / len(query_space) if query_space else None
   
   def solve_unassigned(self, data, domains):
     return {q: q.solve(data) for q in self.unassigned_combos(domains)}
@@ -168,7 +164,7 @@ class Queries(MutableSequence):
     return vars
 
   def remove_dupes(self):
-    assert not isinstance(self, (Summation, Product))
+    # assert not isinstance(self, (Summation, Product))
     gutil.remove_dupes(self._list)
     
   def Q(self):
@@ -351,7 +347,7 @@ class Product(Queries):
         self._list[i] = Product(q)
     
   def solve(self, data):
-    assert all(is_Q(q) or is_num(q) for q in self._list)
+    # assert all(is_Q(q) or is_num(q) for q in self._list)
     product = 1
     for q in self._list:
       new_mult = q.solve(data) if is_Q(q) else q
@@ -377,8 +373,8 @@ class Product(Queries):
   
 class Quotient():
   def __init__(self, nume=None, denom=None):
-    assert is_Q(nume) or is_num(nume)
-    assert is_Q(denom) or is_num(denom)
+    # assert is_Q(nume) or is_num(nume)
+    # assert is_Q(denom) or is_num(denom)
     self.nume = nume
     self.denom = denom
     
