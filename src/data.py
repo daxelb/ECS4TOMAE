@@ -32,7 +32,7 @@ class DataSet(list):
     best_rew = -999
     for choice in gutil.permutations(act_dom):
       expected_rew = self.query({**choice, **givens}).mean(rew_var)
-      if expected_rew is not None and expected_rew < best_rew:
+      if expected_rew is not None and expected_rew > best_rew:
         best_choice = choice
         best_rew = expected_rew
     return best_choice

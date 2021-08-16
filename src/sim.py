@@ -260,7 +260,7 @@ if __name__ == "__main__":
     policy=("Solo", "Naive", "Sensitive", "Adjust"),
     asr="EG",
     num_episodes=25,
-    num_trials=1,
+    num_trials=10,
     div_node_conf=0.04,
     EG_epsilon=0.05,
     # EG_epsilon=(0.04, 0.06, 0.08, 0.1),

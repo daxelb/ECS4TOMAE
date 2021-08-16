@@ -227,6 +227,8 @@ class AdjustAgent(SensitiveAgent):
         reward_prob = 0
         weight_total = sum(action_rewards[act][rew][0])
         if not weight_total: continue
+        if not weight_total:
+          continue
         for i in range(len(action_rewards[act][rew][0])):
           reward_prob += action_rewards[act][rew][1][i] * (action_rewards[act][rew][0][i] / weight_total)
         act_rew += reward_prob * float(rew.split("=",1)[1])
