@@ -28,6 +28,20 @@ class Sim:
       "rand_trials": EF_rand_trials,
       "cooling_rate": ED_cooling_rate,
     }
+    if isinstance(asr, str):
+      if asr != "EG":
+        del self.assignments["epsilon"]
+      if asr != "EF":
+        del self.assignments["rand_trials"]
+      if asr != "ED":
+        del self.assignments["cooling_rate"]
+    elif isinstance(asr, (tuple, list, set)):
+      if "EG" not in asr:
+        del self.assignments["epsilon"]
+      if "EF" not in asr:
+        del self.assignments["rand_trials"]
+      if "ED" not in asr:
+        del self.assignments["cooling_rate"]
     self.ind_var = self.get_ind_var()
     self.num_episodes = num_episodes
     self.num_trials = num_trials
@@ -245,7 +259,7 @@ if __name__ == "__main__":
     policy=("Solo", "Naive", "Sensitive", "Adjust"),
     asr="EG",
     num_episodes=25,
-    num_trials=10,
+    num_trials=1,
     div_node_conf=0.04,
     EG_epsilon=0.05,
     # EG_epsilon=(0.04, 0.06, 0.08, 0.1),
