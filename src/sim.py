@@ -13,7 +13,7 @@ import json
 from copy import copy
 
 class Sim:
-  def __init__(self, environment_dicts, policy, div_node_conf, asr, EG_epsilon, EF_rand_trials, ED_cooling_rate, num_episodes, num_trials, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
+  def __init__(self, environment_dicts, policy, div_node_conf, asr, num_episodes, num_trials, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(self.seed)
     self.start_time = time.time()
@@ -109,29 +109,27 @@ class Sim:
     raw = world.pseudo_cum_regret
     if self.is_community:
       ind_var = world.agents[0].get_ind_var_value(self.ind_var)
-      result = pd.DataFrame(data=[pd.DataFrame(data=raw.values()).sum(axis=0)], columns=range(self.num_episodes))
+      data = [sum(r) for r in zip(*raw.values())]
       if ind_var not in trial_result:
-        trial_result[ind_var] = result
+        trial_result[ind_var] = [data]
         return
-      trial_result[ind_var] = trial_result[ind_var].append(result, ignore_index=True)
+      trial_result[ind_var].append(data)
       return
     for agent, data in raw.items():
       ind_var = agent.get_ind_var_value(self.ind_var)
-      result = pd.DataFrame(data=[data], columns=range(self.num_episodes))
       if ind_var not in trial_result:
-        trial_result[ind_var] = result
+        trial_result[ind_var] = [data]
         continue
-      trial_result[ind_var] = trial_result[ind_var].append(result, ignore_index=True)
-      
+      trial_result[ind_var].append(data)
   
   def combine_results(self, trial_results):
     results = {}
-    for trial_result in trial_results:
-      for ind_var, df in trial_result.items():
+    for tr in trial_results:
+      for ind_var, trial_res in tr.items():
         if ind_var not in results:
-          results[ind_var] = df
+          results[ind_var] = [trial_res]
           continue
-        results[ind_var] = results[ind_var].append(df, ignore_index=True)
+        results[ind_var] = results[ind_var].append(trial_res)
     return results
   
   def get_plot(self, results, plot_title):
@@ -139,7 +137,7 @@ class Sim:
     x = list(range(self.num_episodes))
     for i, ind_var in enumerate(sorted(results)):
       line_hue = str(int(360 * (i / len(results))))
-      df = results[ind_var]
+      df = pd.DataFrame(results[ind_var])
       y = df.mean(axis=0)
       sqrt_variance = sqrt(df.var(axis=0))
       y_upper = y + sqrt_variance
@@ -245,19 +243,20 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy="Adjust",
+    policy=("Solo", "Naive", "Sensitive", "Adjust"),
     asr="EG",
-    EG_epsilon=(0.04, 0.06, 0.08, 0.1)
-    EF_rand_trials=(10, 15, 20, 25),
-    ED_cooling_rate=(0.905, 0.9356, 0.95123, 0.9608)
-    div_node_conf=0.04, 
-    num_episodes=250,
-    num_trials=15,
+    num_episodes=225,
+    num_trials=2,
+    div_node_conf=0.04,
+    EG_epsilon=0.05,
+    # EG_epsilon=(0.04, 0.06, 0.08, 0.1),
+    # EF_rand_trials=(10, 15, 20, 25),
+    # ED_cooling_rate=(0.905, 0.9356, 0.95123, 0.9608),
     is_community=False,
     rand_envs=False,
     node_mutation_chance=0.2,
     show=True,
-    save=True,
+    save=False,
     seed=None
   )
   experiment.run(plot_title="Comparison of Adjust Agent CPR w/ Different Epsilon Values using Epsilon Greedy ASR")

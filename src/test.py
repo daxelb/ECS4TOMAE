@@ -1,30 +1,50 @@
 import time
 from numpy import random
+import pandas as pd
 
-def func():
-  rnge = 9999999
-  start1 = time.time()
-  for _ in range(rnge):
-    if random.rand() < 0.872387167328761614786:
-      continue
-    else:
-      continue
-  end1 = time.time()
-  start2 = time.time()
-  for _ in range(rnge):
-    if random.rand() < 0.8724:
-      continue
-    else:
-      continue
-  end2 = time.time()
-  start3 = time.time()
-  one = 1.0
-  for _ in range(rnge):
-    if one == 1.0 or random.rand() < one:
-      continue
-    else:
-      continue
-  end3 = time.time()
-  print(end1-start1, end2-start2, end3-start3)
+def get_add_pd(num_episodes):
+  dat = [random.rand() for _ in range(num_episodes)]
+  return pd.DataFrame(data=[dat], columns=range(num_episodes))
+
+def res_pd(num_episodes, N):
+  res = pd.DataFrame(columns=range(num_episodes))
+  for _ in range(N):
+    res = res.append(get_add_pd(num_episodes))
+  return res.mean()
+
+def get_add_list(num_episodes):
+  return [random.rand() for _ in range(num_episodes)]
+
+def res_list(num_episodes, N):
+  return [get_add_list(num_episodes) for _ in range(N)]
   
-func()
+num_eps = 400
+n = 10000
+# start = time.time()
+# res_pd(num_eps, n)
+# print(time.time() - start)
+# start = time.time()
+# res_list(num_eps, n)
+# print(time.time() - start)
+
+start = time.time()
+a = {}
+for _ in range(n):
+  data = random.rand()
+  key = "a" if data < 0.5 else "b" if data > 0.75 else "c"
+  if key not in a:
+    a[key] = []
+  a[key].append(get_add_list(num_eps))
+print(time.time() - start)
+
+start = time.time()
+a = {}
+for _ in range(n):
+  data = random.rand()
+  key = "a" if data < 0.5 else "b" if data > 0.75 else "c"
+  if key not in a:
+    a[key] = [get_add_list(num_eps)]
+    continue
+  a[key].append(get_add_list(num_eps))
+print(time.time() - start)
+  
