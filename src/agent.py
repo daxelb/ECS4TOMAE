@@ -176,8 +176,7 @@ class AdjustAgent(SensitiveAgent):
         my_queries.append(q)
       else:
         other_queries.append(q)
-    domains = self.environment.domains
-    return Product([my_queries, other_queries]).assign(domains).assign(givens)
+    return Product([my_queries, other_queries]).assign(self.environment.domains).assign(givens)
     
   def solve_transport_formula(self, formula, other):
     formula = formula.deepcopy()
@@ -226,7 +225,6 @@ class AdjustAgent(SensitiveAgent):
       for rew in action_rewards[act]:
         reward_prob = 0
         weight_total = sum(action_rewards[act][rew][0])
-        if not weight_total: continue
         if not weight_total:
           continue
         for i in range(len(action_rewards[act][rew][0])):
