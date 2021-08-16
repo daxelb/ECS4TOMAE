@@ -115,7 +115,7 @@ class SoloAgent(Agent):
     super().__init__(*args, **kwargs)
     
   def choose_optimal(self, givens):
-    optimal = self.databank[self].optimal_choice(self.rng, self.action_domain, self.reward_var, givens)
+    optimal = self.databank[self].optimal_choice(self.action_domain, self.reward_var, givens)
     return optimal if optimal else self.choose_random()
   
   def thompson_sample(self, givens):
@@ -126,7 +126,7 @@ class NaiveAgent(Agent):
     super().__init__(*args, **kwargs)
     
   def choose_optimal(self, givens):
-    optimal = self.databank.all_data().optimal_choice(self.rng, self.action_domain, self.reward_var, givens)
+    optimal = self.databank.all_data().optimal_choice(self.action_domain, self.reward_var, givens)
     return optimal if optimal else self.choose_random()
   
   def thompson_sample(self, givens):
@@ -137,7 +137,7 @@ class SensitiveAgent(Agent):
     super().__init__(*args, **kwargs)
     
   def choose_optimal(self, givens):
-    optimal = self.databank.sensitive_data(self).optimal_choice(self.rng, self.action_domain, self.reward_var, givens)
+    optimal = self.databank.sensitive_data(self).optimal_choice(self.action_domain, self.reward_var, givens)
     return optimal if optimal else self.choose_random()
   
   def thompson_sample(self, givens):
@@ -219,17 +219,21 @@ class AdjustAgent(SensitiveAgent):
           action_rewards[act_hash][rew_hash][0].append(num_datapoints)
           action_rewards[act_hash][rew_hash][1].append(tf_sol)
     
-    weighted_act_rew = Counter()
+    best_choice = None
+    best_rew = -999
     for act in action_rewards:
+      act_rew = 0
       for rew in action_rewards[act]:
         reward_prob = 0
         weight_total = sum(action_rewards[act][rew][0])
         if not weight_total: continue
         for i in range(len(action_rewards[act][rew][0])):
           reward_prob += action_rewards[act][rew][1][i] * (action_rewards[act][rew][0][i] / weight_total)
-        weighted_act_rew[act] += reward_prob * float(rew.split("=",1)[1])
-    optimal = dict_from_hash(max_key(self.rng, weighted_act_rew))
-    return optimal if optimal else self.choose_random()
+        act_rew += reward_prob * float(rew.split("=",1)[1])
+      if act_rew > best_rew:
+        best_choice = act
+        best_rew = act_rew
+    return dict_from_hash(best_choice) if best_choice else self.choose_random()
 
   
   def thompson_sample(self, givens):

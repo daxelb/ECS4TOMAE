@@ -139,9 +139,6 @@ class Sim:
   def combine_results(self, trial_results):
     results = {}
     for tr in trial_results:
-      print()
-      print(list(tr.values())[0])
-      print()
       for ind_var, trial_res in tr.items():
         if ind_var not in results:
           results[ind_var] = trial_res
