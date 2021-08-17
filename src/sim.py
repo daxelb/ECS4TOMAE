@@ -259,7 +259,7 @@ if __name__ == "__main__":
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy=("Solo", "Naive", "Sensitive", "Adjust"),
     asr="EG",
-    num_episodes=25,
+    num_episodes=250,
     num_trials=12,
     div_node_conf=0.04,
     EG_epsilon=(0.04, 0.06, 0.08, 0.1),
