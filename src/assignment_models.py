@@ -1,6 +1,5 @@
 import numpy as np
-import gutil
-from copy import copy
+from util import permutations, Counter
 
 def randomize(rng, iter):
   new_iter = []
@@ -59,8 +58,8 @@ class DiscreteModel:
     for p in self.parents:
       assignment_domains[p] = tuple(assignments[p].keys()) if isinstance(assignments[p], dict) else (assignments[p],)
       assignment_probs[p] = tuple(assignments[p].values()) if isinstance(assignments[p], dict) else (1,)
-    prob_dist = gutil.Counter()
-    for a, probs in zip(gutil.permutations(assignment_domains), gutil.permutations(assignment_probs)):
+    prob_dist = Counter()
+    for a, probs in zip(permutations(assignment_domains), permutations(assignment_probs)):
       for key, value in self.prob_helper(a, multiplier=np.prod(list(probs.values()))).items():
         prob_dist[key] += value
     return prob_dist if my_assignment is None else prob_dist

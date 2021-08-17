@@ -4,10 +4,9 @@
 
 import networkx as nx
 import graphviz
-from itertools import combinations, chain, zip_longest
+from itertools import combinations, chain
 from collections.abc import Iterable
 from query import Query, Product
-import gutil
 
 class CausalGraph:
   """

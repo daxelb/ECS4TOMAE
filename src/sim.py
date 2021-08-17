@@ -1,15 +1,15 @@
 from agent import SoloAgent, NaiveAgent, SensitiveAgent, AdjustAgent
 from world import World
 from assignment_models import ActionModel, DiscreteModel, RandomModel
-from gutil import printProgressBar
+from util import printProgressBar
 from environment import Environment, environment_generator
 import plotly.graph_objs as go
 import time
-from numpy import sqrt, random
+from numpy import random
 import multiprocessing as mp
 import pandas as pd
 from os import mkdir
-import json
+from json import dump
 
 class Sim:
   def __init__(self, environment_dicts, policy, div_node_conf, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
@@ -215,7 +215,7 @@ class Sim:
       plot.write_html(dir_path + "/plot.html")
       self.saved_data.to_csv(dir_path + "/last_episode_data.csv")
       with open(dir_path + '/values.json', 'w') as outfile:
-        json.dump(self.values, outfile)
+        dump(self.values, outfile)
       
   def run(self, plot_title=""):
     results = self.combine_results(self.multithreaded_sim())

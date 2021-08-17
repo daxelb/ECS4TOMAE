@@ -1,8 +1,5 @@
-from gutil import permutations, only_dicts_with_givens, Counter, max_key
 from query import Product
-from util import hash_from_dict, dict_from_hash
-import numpy as np
-from copy import copy
+from util import hash_from_dict, dict_from_hash, permutations, only_dicts_with_givens, max_key, Counter
 class Agent:
   def __init__(self, rng, name, environment, databank, div_node_conf=None, asr="EG", epsilon=0, rand_trials=0, cooling_rate=0):
     self.rng = rng

@@ -1,5 +1,4 @@
-import util
-import gutil
+from util import hash_from_dict, only_given_keys, permutations
 from collections.abc import MutableSequence, Iterable
 from copy import deepcopy, copy
 
@@ -50,7 +49,7 @@ class Query:
     return unassigned
   
   def get_unassigned(self):
-    return gutil.only_given_keys(self.Q_and_e(), self.get_unassigned_vars())
+    return only_given_keys(self.Q_and_e(), self.get_unassigned_vars())
   
   def all_assigned(self):
     return len(self.get_unassigned()) == 0
@@ -69,12 +68,12 @@ class Query:
   def combos(self, domains):
     if self.all_assigned():
       return {self}
-    return {copy(self).assign(combo) for combo in gutil.permutations(domains)}
+    return {copy(self).assign(combo) for combo in permutations(domains)}
   
   def unassigned_combos(self, domains):
     if self.all_assigned():
       return {self}
-    return {copy(self).assign_unassigned(combo) for combo in gutil.permutations(domains)}
+    return {copy(self).assign_unassigned(combo) for combo in permutations(domains)}
   
   def parse_as_df_query(self):
     str_query = ""
@@ -142,8 +141,8 @@ class Query:
   
   def __str__(self):
     if self.e:
-      return "P({}|{})".format(util.hash_from_dict(self.Q), util.hash_from_dict(self.e))
-    return "P({})".format(util.hash_from_dict(self.Q))
+      return "P({}|{})".format(hash_from_dict(self.Q), hash_from_dict(self.e))
+    return "P({})".format(hash_from_dict(self.Q))
   
   def __eq__(self, other):
     return all(var in other.Q and self.Q[var] == other.Q[var] for var in self.Q) \
