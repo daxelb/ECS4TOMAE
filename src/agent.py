@@ -13,6 +13,7 @@ class Agent:
     self.asr = asr
     self.epsilon = 1 if asr == "ED" else epsilon
     self.rand_trials = rand_trials
+    self.rand_trials_rem = rand_trials
     self.cooling_rate = cooling_rate
     self.action_var = environment.get_act_var()
     self.action_domain = environment.get_act_dom()
@@ -55,8 +56,8 @@ class Agent:
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == "EF":
-      if self.rand_trials > 0:
-        self.rand_trials -= 1
+      if self.rand_trials_rem > 0:
+        self.rand_trials_rem -= 1
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == "ED":

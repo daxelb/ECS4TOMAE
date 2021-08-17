@@ -160,14 +160,14 @@ class Sim:
       error_band_color = "hsla(" + line_hue + ",100%,50%,0.125)"
       figure.extend([
       go.Scatter(
-        name=ind_var,
+        name=str(ind_var),
         x=x,
         y=y,
         line=dict(color=line_color),
         mode='lines',
       ),
       go.Scatter(
-        name=ind_var+"-upper",
+        name=str(ind_var)+"-upper",
           x=x,
           y=y_upper,
           mode='lines',
@@ -176,7 +176,7 @@ class Sim:
           # showlegend=False,
       ),
       go.Scatter(
-          name=ind_var+"-lower",
+          name=str(ind_var)+"-lower",
           x=x,
           y=y_lower,
           marker=dict(color=error_band_color),
@@ -257,19 +257,19 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy="Adjust",#("Solo", "Naive", "Sensitive", "Adjust"),
-    asr="EG",
-    num_episodes=250,
-    num_trials=12,
+    policy="Solo",#("Solo", "Naive", "Sensitive", "Adjust"),
+    asr="EF",
+    num_episodes=50,
+    num_trials=1,
     div_node_conf=0.04,
-    EG_epsilon=(0.04, 0.06, 0.08, 0.1),
+    EG_epsilon=0.03,
     EF_rand_trials=(10, 15, 20, 25),
     ED_cooling_rate=(0.905, 0.9356, 0.95123, 0.9608),
     is_community=False,
     rand_envs=False,
     node_mutation_chance=0.2,
     show=True,
-    save=True,
+    save=False,
     seed=None
   )
-  experiment.run(plot_title="Comparison of Adjust Agent CPR w/ Different Epsilon Values using Epsilon Greedy ASR")
+  experiment.run(plot_title="Solo Agent CPR w/ Different # Random Trials using Epsilon First")
