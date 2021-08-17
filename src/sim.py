@@ -257,7 +257,7 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy=("Solo", "Naive", "Sensitive", "Adjust"),
+    policy="Adjust",#("Solo", "Naive", "Sensitive", "Adjust"),
     asr="EG",
     num_episodes=250,
     num_trials=12,
