@@ -258,19 +258,19 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy=("Solo", "Naive", "Sensitive", "Adjust"),
-    asr="EG",
-    num_episodes=150,
-    num_trials=1,
+    asr="EF",
+    num_episodes=100,
+    num_trials=2,
     div_node_conf=0.04,
     EG_epsilon=0.05,
     # EG_epsilon=(0.04, 0.06, 0.08, 0.1),
-    # EF_rand_trials=(10, 15, 20, 25),
-    # ED_cooling_rate=(0.905, 0.9356, 0.95123, 0.9608),
+    EF_rand_trials=10,
+    ED_cooling_rate=(0.905, 0.9356, 0.95123, 0.9608),
     is_community=False,
     rand_envs=False,
     node_mutation_chance=0.2,
     show=True,
     save=False,
-    seed=1009030484
+    seed=2077631463
   )
   experiment.run(plot_title="Comparison of Adjust Agent CPR w/ Different Epsilon Values using Epsilon Greedy ASR")

@@ -27,15 +27,18 @@ class DataSet(list):
     total = len(self)
     return sum([e[var] for e in self]) / total if total else None
   
-  def optimal_choice(self, act_dom, rew_var, givens):
-    best_choice = None
+  def optimal_choice(self, rng, act_dom, rew_var, givens):
+    best_choice = []
     best_rew = -999
     for choice in gutil.permutations(act_dom):
       expected_rew = self.query({**choice, **givens}).mean(rew_var)
-      if expected_rew is not None and expected_rew > best_rew:
-        best_choice = choice
-        best_rew = expected_rew
-    return best_choice
+      if expected_rew is not None:
+        if expected_rew > best_rew:
+          best_choice = [choice]
+          best_rew = expected_rew
+        elif expected_rew == best_rew:
+          best_choice.append(choice)
+    return rng.choice(best_choice) if best_choice else None
 
 
 class DataBank:
