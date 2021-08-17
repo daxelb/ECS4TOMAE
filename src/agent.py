@@ -38,7 +38,7 @@ class Agent:
     elif ind_var == "cooling_rate":
       return self.cooling_rate
     else:
-      raise ValueError("Input independent variable is not a property of", str(self))
+      return ""
     
       
   def act(self):

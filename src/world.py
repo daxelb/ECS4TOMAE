@@ -4,10 +4,10 @@ from copy import copy
 
 
 class World:
-  def __init__(self, agents, num_episodes,is_community=False):
+  def __init__(self, agents, T,is_community=False):
     self.agents = agents
     self.is_community = is_community
-    self.pseudo_cum_regret = {a: [0] * num_episodes for a in self.agents}
+    self.pseudo_cum_regret = {a: [0] * T for a in self.agents}
     self.has_sensitive = any([isinstance(a, (SensitiveAgent, AdjustAgent)) for a in self.agents])
     self.databank = agents[0].databank
 

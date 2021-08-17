@@ -12,7 +12,7 @@ from os import mkdir
 import json
 
 class Sim:
-  def __init__(self, environment_dicts, policy, div_node_conf, asr, num_episodes, num_trials, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
+  def __init__(self, environment_dicts, policy, div_node_conf, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(self.seed)
     self.start_time = time.time()
@@ -43,14 +43,14 @@ class Sim:
       if "ED" not in asr:
         del self.assignments["cooling_rate"]
     self.ind_var = self.get_ind_var()
-    self.num_episodes = num_episodes
-    self.num_trials = num_trials
+    self.T = T
+    self.MC_sims = MC_sims
     self.num_threads = mp.cpu_count()
     self.ass_perms = self.get_assignment_permutations()
     self.is_community = is_community
     self.show = show
     self.save = save
-    self.saved_data = pd.DataFrame(index=range(self.num_trials * self.num_episodes))
+    self.saved_data = pd.DataFrame(index=range(self.MC_sims * self.T))
     self.values = self.get_values(locals())
     
     
@@ -94,7 +94,7 @@ class Sim:
       databank = self.environments[0].create_empty_databank()
       envs = environment_generator(rng, self.environments[0]._assignment, len(self.environments), self.nmc, self.environments[0].rew_var) if self.rand_envs else self.environments
       agents = [self.agent_maker(rng, str(i), envs[i], databank, assignments.pop()) for i in range(self.num_agents)]
-      worlds.append(World(agents, self.num_episodes, self.is_community))
+      worlds.append(World(agents, self.T, self.is_community))
     return worlds
   
   def multithreaded_sim(self):
@@ -110,12 +110,12 @@ class Sim:
   def simulate(self, results, index):
     rng = random.default_rng(self.seed - index)
     trial_result = {}
-    for i in range(self.num_trials):
+    for i in range(self.MC_sims):
       worlds = self.world_generator(rng)
       for j, world in enumerate(worlds):
-        for k in range(self.num_episodes):
+        for k in range(self.T):
           world.run_episode(k)
-          printProgressBar(i*len(worlds)+j+(k+1)/(self.num_episodes), self.num_trials * len(worlds))
+          printProgressBar(i*len(worlds)+j+(k+1)/(self.T), self.MC_sims * len(worlds))
         self.update_trial_result(trial_result, world)
     results[index] = trial_result
   
@@ -148,12 +148,12 @@ class Sim:
   
   def get_plot(self, results, plot_title):
     figure = []
-    x = list(range(self.num_episodes))
+    x = list(range(self.T))
     for i, ind_var in enumerate(sorted(results)):
       line_hue = str(int(360 * (i / len(results))))
       df = pd.DataFrame(results[ind_var])
       y = df.mean(axis=0)
-      sqrt_variance = sqrt(df.var(axis=0))
+      sqrt_variance = df.sem()
       y_upper = y + sqrt_variance
       y_lower = y - sqrt_variance
       line_color = "hsla(" + line_hue + ",100%,50%,1)"
@@ -209,7 +209,7 @@ class Sim:
       plot.show()
     if self.save:
       date = time.strftime("%m%d", time.gmtime())
-      file_name = "{}_E{}_N{}_{}".format(date, self.num_episodes, N, plot_title)
+      file_name = "{}_E{}_N{}_{}".format(date, self.T, N, plot_title)
       dir_path = "../output/%s" % file_name
       mkdir(dir_path)
       plot.write_html(dir_path + "/plot.html")
@@ -223,8 +223,8 @@ class Sim:
     
   def get_N(self):
     if self.is_community:
-      return self.num_threads * self.num_trials
-    return self.num_threads * self.num_trials * self.num_agents
+      return self.num_threads * self.MC_sims
+    return self.num_threads * self.MC_sims * self.num_agents
   
   def get_values(self, locals):
     values = {key: val for key, val in locals.items() if key != 'self'}
@@ -259,8 +259,8 @@ if __name__ == "__main__":
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy="Solo",#("Solo", "Naive", "Sensitive", "Adjust"),
     asr="EF",
-    num_episodes=50,
-    num_trials=1,
+    T=50,
+    MC_sims=1,
     div_node_conf=0.04,
     EG_epsilon=0.03,
     EF_rand_trials=(10, 15, 20, 25),
