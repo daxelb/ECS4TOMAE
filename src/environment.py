@@ -2,9 +2,7 @@
 # from his public repository, causalgraphicalmodels, which is registered with the MIT License.
 # The code has been imported and modified into this project for ease/consistency
 
-import inspect
-import gutil
-from util import hash_from_dict
+from util import hash_from_dict, only_given_keys, permutations
 from data import DataBank
 from scm import StructuralCausalModel
 from cgm import CausalGraph
@@ -50,7 +48,7 @@ class Environment:
       self.cgm = CausalGraph(nodes=nodes, edges=edges, set_nodes=set_nodes)
 
       pre_nodes = list(self.cgm.get_ancestors(self.act_var))
-      self.pre = StructuralCausalModel(gutil.only_given_keys(self._assignment, pre_nodes))
+      self.pre = StructuralCausalModel(only_given_keys(self._assignment, pre_nodes))
       post_ass = self._assignment.copy()
       [post_ass.update({n: ActionModel(self.cgm.get_parents(n), self.domains[n])}) for n in pre_nodes]
       self.post = StructuralCausalModel(post_ass)
@@ -74,27 +72,27 @@ class Environment:
     return self.cgm.get_parents(self.act_var)
 
   def get_feat_doms(self):
-    return gutil.only_given_keys(self.domains, self.get_feat_vars())
+    return only_given_keys(self.domains, self.get_feat_vars())
   
   def get_act_feat_vars(self):
     return self.feat_vars.union(set(self.act_var))
   
   def get_act_feat_doms(self):
-    return gutil.only_given_keys(self.domains, self.get_act_feat_vars())
+    return only_given_keys(self.domains, self.get_act_feat_vars())
   
   def get_rew_var(self):
     return self.rew_var
   
   def get_rew_dom(self):
-    return gutil.only_given_keys(self.domains, [self.rew_var])
+    return only_given_keys(self.domains, [self.rew_var])
 
   def assigned_optimal_actions(self):
     self.optimal_action_reward = {}
     self.optimal_actions = {}
-    for feat_combo in gutil.permutations(self.get_feat_doms()):
+    for feat_combo in permutations(self.get_feat_doms()):
       optimal_action = []
       optimal_reward = float('-inf')
-      for action in gutil.permutations(self.get_act_dom()):
+      for action in permutations(self.get_act_dom()):
         expected_reward = self.expected_reward({**action, **feat_combo})
         if expected_reward > optimal_reward:
           optimal_action = [action]
@@ -153,9 +151,6 @@ class Environment:
     return ("{classname}({vars})"
         .format(classname=self.__class__.__name__,
             vars=variables))
-
-  def __hash__(self):
-    return hash(gutil.dict_to_tuple_list(self._assignment))
 
   def __eq__(self, other):
     if not isinstance(other, self.__class__) \

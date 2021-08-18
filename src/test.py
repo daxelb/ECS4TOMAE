@@ -4,21 +4,21 @@ import pandas as pd
 import numpy as np
 import math
 
-def get_add_pd(num_episodes):
-  dat = [random.rand() for _ in range(num_episodes)]
-  return pd.DataFrame(data=[dat], columns=range(num_episodes))
+def get_add_pd(T):
+  dat = [random.rand() for _ in range(T)]
+  return pd.DataFrame(data=[dat], columns=range(T))
 
-def res_pd(num_episodes, N):
-  res = pd.DataFrame(columns=range(num_episodes))
+def res_pd(T, N):
+  res = pd.DataFrame(columns=range(T))
   for _ in range(N):
-    res = res.append(get_add_pd(num_episodes))
+    res = res.append(get_add_pd(T))
   return res.mean()
 
-def get_add_list(num_episodes):
-  return [random.rand() for _ in range(num_episodes)]
+def get_add_list(T):
+  return [random.rand() for _ in range(T)]
 
-def res_list(num_episodes, N):
-  return [get_add_list(num_episodes) for _ in range(N)]
+def res_list(T, N):
+  return [get_add_list(T) for _ in range(N)]
   
 # num_eps = 50000000
 # n = 10000

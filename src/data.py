@@ -1,5 +1,5 @@
-import gutil
-import util
+from math import inf
+from util import permutations
 
 def pairs(lst):
   return [(a, b) for i, a in enumerate(lst) for b in lst[i + 1:]]
@@ -29,8 +29,8 @@ class DataSet(list):
   
   def optimal_choice(self, rng, act_dom, rew_var, givens):
     best_choice = []
-    best_rew = -999
-    for choice in gutil.permutations(act_dom):
+    best_rew = -inf
+    for choice in permutations(act_dom):
       expected_rew = self.query({**choice, **givens}).mean(rew_var)
       if expected_rew is not None:
         if expected_rew > best_rew:
