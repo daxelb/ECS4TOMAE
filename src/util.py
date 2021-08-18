@@ -1,4 +1,4 @@
-import math
+from math import inf, e, log
 from collections.abc import Iterable
 
 def hash_from_dict(dictionary):
@@ -51,7 +51,7 @@ def dict_from_hash(hashstring):
   return res
 
 
-def kl_divergence(domains, P_data, Q_data, query, log_base=math.e):
+def kl_divergence(domains, P_data, Q_data, query, log_base=e):
   """
   Calculates kl_divergence between two probability distributions.
 
@@ -70,9 +70,9 @@ def kl_divergence(domains, P_data, Q_data, query, log_base=math.e):
     P_i = Px_and_Qx[i][1][0]
     Q_i = Px_and_Qx[i][1][1]
     kld +=  0 if P_i == Q_i else \
-            math.inf if Q_i == 0 else \
-            -math.inf if P_i == 0 else \
-            P_i * math.log(P_i / Q_i, log_base)
+            inf if Q_i == 0 else \
+            -inf if P_i == 0 else \
+            P_i * log(P_i / Q_i, log_base)
   return kld
 
 def get_Px_and_Qx(domains, P_data, Q_data, query):
@@ -83,3 +83,116 @@ def get_Px_and_Qx(domains, P_data, Q_data, query):
       return None
     probs.append(new_probs)
   return probs
+
+def max_key(rng, dictionary):
+  """
+  Returns the key in the dictionary whose value
+  is the maximum of all values in the dictionary.
+  In the case of a tie, return one of the max keys
+  at random.
+  Ex:
+    dictionary={"X": 4, "Y": 1, "Z": 4, "W": 2}
+      => "X" or "Z" (randomly choice)
+  """
+  max_val = -inf
+  keys = []
+  for key, val in dictionary.items():
+    if val is None:
+      continue
+    if val > max_val:
+      max_val = val
+      keys = [key]
+    elif val == max_val:
+      keys.append(key)
+  return rng.choice(keys) if keys else None
+
+def permutations(dictionary):
+  """
+  Returns all permutations of variable assignments given a
+  dictionary mapping var_names: domain. Result is a list of
+  dicts with var_names mapping to assignments.
+  """
+  num_combos = num_permutations(dictionary.values())
+  combos = [{} for _ in range(num_combos)]
+  for var, domain in sorted(dictionary.items()):
+    num_combos /= len(domain)
+    count = 0
+    pos_val_index = 0
+    for combo in combos:
+      if count >= num_combos:
+        count = 0
+        pos_val_index = pos_val_index + 1 if pos_val_index + 1 < len(domain) else 0
+      combo[var] = domain[pos_val_index]
+      count += 1
+  return combos
+
+def num_permutations(list_of_lists):
+  """
+  Returns the number of permutations from an input
+  list of lists, representing domains.
+  """
+  if not list_of_lists:
+    return 0
+  count = 1
+  for lst in list_of_lists:
+    count *= len(lst)
+  return count
+
+def only_dicts_with_givens(dicts, assignments={}):
+  """
+  Takes a list of dictionaries, and returns a subset
+  list only containing dictionaries whose key:value pairs
+  are consistent with the parameterized assignments.
+
+  Ex:
+  dicts=[{"A": 1, "B": 0}, {"A": 0, "B": 1}], assignments={"A": 0}
+    => [{"A": 0, "B": 1}]
+  """
+  if not assignments:
+    return dicts
+  res = dicts.copy()
+  for d in dicts:
+    for a in assignments:
+      if d[a] != assignments[a]:
+        res.remove(d)
+        break
+  return res
+
+def only_given_keys(dictionary, keys):
+  """
+  Outputs a dictionary with the key:values of an
+  original dictionary, but only with items whose
+  keys are specified as a parameter.
+  """
+  res = dict(dictionary)
+  for key in dictionary:
+    if key not in keys:
+      del res[key]
+  return res
+
+class Counter(dict):
+  def __getitem__(self, idx):
+    self.setdefault(idx, 0)
+    return dict.__getitem__(self, idx)
+  
+  def copy(self):
+    return Counter(dict.copy(self))
+
+def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 50, fill = '█', printEnd = "\r"):
+    """
+    Author: greenstick (Stack Overflow/GitHub)
+    Call in a loop to create terminal progress bar
+    Parameters:
+      iteration   - Required  : current iteration (Int)
+      total       - Required  : total iterations (Int)
+      prefix      - Optional  : prefix string (Str)
+      suffix      - Optional  : suffix string (Str)
+      decimals    - Optional  : positive number of decimals in percent complete (Int)
+      length      - Optional  : character length of bar (Int)
+      fill        - Optional  : bar fill character (Str)
+      printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)

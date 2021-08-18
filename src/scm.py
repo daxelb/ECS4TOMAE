@@ -2,9 +2,7 @@
 # from his public repository, causalgraphicalmodels, which is registered with the MIT License.
 # The code has been imported and modified into this project for ease/consistency
 
-import inspect
 import networkx as nx
-
 from cgm import CausalGraph
 from assignment_models import ActionModel
 

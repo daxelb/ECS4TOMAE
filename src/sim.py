@@ -1,18 +1,18 @@
 from agent import SoloAgent, NaiveAgent, SensitiveAgent, AdjustAgent
 from world import World
 from assignment_models import ActionModel, DiscreteModel, RandomModel
-from gutil import printProgressBar
+from util import printProgressBar
 from environment import Environment, environment_generator
 import plotly.graph_objs as go
 import time
-from numpy import sqrt, random
+from numpy import random
 import multiprocessing as mp
 import pandas as pd
 from os import mkdir
-import json
+from json import dump
 
 class Sim:
-  def __init__(self, environment_dicts, policy, div_node_conf, asr, num_episodes, num_trials, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
+  def __init__(self, environment_dicts, policy, div_node_conf, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(self.seed)
     self.start_time = time.time()
@@ -43,14 +43,14 @@ class Sim:
       if "ED" not in asr:
         del self.assignments["cooling_rate"]
     self.ind_var = self.get_ind_var()
-    self.num_episodes = num_episodes
-    self.num_trials = num_trials
+    self.T = T
+    self.MC_sims = MC_sims
     self.num_threads = mp.cpu_count()
     self.ass_perms = self.get_assignment_permutations()
     self.is_community = is_community
     self.show = show
     self.save = save
-    self.saved_data = pd.DataFrame(index=range(self.num_trials * self.num_episodes))
+    self.saved_data = pd.DataFrame(index=range(self.MC_sims * self.T))
     self.values = self.get_values(locals())
     
     
@@ -94,7 +94,7 @@ class Sim:
       databank = self.environments[0].create_empty_databank()
       envs = environment_generator(rng, self.environments[0]._assignment, len(self.environments), self.nmc, self.environments[0].rew_var) if self.rand_envs else self.environments
       agents = [self.agent_maker(rng, str(i), envs[i], databank, assignments.pop()) for i in range(self.num_agents)]
-      worlds.append(World(agents, self.num_episodes, self.is_community))
+      worlds.append(World(agents, self.T, self.is_community))
     return worlds
   
   def multithreaded_sim(self):
@@ -110,12 +110,12 @@ class Sim:
   def simulate(self, results, index):
     rng = random.default_rng(self.seed - index)
     trial_result = {}
-    for i in range(self.num_trials):
+    for i in range(self.MC_sims):
       worlds = self.world_generator(rng)
       for j, world in enumerate(worlds):
-        for k in range(self.num_episodes):
+        for k in range(self.T):
           world.run_episode(k)
-          printProgressBar(i*len(worlds)+j+(k+1)/(self.num_episodes), self.num_trials * len(worlds))
+          printProgressBar(i*len(worlds)+j+(k+1)/(self.T), self.MC_sims * len(worlds))
         self.update_trial_result(trial_result, world)
     results[index] = trial_result
   
@@ -148,26 +148,26 @@ class Sim:
   
   def get_plot(self, results, plot_title):
     figure = []
-    x = list(range(self.num_episodes))
+    x = list(range(self.T))
     for i, ind_var in enumerate(sorted(results)):
       line_hue = str(int(360 * (i / len(results))))
       df = pd.DataFrame(results[ind_var])
       y = df.mean(axis=0)
-      sqrt_variance = sqrt(df.var(axis=0))
+      sqrt_variance = df.sem()
       y_upper = y + sqrt_variance
       y_lower = y - sqrt_variance
       line_color = "hsla(" + line_hue + ",100%,50%,1)"
       error_band_color = "hsla(" + line_hue + ",100%,50%,0.125)"
       figure.extend([
       go.Scatter(
-        name=ind_var,
+        name=str(ind_var),
         x=x,
         y=y,
         line=dict(color=line_color),
         mode='lines',
       ),
       go.Scatter(
-        name=ind_var+"-upper",
+        name=str(ind_var)+"-upper",
           x=x,
           y=y_upper,
           mode='lines',
@@ -176,7 +176,7 @@ class Sim:
           # showlegend=False,
       ),
       go.Scatter(
-          name=ind_var+"-lower",
+          name=str(ind_var)+"-lower",
           x=x,
           y=y_lower,
           marker=dict(color=error_band_color),
@@ -209,13 +209,13 @@ class Sim:
       plot.show()
     if self.save:
       date = time.strftime("%m%d", time.gmtime())
-      file_name = "{}_E{}_N{}_{}".format(date, self.num_episodes, N, plot_title)
+      file_name = "{}_E{}_N{}_{}".format(date, self.T, N, plot_title)
       dir_path = "../output/%s" % file_name
       mkdir(dir_path)
       plot.write_html(dir_path + "/plot.html")
       self.saved_data.to_csv(dir_path + "/last_episode_data.csv")
       with open(dir_path + '/values.json', 'w') as outfile:
-        json.dump(self.values, outfile)
+        dump(self.values, outfile)
       
   def run(self, plot_title=""):
     results = self.combine_results(self.multithreaded_sim())
@@ -223,8 +223,8 @@ class Sim:
     
   def get_N(self):
     if self.is_community:
-      return self.num_threads * self.num_trials
-    return self.num_threads * self.num_trials * self.num_agents
+      return self.num_threads * self.MC_sims
+    return self.num_threads * self.MC_sims * self.num_agents
   
   def get_values(self, locals):
     values = {key: val for key, val in locals.items() if key != 'self'}
@@ -258,13 +258,13 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy="Adjust",#("Solo", "Naive", "Sensitive", "Adjust"),
-    asr="EG",
-    num_episodes=250,
-    num_trials=12,
+    asr=("EG", "EF", "ED", "TS"),
+    T=250,
+    MC_sims=10,
     div_node_conf=0.04,
-    EG_epsilon=(0.04, 0.06, 0.08, 0.1),
-    EF_rand_trials=(10, 15, 20, 25),
-    ED_cooling_rate=(0.905, 0.9356, 0.95123, 0.9608),
+    EG_epsilon=0.025,
+    EF_rand_trials=6,
+    ED_cooling_rate=0.6,
     is_community=False,
     rand_envs=False,
     node_mutation_chance=0.2,
@@ -272,4 +272,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(plot_title="Comparison of Adjust Agent CPR w/ Different Epsilon Values using Epsilon Greedy ASR")
+  experiment.run(plot_title="Adjust Agent CPR using Different ASRs")

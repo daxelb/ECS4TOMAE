@@ -1,8 +1,5 @@
-from gutil import permutations, only_dicts_with_givens, Counter, max_key
 from query import Product
-from util import hash_from_dict, dict_from_hash
-import numpy as np
-from copy import copy
+from util import hash_from_dict, dict_from_hash, permutations, only_dicts_with_givens, max_key, Counter
 class Agent:
   def __init__(self, rng, name, environment, databank, div_node_conf=None, asr="EG", epsilon=0, rand_trials=0, cooling_rate=0):
     self.rng = rng
@@ -13,6 +10,7 @@ class Agent:
     self.asr = asr
     self.epsilon = 1 if asr == "ED" else epsilon
     self.rand_trials = rand_trials
+    self.rand_trials_rem = rand_trials
     self.cooling_rate = cooling_rate
     self.action_var = environment.get_act_var()
     self.action_domain = environment.get_act_dom()
@@ -37,7 +35,7 @@ class Agent:
     elif ind_var == "cooling_rate":
       return self.cooling_rate
     else:
-      raise ValueError("Input independent variable is not a property of", str(self))
+      return ""
     
       
   def act(self):
@@ -55,8 +53,8 @@ class Agent:
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == "EF":
-      if self.rand_trials > 0:
-        self.rand_trials -= 1
+      if self.rand_trials_rem > 0:
+        self.rand_trials_rem -= 1
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == "ED":
