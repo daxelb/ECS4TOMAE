@@ -272,4 +272,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(plot_title="Solo Agent CPR w/ Different # Random Trials using Epsilon First")
+  experiment.run(plot_title="Adjust Agent CPR using Different ASRs")
