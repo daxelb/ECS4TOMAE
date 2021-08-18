@@ -257,19 +257,19 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy="Solo",#("Solo", "Naive", "Sensitive", "Adjust"),
-    asr="EF",
-    T=50,
+    policy="Adjust",#("Solo", "Naive", "Sensitive", "Adjust"),
+    asr=("EG", "EF", "ED", "TS"),
+    T=5,
     MC_sims=1,
     div_node_conf=0.04,
-    EG_epsilon=0.03,
-    EF_rand_trials=(10, 15, 20, 25),
-    ED_cooling_rate=(0.905, 0.9356, 0.95123, 0.9608),
+    EG_epsilon=0.025,
+    EF_rand_trials=6,
+    ED_cooling_rate=0.6,
     is_community=False,
     rand_envs=False,
     node_mutation_chance=0.2,
     show=True,
-    save=False,
+    save=True,
     seed=None
   )
   experiment.run(plot_title="Solo Agent CPR w/ Different # Random Trials using Epsilon First")
