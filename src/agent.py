@@ -61,6 +61,7 @@ class Agent:
       if self.rng.random() < self.epsilon:
         self.epsilon *= self.cooling_rate
         return self.choose_random()
+      self.epsilon *= self.cooling_rate
       return self.choose_optimal(givens)
     elif self.asr == "TS":
       return self.thompson_sample(givens)
