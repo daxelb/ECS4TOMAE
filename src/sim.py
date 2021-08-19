@@ -235,6 +235,7 @@ class Sim:
         parsed_env[node] = str(model)
       parsed_env_dicts.append(parsed_env)
     values["environment_dicts"] = tuple(parsed_env_dicts)
+    values["seed"] = self.seed
     return values
 
 if __name__ == "__main__":
