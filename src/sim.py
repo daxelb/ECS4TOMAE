@@ -7,7 +7,7 @@ import plotly.graph_objs as go
 import time
 from numpy import random
 import multiprocessing as mp
-import pandas as pd
+from pandas import DataFrame
 from os import mkdir
 from json import dump
 
@@ -50,7 +50,7 @@ class Sim:
     self.is_community = is_community
     self.show = show
     self.save = save
-    self.saved_data = pd.DataFrame(index=range(self.MC_sims * self.T))
+    self.saved_data = DataFrame()
     self.values = self.get_values(locals())
     
     
@@ -151,8 +151,9 @@ class Sim:
     x = list(range(self.T))
     for i, ind_var in enumerate(sorted(results)):
       line_hue = str(int(360 * (i / len(results))))
-      df = pd.DataFrame(results[ind_var])
-      y = df.mean(axis=0)
+      df = DataFrame(results[ind_var])
+      self.saved_data.insert(0, str(ind_var), df.iloc[:,-1])
+      y = df.mean()
       sqrt_variance = df.sem()
       y_upper = y + sqrt_variance
       y_lower = y - sqrt_variance
