@@ -259,14 +259,14 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy="Adjust",#("Solo", "Naive", "Sensitive", "Adjust"),
+    policy=("Solo", "Naive", "Sensitive", "Adjust"),
     asr=("EG", "EF", "ED", "TS"),
     T=250,
     MC_sims=10,
     div_node_conf=0.04,
-    EG_epsilon=0.025,
+    EG_epsilon=0.02,
     EF_rand_trials=6,
-    ED_cooling_rate=0.6,
+    ED_cooling_rate=0.8,
     is_community=False,
     rand_envs=False,
     node_mutation_chance=0.2,
