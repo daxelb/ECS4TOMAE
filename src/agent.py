@@ -1,5 +1,6 @@
 from query import Product
 from util import hash_from_dict, dict_from_hash, permutations, only_dicts_with_givens, max_key, Counter
+import inspect
 class Agent:
   def __init__(self, rng, name, environment, databank, div_node_conf=None, asr="EG", epsilon=0, rand_trials=0, cooling_rate=0):
     self.rng = rng
@@ -36,7 +37,6 @@ class Agent:
       return self.cooling_rate
     else:
       return ""
-    
       
   def act(self):
     givens = self.environment.pre.sample(self.rng)
@@ -98,17 +98,12 @@ class Agent:
   def __reduce__(self):
     return (self.__class__, (self.rng, self.name, self.environment, self.databank, self.div_node_conf, self.asr, self.epsilon, self.rand_trials, self.cooling_rate))
   
-  def __str__(self):
-    return self.__class__.__name__ + self.name
-  
   def __repr__(self):
-    return "<" + self.__class__.__name__ + self.name + ": " + self.asr + ">"
+    return "<" + self.get_policy() + self.name + ": " + self.asr + ">"
   
   def __eq__(self, other):
     return isinstance(other, self.__class__) \
-      and self.name == other.name \
-      and self.environment == other.environment \
-      and self.asr == other.asr
+      and self.name == other.name
 class SoloAgent(Agent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)

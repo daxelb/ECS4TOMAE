@@ -21,26 +21,22 @@ class RandomModel:
     return rng.choice(self.domain, p=self._probs)
   
   def randomize(self, rng, rand_prob=1.0):
-    if rand_prob != 1.0 and rng.random() >= rand_prob:
-      return self
     return RandomModel(randomize(rng, self._probs))
-  
-  def __eq__(self, other):
-    return isinstance(other, self.__class__) \
-        and set(self.domain) == set(other.domain) \
-        and self._probs == other._probs
         
   def __repr__(self):
-    return "RandomModel(Domains: {}, Probabilities:{})".format(self.domain, self._probs)
+    return "RandomModel(Domain: {}, Probs:{})".format(self.domain, self._probs)
   
   def __call__(self, *args, **kwargs):
     assert len(args) == 1
     return self.model(args[0], **kwargs)
+  
+  def __reduce__(self):
+    return (self.__class__, (self._probs,))
 
 class DiscreteModel:
   def __init__(self, parents, lookup_table):
     assert len(parents) > 0
-    self.lookup_table = lookup_table
+    self._lookup_table = lookup_table
     self.parents = parents
 
     # create input/output mapping
@@ -88,33 +84,22 @@ class DiscreteModel:
           "It looks like an input was provided which doesn't have a lookup.")
     return int(b)
   
-  def randomize(self, rng, rand_prob=1.0):
-    if rand_prob != 1.0 and rng.random() >= rand_prob:
-      return self
-    new_table = dict(self.lookup_table)
+  def randomize(self, rng):
+    new_table = dict(self._lookup_table)
     for input, probs in new_table.items():
       new_table[input] = randomize(rng, probs)
     return DiscreteModel(self.parents, new_table)
-  
-  def __eq__(self, other):
-    if len(self._ps) != len(other._ps):
-      return False
-    for i in range(len(self._ps)):
-      for j in range(len(self._ps[i])):
-        if self._ps[i][j] != other._ps[i][j]:
-          return False
-    return isinstance(other, self.__class__) \
-        and (set(self.domain) == set(other.domain)) \
-        and (set(self.parents) == set(other.parents)) \
-        and (set(self._inputs) == set(other._inputs)) \
-        and (set(self._outputs) == set(other._outputs))
         
   def __repr__(self):
-    return "DiscreteModel(Parents: {}, Probabilities: {})".format(self.parents, self._ps)
+    return "DiscreteModel(Parents: {}, Probs: {})".format(self.parents, self._ps)
   
   def __call__(self, *args, **kwargs):
     assert len(args) == 1
     return self.model(args[0], **kwargs)
+  
+  def __reduce__(self):
+    return (self.__class__, (self.parents, self._lookup_table))
+  
 
 
 class ActionModel:
@@ -122,13 +107,11 @@ class ActionModel:
     self.parents = parents
     self.domain = tuple(domain)
     
-  def randomize(self, rng=None, rand_prob=1):
-    return ActionModel(self.parents, self.domain)
+  def randomize(self, rng=None, rand_prob=1.0):
+    return self
   
-  def __eq__(self, other):
-    return isinstance(other, self.__class__) \
-        and set(self.domain) == set(other.domain) \
-        and set(self.parents) == set(other.parents)
-        
   def __repr__(self):
-    return "ActionModel(Parents: {0}, Domains: {1})".format(self.parents, self.domain)
+    return "ActionModel(Parents: {0}, Domain: {1})".format(self.parents, self.domain)
+
+  def __reduce__(self):
+    return (self.__class__, (self.parents, self.domain))

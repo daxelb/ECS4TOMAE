@@ -3,58 +3,46 @@
 # The code has been imported and modified into this project for ease/consistency
 
 from util import hash_from_dict, only_given_keys, permutations
-from data import DataBank
+from math import inf
 from scm import StructuralCausalModel
 from cgm import CausalGraph
 from assignment_models import ActionModel, DiscreteModel, RandomModel
 
-def environment_generator(rng, template, num_envs, rand_prob, rew_var="Y"):
-  base_dict = {node: model.randomize(rng) for node, model in template.items()}
-  environments = [Environment(base_dict, rew_var)]
-  for _ in range(num_envs - 1):
-    environments.append(Environment({node: model.randomize(rng, rand_prob) for node, model in base_dict.items()}, rew_var))
-  return environments
-
 # REVISIT - update indentation to 2 spaces instead of 4
 class Environment:
   def __init__(self, assignment, rew_var="Y"):
-      """
-      Creates StructuralCausalModel from assignment of the form
-      { variable: Function(parents) }
-      """
-      self.domains = {}
-      self._assignment = assignment.copy()
-      nodes = list(assignment.keys())
-      self.act_var = None
-      self.rew_var = rew_var
-      set_nodes = []
-      edges = []
+    """
+    Creates StructuralCausalModel from assignment of the form
+    { variable: Function(parents) }
+    """
+    self.domains = {}
+    self._assignment = assignment.copy()
+    nodes = list(assignment.keys())
+    self.act_var = None
+    self.rew_var = rew_var
+    set_nodes = []
+    edges = []
 
-      for node, model in assignment.items():
-        # REVISIT - could probably delete this
-          if model is None:
-              set_nodes.append(node)
+    for node, model in assignment.items():
+      self.domains[node] = model.domain
+      if isinstance(model, ActionModel):
+        assert self.act_var == None
+        self.act_var = node
+      edges.extend([
+          (parent, node)
+          for parent in model.parents
+      ])
 
-          else:
-              self.domains[node] = model.domain
-              if isinstance(model, ActionModel):
-                assert self.act_var == None
-                self.act_var = node
-              edges.extend([
-                  (parent, node)
-                  for parent in model.parents
-              ])
+    self.cgm = CausalGraph(nodes=nodes, edges=edges, set_nodes=set_nodes)
 
-      self.cgm = CausalGraph(nodes=nodes, edges=edges, set_nodes=set_nodes)
-
-      pre_nodes = list(self.cgm.get_ancestors(self.act_var))
-      self.pre = StructuralCausalModel(only_given_keys(self._assignment, pre_nodes))
-      post_ass = self._assignment.copy()
-      [post_ass.update({n: ActionModel(self.cgm.get_parents(n), self.domains[n])}) for n in pre_nodes]
-      self.post = StructuralCausalModel(post_ass)
-      
-      self.feat_vars = self.get_feat_vars()
-      self.assigned_optimal_actions()
+    pre_nodes = list(self.cgm.get_ancestors(self.act_var))
+    self.pre = StructuralCausalModel(only_given_keys(self._assignment, pre_nodes))
+    post_ass = self._assignment.copy()
+    [post_ass.update({n: ActionModel(self.cgm.get_parents(n), self.domains[n])}) for n in pre_nodes]
+    self.post = StructuralCausalModel(post_ass)
+    
+    self.feat_vars = self.get_feat_vars()
+    self.assigned_optimal_actions()
   
   def get_domains(self):
     return self.domains
@@ -87,23 +75,22 @@ class Environment:
     return only_given_keys(self.domains, [self.rew_var])
 
   def assigned_optimal_actions(self):
-    self.optimal_action_reward = {}
+    self.optimal_reward = {}
     self.optimal_actions = {}
     for feat_combo in permutations(self.get_feat_doms()):
-      optimal_action = []
-      optimal_reward = float('-inf')
+      best_actions = set()
+      best_rew = -inf
       for action in permutations(self.get_act_dom()):
-        expected_reward = self.expected_reward({**action, **feat_combo})
-        if expected_reward > optimal_reward:
-          optimal_action = [action]
-          optimal_reward = expected_reward
-        elif expected_reward == optimal_reward:
-          optimal_action.append(action)
-      feat_combo_hash = hash_from_dict(feat_combo)
-      self.optimal_action_reward[feat_combo_hash] = optimal_reward
-      self.optimal_actions[feat_combo_hash] = optimal_action
+        expected_rew = self.expected_reward({**action, **feat_combo})
+        if expected_rew > best_rew:
+          best_actions = {action[self.act_var]}
+          best_rew = expected_rew
+        elif expected_rew == best_rew:
+          best_actions.add(action[self.act_var])
+      feat_hash = hash_from_dict(feat_combo)
+      self.optimal_reward[feat_hash] = best_rew
+      self.optimal_actions[feat_hash] = best_actions
     return
-
   
   def selection_diagram(self, s_node_children):
     return self.cgm.selection_diagram(s_node_children)
@@ -136,31 +123,20 @@ class Environment:
       expected_value += value * prob
     return expected_value
 
-  def optimal_reward(self, feature_assignments={}):
-    return self.optimal_action_reward[hash_from_dict(feature_assignments)]
+  def get_optimal_reward(self, feature_assignments={}):
+    return self.optimal_reward[hash_from_dict(feature_assignments)]
 
-  def optimal_actions(self, feature_assignments={}):
+  def get_optimal_actions(self, feature_assignments={}):
     return self.optimal_actions[hash_from_dict(feature_assignments)]
   
-  def create_empty_databank(self):
-    return DataBank(self.get_domains(), self.get_act_var(), self.get_rew_var())
-
+  def __reduce__(self):
+    return (self.__class__, (self._assignment, self.rew_var))
 
   def __repr__(self):
     variables = ", ".join(map(str, sorted(self.cgm.dag.nodes())))
     return ("{classname}({vars})"
         .format(classname=self.__class__.__name__,
             vars=variables))
-
-  def __eq__(self, other):
-    if not isinstance(other, self.__class__) \
-        or self.rew_var != other.rew_var \
-        or self._assignment.keys() != other._assignment.keys():
-      return False
-    for var in self._assignment:
-      if self._assignment[var] != other._assignment[var]:
-        return False
-    return True
   
   def __copy__(self):
     return Environment(self._assignment, self.rew_var)
