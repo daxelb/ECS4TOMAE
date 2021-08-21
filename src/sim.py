@@ -13,12 +13,12 @@ from os import mkdir
 from json import dump
 
 class Sim:
-  def __init__(self, environment_dicts, policy, div_node_conf, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
+  def __init__(self, environment_dicts, policy, div_node_conf, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, env_mutation_chance=0, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(self.seed)
     self.start_time = time.time()
     self.rand_envs = rand_envs
-    self.nmc = node_mutation_chance
+    self.emc = env_mutation_chance
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     self.num_agents = len(self.environments)
     self.assignments = {
@@ -92,7 +92,7 @@ class Sim:
     template = {node: model.randomize(rng) for node, model in self.environments[0]._assignment.items()}
     base = Environment(template, self.rew_var)
     for _ in range(self.num_agents):
-      if rng.random() < self.nmc:
+      if rng.random() < self.emc:
         randomized = dict(template)
         randomized[self.rew_var] = randomized[self.rew_var].randomize(rng)
         yield Environment(randomized, self.rew_var)
@@ -331,7 +331,7 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy=("Solo", "Naive", "Sensitive", "Adjust"),
-    asr=("EG", "EF", "ED", "TS"),
+    asr="EG",#("EG", "EF", "ED", "TS"),
     T=250,
     MC_sims=10,
     div_node_conf=0.04,
@@ -340,7 +340,7 @@ if __name__ == "__main__":
     ED_cooling_rate=0.8,
     is_community=False,
     rand_envs=True,
-    node_mutation_chance=0.5,
+    env_mutation_chance=0.5,
     show=True,
     save=False,
     seed=None
