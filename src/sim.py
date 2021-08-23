@@ -267,7 +267,7 @@ class Sim:
     elapsed_time = time.time() - self.start_time
     print("\nTime elapsed: {:02d}:{:02d}:{:05.2f}".format(
       int(elapsed_time // (60 * 60)),
-      int((elapsed_time // 60)),
+      int((elapsed_time // 60 % 60)),
       elapsed_time % 60
     ))
     print("Seed: %d" % self.seed)
@@ -331,7 +331,7 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy=("Solo", "Naive", "Sensitive", "Adjust"),
-    asr="EG",#("EG", "EF", "ED", "TS"),
+    asr="EF",#("EG", "EF", "ED", "TS"),
     T=250,
     MC_sims=10,
     div_node_conf=0.04,
@@ -345,4 +345,4 @@ if __name__ == "__main__":
     save=False,
     seed=None
   )
-  experiment.run(desc="Different Communication Policies with Epsilon Decreasing ASR")
+  experiment.run(plot_title="Mean Agent CPR of Different Communication Policies with Randomized Environments (Epsilon First ASR)")
