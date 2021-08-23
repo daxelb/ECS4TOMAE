@@ -27,7 +27,7 @@ class World:
       new_regret = curr_regret + (rew_optimal - rew_received)
       self.pseudo_cum_regret[a][ep] = new_regret
       optimal_actions = a.environment.get_optimal_actions(feature_assignments)
-      self.optimal_action[a][ep] = 1 if recent[a.action_var] in optimal_actions else 0
+      self.optimal_action[a][ep] = 1.0 if recent[a.action_var] in optimal_actions else 0.0
     return
   
   def __reduce__(self):

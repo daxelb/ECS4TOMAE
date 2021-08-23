@@ -151,9 +151,9 @@ class Sim:
   
   def combine_results(self, process_results):
     results = [{},{}]
-    for i in range(len(results)):
-      for tr in process_results[i]:
-        for ind_var, res in tr.items():
+    for pr in process_results:
+      for i in range(len(results)):
+        for ind_var, res in pr[i].items():
           if ind_var not in results[i]:
             results[i][ind_var] = res
             continue
@@ -345,4 +345,4 @@ if __name__ == "__main__":
     save=False,
     seed=None
   )
-  experiment.run(desc="Adjust Agent using Different ASRs")
+  experiment.run(desc="Different Communication Policies with Epsilon Decreasing ASR")
