@@ -1,8 +1,9 @@
 from agent import SoloAgent, NaiveAgent, SensitiveAgent, AdjustAgent
 from world import World
+from data import DataBank
 from assignment_models import ActionModel, DiscreteModel, RandomModel
 from util import printProgressBar
-from environment import Environment, environment_generator
+from environment import Environment
 import plotly.graph_objs as go
 import time
 from numpy import random
@@ -12,12 +13,12 @@ from os import mkdir
 from json import dump
 
 class Sim:
-  def __init__(self, environment_dicts, policy, div_node_conf, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
+  def __init__(self, environment_dicts, policy, div_node_conf, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, env_mutation_chance=0, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(self.seed)
     self.start_time = time.time()
     self.rand_envs = rand_envs
-    self.nmc = node_mutation_chance
+    self.emc = env_mutation_chance
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     self.num_agents = len(self.environments)
     self.assignments = {
@@ -52,7 +53,9 @@ class Sim:
     self.save = save
     self.saved_data = DataFrame()
     self.values = self.get_values(locals())
-    
+    self.domains = self.environments[0].get_domains()
+    self.act_var = self.environments[0].get_act_var()
+    self.rew_var = self.environments[0].get_rew_var()
     
   def get_ind_var(self):
     ind_var = None
@@ -85,17 +88,26 @@ class Sim:
     else:
       raise ValueError("Policy type %s is not supported." % policy)
       
+  def environment_generator(self, rng):
+    template = {node: model.randomize(rng) for node, model in self.environments[0]._assignment.items()}
+    base = Environment(template, self.rew_var)
+    for _ in range(self.num_agents):
+      if rng.random() < self.emc:
+        randomized = dict(template)
+        randomized[self.rew_var] = randomized[self.rew_var].randomize(rng)
+        yield Environment(randomized, self.rew_var)
+        continue
+      yield base
+      
   def world_generator(self, rng):
-    assignments = [dict(ass) for ass in self.ass_perms for _ in range(int(self.num_agents))]
+    assignments = [dict(ass) for ass in self.ass_perms for _ in range(self.num_agents)]
     if not self.is_community:
       rng.shuffle(assignments)
-    worlds = []
     for _ in range(len(self.ass_perms)):
-      databank = self.environments[0].create_empty_databank()
-      envs = environment_generator(rng, self.environments[0]._assignment, len(self.environments), self.nmc, self.environments[0].rew_var) if self.rand_envs else self.environments
-      agents = [self.agent_maker(rng, str(i), envs[i], databank, assignments.pop()) for i in range(self.num_agents)]
-      worlds.append(World(agents, self.T, self.is_community))
-    return worlds
+      databank = self.empty_databank()
+      envs = self.environment_generator(rng) if self.rand_envs else iter(self.environments)
+      agents = [self.agent_maker(rng, str(i), next(envs), databank, assignments.pop()) for i in range(self.num_agents)]
+      yield World(agents, self.T, self.is_community)
   
   def multithreaded_sim(self):
     jobs = []
@@ -109,44 +121,47 @@ class Sim:
   
   def simulate(self, results, index):
     rng = random.default_rng(self.seed - index)
-    trial_result = {}
+    process_result = [{},{}]
     for i in range(self.MC_sims):
-      worlds = self.world_generator(rng)
-      for j, world in enumerate(worlds):
+      for j, world in enumerate(self.world_generator(rng)):
         for k in range(self.T):
           world.run_episode(k)
-          printProgressBar(i*len(worlds)+j+(k+1)/(self.T), self.MC_sims * len(worlds))
-        self.update_trial_result(trial_result, world)
-    results[index] = trial_result
+          printProgressBar(i*len(self.ass_perms)+j+(k+1)/self.T, self.MC_sims * len(self.ass_perms))
+        self.update_process_result(process_result, world)
+    results[index] = process_result
   
-  def update_trial_result(self, trial_result, world):
-    raw = world.pseudo_cum_regret
-    if self.is_community:
-      ind_var = world.agents[0].get_ind_var_value(self.ind_var)
-      data = [sum(r) for r in zip(*raw.values())]
-      if ind_var not in trial_result:
-        trial_result[ind_var] = [data]
-        return
-      trial_result[ind_var].append(data)
-      return
-    for agent, data in raw.items():
-      ind_var = agent.get_ind_var_value(self.ind_var)
-      if ind_var not in trial_result:
-        trial_result[ind_var] = [data]
-        continue
-      trial_result[ind_var].append(data)
-  
-  def combine_results(self, trial_results):
-    results = {}
-    for tr in trial_results:
-      for ind_var, trial_res in tr.items():
-        if ind_var not in results:
-          results[ind_var] = trial_res
+  def update_process_result(self, process_result, world):
+    raw = [world.pseudo_cum_regret, world.optimal_action]
+    for i in range(len(raw)):
+      if i == 0 and self.is_community:
+        ind_var = world.agents[0].get_ind_var_value(self.ind_var)
+        data = [sum(d) for d in zip(*raw[i].values())]
+        if ind_var not in process_result[i]:
+          process_result[i][ind_var] = data
           continue
-        results[ind_var].extend(trial_res)
+        process_result[i][ind_var].append(data)
+        break
+      for agent, data in raw[i].items():
+        ind_var = agent.get_ind_var_value(self.ind_var)
+        if ind_var not in process_result[i]:
+          process_result[i][ind_var] = [data]
+          continue
+        process_result[i][ind_var].append(data)
+    return
+  
+  def combine_results(self, process_results):
+    results = [{},{}]
+    for pr in process_results:
+      for i in range(len(results)):
+        for ind_var, res in pr[i].items():
+          if ind_var not in results[i]:
+            results[i][ind_var] = res
+            continue
+          results[i][ind_var].extend(res)
     return results
   
-  def get_plot(self, results, plot_title):
+  def get_pcr_plot(self, results, desc):
+    plot_title = "Community CPR of " + desc if self.is_community else "Mean Agent CPR of " + desc
     figure = []
     x = list(range(self.T))
     for i, ind_var in enumerate(sorted(results)):
@@ -195,8 +210,60 @@ class Sim:
       title=plot_title,
     )
     return plotly_fig
+  
+  def get_poa_plot(self, results, desc):
+    plot_title = "POA of " + desc
+    figure = []
+    x = list(range(self.T))
+    for i, ind_var in enumerate(sorted(results)):
+      line_hue = str(int(360 * (i / len(results))))
+      df = DataFrame(results[ind_var])
+      y = df.mean()
+      sqrt_variance = df.sem()
+      y_upper = y + sqrt_variance
+      y_lower = y - sqrt_variance
+      line_color = "hsla(" + line_hue + ",100%,50%,1)"
+      error_band_color = "hsla(" + line_hue + ",100%,50%,0.125)"
+      figure.extend([
+      go.Scatter(
+        name=str(ind_var),
+        x=x,
+        y=y,
+        line=dict(color=line_color),
+        mode='lines',
+      ),
+      go.Scatter(
+        name=str(ind_var)+"-upper",
+          x=x,
+          y=y_upper,
+          mode='lines',
+          marker=dict(color=error_band_color),
+          line=dict(width=0),
+          # showlegend=False,
+      ),
+      go.Scatter(
+          name=str(ind_var)+"-lower",
+          x=x,
+          y=y_lower,
+          marker=dict(color=error_band_color),
+          line=dict(width=0),
+          mode='lines',
+          fillcolor=error_band_color,
+          fill='tonexty',
+          # showlegend=False,
+      )
+    ])
+    plotly_fig = go.Figure(figure)
+    plotly_fig.update_layout(
+      yaxis_title="Probability of Optimal Action",
+      xaxis_title="Episodes",
+      title=plot_title,
+    )
+    return plotly_fig
     
-  def display_and_save(self, plot, plot_title):
+  def display_and_save(self, results, desc):
+    pcr_plot = self.get_pcr_plot(results[0], desc)
+    poa_plot = self.get_poa_plot(results[1], desc)
     elapsed_time = time.time() - self.start_time
     print("\nTime elapsed: {:02d}:{:02d}:{:05.2f}".format(
       int(elapsed_time // (60 * 60)),
@@ -207,20 +274,21 @@ class Sim:
     N = self.get_N()
     print("N=%d" % N)
     if self.show:
-      plot.show()
+      pcr_plot.show()
+      poa_plot.show()
     if self.save:
-      date = time.strftime("%m%d", time.gmtime())
-      file_name = "{}_E{}_N{}_{}".format(date, self.T, N, plot_title)
+      file_name = "{}_N{}".format(desc, N)
       dir_path = "../output/%s" % file_name
       mkdir(dir_path)
-      plot.write_html(dir_path + "/plot.html")
+      pcr_plot.write_html(dir_path + "/pcr.html")
+      poa_plot.write_html(dir_path + "/poa.html")
       self.saved_data.to_csv(dir_path + "/last_episode_data.csv")
       with open(dir_path + '/values.json', 'w') as outfile:
         dump(self.values, outfile)
       
-  def run(self, plot_title=""):
+  def run(self, desc=""):
     results = self.combine_results(self.multithreaded_sim())
-    self.display_and_save(self.get_plot(results, plot_title), plot_title)
+    self.display_and_save(results, desc)
     
   def get_N(self):
     if self.is_community:
@@ -238,6 +306,9 @@ class Sim:
     values["environment_dicts"] = tuple(parsed_env_dicts)
     values["seed"] = self.seed
     return values
+  
+  def empty_databank(self):
+    return DataBank(self.domains, self.act_var, self.rew_var)
 
 if __name__ == "__main__":
   baseline = {
@@ -260,7 +331,7 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy=("Solo", "Naive", "Sensitive", "Adjust"),
-    asr=("EG", "EF", "ED", "TS"),
+    asr="EG",#("EG", "EF", "ED", "TS"),
     T=250,
     MC_sims=10,
     div_node_conf=0.04,
@@ -268,10 +339,10 @@ if __name__ == "__main__":
     EF_rand_trials=6,
     ED_cooling_rate=0.8,
     is_community=False,
-    rand_envs=False,
-    node_mutation_chance=0.2,
+    rand_envs=True,
+    env_mutation_chance=0.5,
     show=True,
-    save=True,
+    save=False,
     seed=None
   )
-  experiment.run(plot_title="Adjust Agent CPR using Different ASRs")
+  experiment.run(desc="Different Communication Policies with Epsilon Decreasing ASR")
