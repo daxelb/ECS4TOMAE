@@ -331,18 +331,18 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy=("Solo", "Naive", "Sensitive", "Adjust"),
-    asr="TS",#("EG", "EF", "ED", "TS"),
+    asr="TS",
     T=250,
-    MC_sims=12,
-    div_node_conf=0.02,
+    MC_sims=10,
+    div_node_conf=0.04,
     EG_epsilon=0.02,
     EF_rand_trials=6,
-    ED_cooling_rate=0.98,
+    ED_cooling_rate=0.8,
     is_community=False,
-    rand_envs=False,
+    rand_envs=True,
     env_mutation_chance=0.5,
     show=True,
     save=True,
     seed=None
   )
-  experiment.run(desc="POA of Barely Divergent MAT-Es (Thompson Sampling ASR)")
+  experiment.run(desc="Policy Comparison w/ Randomized Environments (Thompson Sampling ASR)")
