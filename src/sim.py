@@ -314,35 +314,27 @@ if __name__ == "__main__":
   baseline = {
     "W": RandomModel((0.5, 0.5)),
     "X": ActionModel(("W"), (0, 1)),
-    "Z": DiscreteModel(("X"), {(0,): (0.55, 0.45), (1,): (0.55, 0.45)}),
+    "Z": DiscreteModel(("X"), {(0,): (0.55, 0.45), (1,): (0.45, 0.55)}),
     "Y": DiscreteModel(("W", "Z"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
   }
-  # w1 = dict(baseline)
-  # w1["W"] = RandomModel((0.1, 0.9))
-  # w9 = dict(baseline)
-  # w9["W"] = RandomModel((0.9, 0.1))
-  # z5 = dict(baseline)
-  # z5["Z"] = DiscreteModel(("X"), {(0,): (0.9, 0.1), (1,): (0.5, 0.5)})
   reversed_z = dict(baseline)
   reversed_z["Z"] = DiscreteModel(("X"), {(0,): (0.45, 0.55), (1,): (0.55, 0.45)})
-  # reversed_y = dict(baseline)
-  # reversed_y["Y"] = DiscreteModel(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy=("Solo", "Naive", "Sensitive", "Adjust"),
-    asr="TS",
+    asr="ED",#("EG", "EF", "ED", "TS"),
     T=250,
-    MC_sims=10,
-    div_node_conf=0.04,
+    MC_sims=12,
+    div_node_conf=0.02,
     EG_epsilon=0.02,
     EF_rand_trials=6,
-    ED_cooling_rate=0.8,
+    ED_cooling_rate=0.98,
     is_community=False,
-    rand_envs=True,
+    rand_envs=False,
     env_mutation_chance=0.5,
     show=True,
     save=True,
     seed=None
   )
-  experiment.run(desc="Policy Comparison w/ Randomized Environments (Thompson Sampling ASR)")
+  experiment.run(desc="Barely Divergent MAT-Es (Epsilon Decreasing ASR cooling_rate=0.98)")
