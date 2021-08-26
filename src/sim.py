@@ -312,37 +312,37 @@ class Sim:
 
 if __name__ == "__main__":
   baseline = {
-    "W": RandomModel((0.4, 0.6)),
+    "W": RandomModel((0.5, 0.5)),
     "X": ActionModel(("W"), (0, 1)),
-    "Z": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
-    "Y": DiscreteModel(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
+    "Z": DiscreteModel(("X"), {(0,): (0.55, 0.45), (1,): (0.55, 0.45)}),
+    "Y": DiscreteModel(("W", "Z"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
   }
-  w1 = dict(baseline)
-  w1["W"] = RandomModel((0.1, 0.9))
-  w9 = dict(baseline)
-  w9["W"] = RandomModel((0.9, 0.1))
-  z5 = dict(baseline)
-  z5["Z"] = DiscreteModel(("X"), {(0,): (0.9, 0.1), (1,): (0.5, 0.5)})
+  # w1 = dict(baseline)
+  # w1["W"] = RandomModel((0.1, 0.9))
+  # w9 = dict(baseline)
+  # w9["W"] = RandomModel((0.9, 0.1))
+  # z5 = dict(baseline)
+  # z5["Z"] = DiscreteModel(("X"), {(0,): (0.9, 0.1), (1,): (0.5, 0.5)})
   reversed_z = dict(baseline)
-  reversed_z["Z"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
-  reversed_y = dict(baseline)
-  reversed_y["Y"] = DiscreteModel(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
+  reversed_z["Z"] = DiscreteModel(("X"), {(0,): (0.45, 0.55), (1,): (0.55, 0.45)})
+  # reversed_y = dict(baseline)
+  # reversed_y["Y"] = DiscreteModel(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy=("Solo", "Naive", "Sensitive", "Adjust"),
-    asr="EF",#("EG", "EF", "ED", "TS"),
+    asr="TS",#("EG", "EF", "ED", "TS"),
     T=250,
-    MC_sims=10,
-    div_node_conf=0.04,
+    MC_sims=12,
+    div_node_conf=0.02,
     EG_epsilon=0.02,
     EF_rand_trials=6,
-    ED_cooling_rate=0.8,
+    ED_cooling_rate=0.98,
     is_community=False,
-    rand_envs=True,
+    rand_envs=False,
     env_mutation_chance=0.5,
     show=True,
-    save=False,
+    save=True,
     seed=None
   )
-  experiment.run(plot_title="Mean Agent CPR of Different Communication Policies with Randomized Environments (Epsilon First ASR)")
+  experiment.run(desc="POA of Barely Divergent MAT-Es (Thompson Sampling ASR)")
