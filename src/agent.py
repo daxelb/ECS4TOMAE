@@ -77,13 +77,14 @@ class Agent:
   
   def ts_from_dataset(self, dataset, givens):
     choice = None
-    max_sample = float('-inf')
+    max_sample = 0 #float('-inf')
     data = dataset.query(givens)
-    reward_permutations = permutations(self.reward_domain)
     for action in permutations(self.action_domain):
-      alpha = len(data.query({**action, **reward_permutations[1]}))
-      beta = len(data.query({**action, **reward_permutations[0]}))
+      alpha = len(data.query({**action, **{self.reward_var: 1}}))
+      beta = len(data.query({**action, **{self.reward_var: 0}}))
+      # print(alpha+1, beta+1)
       sample = self.rng.beta(alpha + 1, beta + 1)
+      # print("-",sample)
       if sample > max_sample:
         choice = action
         max_sample = sample
@@ -227,25 +228,29 @@ class AdjustAgent(SensitiveAgent):
 
   
   def thompson_sample(self, givens):
-    rewards = permutations(self.reward_domain)
     choice = None
-    max_sample = 0
+    max_sample = 0 #float('-inf')
     for action in permutations(self.action_domain):
-      alpha_total, beta_total = 0, 0
+      alpha, beta = 1, 1
       for agent in self.databank:
         transport_formula = self.transport_formula(agent, givens)
         transport_formula.assign(action)
         num_datapoints = self.get_num_datapoints(transport_formula, agent)
         if not num_datapoints:
           continue
-        transport_formula.assign(rewards[1])
-        alpha = self.solve_transport_formula(transport_formula, agent)
-        alpha = 0 if alpha is None else alpha * num_datapoints
-        beta = num_datapoints - alpha
-        alpha_total += alpha
-        beta_total += beta
-      sample = self.rng.beta(alpha_total + 1, beta_total + 1)
+        transport_formula.assign({self.reward_var: 1})
+        a = self.solve_transport_formula(transport_formula, agent)
+        a = 0 if a is None else a * num_datapoints
+        b = num_datapoints - a
+        alpha += a
+        beta += b
+      sample = self.rng.beta(alpha, beta)
+      # print("=",sample)
+      if sample < 0:
+        print("!")
+      if sample == max_sample and choice is not None:
+        print("!!")
       if sample > max_sample:
         choice = action
         max_sample = sample
-    return choice if choice else self.choose_random()
+    return choice #if choice else self.choose_random()
