@@ -100,7 +100,8 @@ class Sim:
         environments.append(Environment(randomized, self.rew_var))
         # yield Environment(randomized, self.rew_var)
         continue
-      environments.append(base)#yield base
+      environments.append(base)
+      # yield base
     return environments
       
   def world_generator(self, rng):
@@ -275,11 +276,6 @@ class Sim:
       int(elapsed_time // 60 % 60),\
       int(elapsed_time % 60)
     )
-      # Time Elapsed: \
-      #   {int(elapsed_time // (60 * 60 * 24))}d \
-      #   {int(elapsed_time // (60 * 60))}h \
-      #   {int(elapsed_time // 60 % 60)}m \
-      #   {int(elapsed_time % 60)}s'
     print(f'{print_info}{" " * (60 - len(print_info))}')
 
     if self.show:
@@ -334,9 +330,9 @@ if __name__ == "__main__":
     policy="Adjust",
     asr="EG",#("EG", "EF", "ED", "TS"),
     T=250,
-    MC_sims=1,
+    MC_sims=3,
     div_node_conf=0.04,
-    EG_epsilon=(0.21, 0.19, 0.17),
+    EG_epsilon=(0.05, 0.1, 0.15),
     EF_rand_trials=20,
     ED_cooling_rate=0.9608,
     is_community=True,
