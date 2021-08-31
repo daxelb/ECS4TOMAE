@@ -107,11 +107,13 @@ class Sim:
     assignments = [dict(ass) for ass in self.ass_perms for _ in range(self.num_agents)]
     if not self.is_community:
       rng.shuffle(assignments)
-    # print([type(a[self.ind_var]) for a in assignments])
     envs = cycle(self.environment_generator(rng)) if self.rand_envs else cycle(self.environments)
     for _ in range(len(self.ass_perms)):
-      databank = self.empty_databank()
-      agents = [self.agent_maker(rng, str(i), next(envs), databank, assignments.pop(0)) for i in range(self.num_agents)]
+      # data={}, divergence={} MUST be specified
+      # even though it's a default value... These values must be chached somehow...
+      # absolutely insane!
+      databank = DataBank(self.domains, self.act_var, self.rew_var, data={}, divergence={})
+      agents = [self.agent_maker(rng, str(i), next(envs), databank, assignments.pop()) for i in range(self.num_agents)]
       yield World(agents, self.T, self.is_community)
   
   def multithreaded_sim(self):
@@ -311,9 +313,6 @@ class Sim:
     values["environment_dicts"] = tuple(parsed_env_dicts)
     values["seed"] = self.seed
     return values
-  
-  def empty_databank(self):
-    return DataBank(self.domains, self.act_var, self.rew_var)
 
 if __name__ == "__main__":
   baseline = {
@@ -328,12 +327,12 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy="Adjust",
-    asr="EF",#("EG", "EF", "ED", "TS"),
+    asr="EG",#("EG", "EF", "ED", "TS"),
     T=250,
-    MC_sims=2,
+    MC_sims=1,
     div_node_conf=0.04,
-    EG_epsilon=0.1,
-    EF_rand_trials=(17,20,23),
+    EG_epsilon=(0.21, 0.19, 0.17),
+    EF_rand_trials=20,
     ED_cooling_rate=0.9608,
     is_community=True,
     rand_envs=True,
