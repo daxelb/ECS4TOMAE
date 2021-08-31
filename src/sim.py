@@ -165,7 +165,7 @@ class Sim:
           results[i][ind_var].extend(res)
     return results
   
-  def get_pcr_plot(self, results, desc):
+  def get_cpr_plot(self, results, desc):
     plot_title = "Community CPR of " + desc if self.is_community else "Mean Agent CPR of " + desc
     figure = []
     x = list(range(self.T))
@@ -267,31 +267,39 @@ class Sim:
     return plotly_fig
     
   def display_and_save(self, results, desc):
-    pcr_plot = self.get_pcr_plot(results[0], desc)
+    cpr_plot = self.get_cpr_plot(results[0], desc)
     poa_plot = self.get_poa_plot(results[1], desc)
     elapsed_time = time.time() - self.start_time
-    print("\nTime elapsed: {:02d}:{:02d}:{:05.2f}".format(
-      int(elapsed_time // (60 * 60)),
-      int((elapsed_time // 60 % 60)),
-      elapsed_time % 60
-    ))
-    print("Seed: %d" % self.seed)
-    N = self.get_N()
-    print("N=%d" % N)
+    print_info = "Time Elapsed: {}d {}h {}m {}s".format(\
+      int(elapsed_time // (60 * 60 * 24)),\
+      int(elapsed_time // (60 * 60)),\
+      int(elapsed_time // 60 % 60),\
+      int(elapsed_time % 60)
+    )
+      # Time Elapsed: \
+      #   {int(elapsed_time // (60 * 60 * 24))}d \
+      #   {int(elapsed_time // (60 * 60))}h \
+      #   {int(elapsed_time // 60 % 60)}m \
+      #   {int(elapsed_time % 60)}s'
+    print(f'{print_info}{" " * (60 - len(print_info))}')
+
     if self.show:
-      pcr_plot.show()
+      cpr_plot.show()
       poa_plot.show()
     if self.save:
-      file_name = "{}_N{}".format(desc, N)
+      file_name = "{}_N{}".format(desc, self.get_N())
       dir_path = "../output/%s" % file_name
       mkdir(dir_path)
-      pcr_plot.write_html(dir_path + "/pcr.html")
+      cpr_plot.write_html(dir_path + "/cpr.html")
       poa_plot.write_html(dir_path + "/poa.html")
       self.saved_data.to_csv(dir_path + "/last_episode_data.csv")
       with open(dir_path + '/values.json', 'w') as outfile:
         dump(self.values, outfile)
       
   def run(self, desc=""):
+    if desc:
+      print(desc)
+    print("seed=%d | N=%d" % (self.seed, self.get_N()))
     results = self.combine_results(self.multithreaded_sim())
     self.display_and_save(results, desc)
     
@@ -329,8 +337,8 @@ if __name__ == "__main__":
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy="Adjust",
     asr="EF",#("EG", "EF", "ED", "TS"),
-    T=250,
-    MC_sims=2,
+    T=50,
+    MC_sims=1,
     div_node_conf=0.04,
     EG_epsilon=0.1,
     EF_rand_trials=(17,20,23),
