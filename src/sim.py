@@ -6,7 +6,7 @@ from util import printProgressBar
 from environment import Environment
 import plotly.graph_objs as go
 import time
-from numpy import False_, random
+from numpy import random
 import multiprocessing as mp
 from pandas import DataFrame
 from os import mkdir
