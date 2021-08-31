@@ -82,9 +82,7 @@ class Agent:
     for action in permutations(self.action_domain):
       alpha = len(data.query({**action, **{self.reward_var: 1}}))
       beta = len(data.query({**action, **{self.reward_var: 0}}))
-      # print(alpha+1, beta+1)
       sample = self.rng.beta(alpha + 1, beta + 1)
-      # print("-",sample)
       if sample > max_sample:
         choice = action
         max_sample = sample
@@ -245,11 +243,6 @@ class AdjustAgent(SensitiveAgent):
         alpha += a
         beta += b
       sample = self.rng.beta(alpha, beta)
-      # print("=",sample)
-      if sample < 0:
-        print("!")
-      if sample == max_sample and choice is not None:
-        print("!!")
       if sample > max_sample:
         choice = action
         max_sample = sample
