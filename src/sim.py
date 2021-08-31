@@ -330,19 +330,19 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy=("Solo", "Naive", "Sensitive", "Adjust"),
-    asr="TS",#("EG", "EF", "ED", "TS"),
+    policy="Adjust",
+    asr=("EG", "EF", "ED", "TS"),
     T=250,
-    MC_sims=12,
+    MC_sims=10,
     div_node_conf=0.02,
-    # EG_epsilon=0.1,
-    # EF_rand_trials=25,
-    # ED_cooling_rate=0.97,
-    is_community=False,
+    EG_epsilon=0.04,
+    EF_rand_trials=10,
+    ED_cooling_rate=0.905,
+    is_community=True,
     rand_envs=True,
     env_mutation_chance=0.5,
     show=True,
     save=True,
     seed=None
   )
-  experiment.run(desc="Randomized MAT-Es (Thompson Sampling ASR)")
+  experiment.run(desc="Adjust Community ASR Comparison with Randomized Environments")
