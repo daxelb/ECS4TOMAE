@@ -245,11 +245,6 @@ class AdjustAgent(SensitiveAgent):
         alpha += a
         beta += b
       sample = self.rng.beta(alpha, beta)
-      # print("=",sample)
-      if sample < 0:
-        print("!")
-      if sample == max_sample and choice is not None:
-        print("!!")
       if sample > max_sample:
         choice = action
         max_sample = sample
