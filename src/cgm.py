@@ -1,4 +1,4 @@
-# Much of this class was written by Iain Barr (ijmbarr on GitHub)
+# Much of this file/class was written by Iain Barr (#ijmbarr on GitHub)
 # from his public repository, causalgraphicalmodels, which is registered with the MIT License.
 # The code has been imported and modified into this project for ease/consistency
 

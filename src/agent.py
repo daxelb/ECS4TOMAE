@@ -82,9 +82,7 @@ class Agent:
     for action in permutations(self.action_domain):
       alpha = len(data.query({**action, **{self.reward_var: 1}}))
       beta = len(data.query({**action, **{self.reward_var: 0}}))
-      # print(alpha+1, beta+1)
       sample = self.rng.beta(alpha + 1, beta + 1)
-      # print("-",sample)
       if sample > max_sample:
         choice = action
         max_sample = sample

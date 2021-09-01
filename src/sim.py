@@ -11,6 +11,7 @@ import multiprocessing as mp
 from pandas import DataFrame
 from os import mkdir
 from json import dump
+from itertools import cycle
 
 class Sim:
   def __init__(self, environment_dicts, policy, div_node_conf, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, env_mutation_chance=0, show=True, save=False, seed=None):
@@ -91,21 +92,25 @@ class Sim:
   def environment_generator(self, rng):
     template = {node: model.randomize(rng) for node, model in self.environments[0]._assignment.items()}
     base = Environment(template, self.rew_var)
+    environments = []
     for _ in range(self.num_agents):
       if rng.random() < self.emc:
         randomized = dict(template)
         randomized[self.rew_var] = randomized[self.rew_var].randomize(rng)
-        yield Environment(randomized, self.rew_var)
+        environments.append(Environment(randomized, self.rew_var))
+        # yield Environment(randomized, self.rew_var)
         continue
-      yield base
+      environments.append(base)
+      # yield base
+    return environments
       
   def world_generator(self, rng):
     assignments = [dict(ass) for ass in self.ass_perms for _ in range(self.num_agents)]
     if not self.is_community:
       rng.shuffle(assignments)
+    envs = cycle(self.environment_generator(rng)) if self.rand_envs else cycle(self.environments)
     for _ in range(len(self.ass_perms)):
-      databank = self.empty_databank()
-      envs = self.environment_generator(rng) if self.rand_envs else iter(self.environments)
+      databank = DataBank(self.domains, self.act_var, self.rew_var, data={}, divergence={})
       agents = [self.agent_maker(rng, str(i), next(envs), databank, assignments.pop()) for i in range(self.num_agents)]
       yield World(agents, self.T, self.is_community)
   
@@ -137,7 +142,7 @@ class Sim:
         ind_var = world.agents[0].get_ind_var_value(self.ind_var)
         data = [sum(d) for d in zip(*raw[i].values())]
         if ind_var not in process_result[i]:
-          process_result[i][ind_var] = data
+          process_result[i][ind_var] = [data]
           continue
         process_result[i][ind_var].append(data)
         break
@@ -160,7 +165,7 @@ class Sim:
           results[i][ind_var].extend(res)
     return results
   
-  def get_pcr_plot(self, results, desc):
+  def get_cpr_plot(self, results, desc):
     plot_title = "Community CPR of " + desc if self.is_community else "Mean Agent CPR of " + desc
     figure = []
     x = list(range(self.T))
@@ -168,8 +173,8 @@ class Sim:
       line_hue = str(int(360 * (i / len(results))))
       df = DataFrame(results[ind_var])
       self.saved_data.insert(0, str(ind_var), df.iloc[:,-1])
-      y = df.mean()
-      sqrt_variance = df.sem()
+      y = df.mean(axis=0, numeric_only=True)
+      sqrt_variance = df.sem(axis=0, numeric_only=True)
       y_upper = y + sqrt_variance
       y_lower = y - sqrt_variance
       line_color = "hsla(" + line_hue + ",100%,50%,1)"
@@ -218,8 +223,8 @@ class Sim:
     for i, ind_var in enumerate(sorted(results)):
       line_hue = str(int(360 * (i / len(results))))
       df = DataFrame(results[ind_var])
-      y = df.mean()
-      sqrt_variance = df.sem()
+      y = df.mean(axis=0, numeric_only=True)
+      sqrt_variance = df.sem(axis=0, numeric_only=True)
       y_upper = y + sqrt_variance
       y_lower = y - sqrt_variance
       line_color = "hsla(" + line_hue + ",100%,50%,1)"
@@ -262,31 +267,34 @@ class Sim:
     return plotly_fig
     
   def display_and_save(self, results, desc):
-    pcr_plot = self.get_pcr_plot(results[0], desc)
+    cpr_plot = self.get_cpr_plot(results[0], desc)
     poa_plot = self.get_poa_plot(results[1], desc)
     elapsed_time = time.time() - self.start_time
-    print("\nTime elapsed: {:02d}:{:02d}:{:05.2f}".format(
-      int(elapsed_time // (60 * 60)),
-      int((elapsed_time // 60 % 60)),
-      elapsed_time % 60
-    ))
-    print("Seed: %d" % self.seed)
-    N = self.get_N()
-    print("N=%d" % N)
+    print_info = "Time Elapsed: {}d {}h {}m {}s".format(\
+      int(elapsed_time // (60 * 60 * 24)),\
+      int(elapsed_time // (60 * 60)),\
+      int(elapsed_time // 60 % 60),\
+      int(elapsed_time % 60)
+    )
+    print(f'{print_info}{" " * (60 - len(print_info))}')
+
     if self.show:
-      pcr_plot.show()
+      cpr_plot.show()
       poa_plot.show()
     if self.save:
-      file_name = "{}_N{}".format(desc, N)
+      file_name = "{}_N{}".format(desc, self.get_N())
       dir_path = "../output/%s" % file_name
       mkdir(dir_path)
-      pcr_plot.write_html(dir_path + "/pcr.html")
+      cpr_plot.write_html(dir_path + "/cpr.html")
       poa_plot.write_html(dir_path + "/poa.html")
       self.saved_data.to_csv(dir_path + "/last_episode_data.csv")
       with open(dir_path + '/values.json', 'w') as outfile:
         dump(self.values, outfile)
       
   def run(self, desc=""):
+    if desc:
+      print(desc)
+    print("seed=%d | N=%d" % (self.seed, self.get_N()))
     results = self.combine_results(self.multithreaded_sim())
     self.display_and_save(results, desc)
     
@@ -306,43 +314,32 @@ class Sim:
     values["environment_dicts"] = tuple(parsed_env_dicts)
     values["seed"] = self.seed
     return values
-  
-  def empty_databank(self):
-    return DataBank(self.domains, self.act_var, self.rew_var)
 
 if __name__ == "__main__":
   baseline = {
     "W": RandomModel((0.5, 0.5)),
     "X": ActionModel(("W"), (0, 1)),
-    "Z": DiscreteModel(("X"), {(0,): (0.55, 0.45), (1,): (0.55, 0.45)}),
+    "Z": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
     "Y": DiscreteModel(("W", "Z"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
   }
-  # w1 = dict(baseline)
-  # w1["W"] = RandomModel((0.1, 0.9))
-  # w9 = dict(baseline)
-  # w9["W"] = RandomModel((0.9, 0.1))
-  # z5 = dict(baseline)
-  # z5["Z"] = DiscreteModel(("X"), {(0,): (0.9, 0.1), (1,): (0.5, 0.5)})
   reversed_z = dict(baseline)
-  reversed_z["Z"] = DiscreteModel(("X"), {(0,): (0.45, 0.55), (1,): (0.55, 0.45)})
-  # reversed_y = dict(baseline)
-  # reversed_y["Y"] = DiscreteModel(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
+  reversed_z["Z"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy=("Solo", "Naive", "Sensitive", "Adjust"),
-    asr="TS",#("EG", "EF", "ED", "TS"),
+    policy="Adjust",
+    asr="EG",#("EG", "EF", "ED", "TS"),
     T=250,
-    MC_sims=12,
-    div_node_conf=0.02,
-    # EG_epsilon=0.1,
-    # EF_rand_trials=25,
-    # ED_cooling_rate=0.97,
-    is_community=False,
+    MC_sims=3,
+    div_node_conf=0.04,
+    EG_epsilon=(0.05, 0.1, 0.15),
+    EF_rand_trials=20,
+    ED_cooling_rate=0.9608,
+    is_community=True,
     rand_envs=True,
     env_mutation_chance=0.5,
     show=True,
-    save=True,
+    save=False,
     seed=None
   )
-  experiment.run(desc="Randomized MAT-Es (Thompson Sampling ASR)")
+  experiment.run(desc="Community of Adjust Agent - ASR Comparison")
