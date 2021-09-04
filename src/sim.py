@@ -284,19 +284,19 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy="Adjust",
-    asr=("EG", "EF", "ED", "TS"),
+    policy=("Solo", "Naive", "Sensitive", "Adjust"),
+    asr="EG",
     T=250,
     MC_sims=100,
     div_node_conf=0.04,
     EG_epsilon=0.2,
     EF_rand_trials=40,
     ED_cooling_rate=0.97,
-    is_community=True,
+    is_community=False,
     rand_envs=True,
     env_mutation_chance=0.5,
     show=True,
     save=True,
     seed=None
   )
-  experiment.run(desc="ASR Comparison of Adjust Agent Communities using Randomized Environments")
+  experiment.run(desc="Policy Comparison of Epsilon Greedy ASR using Randomized Environments (epsilon=0.2)")
