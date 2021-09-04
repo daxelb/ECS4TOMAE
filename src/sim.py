@@ -11,6 +11,7 @@ import multiprocessing as mp
 from pandas import DataFrame
 from os import mkdir
 from json import dump
+from itertools import cycle
 
 class Sim:
   def __init__(self, environment_dicts, policy, div_node_conf, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, env_mutation_chance=0, show=True, save=False, seed=None):
@@ -103,9 +104,10 @@ class Sim:
     assignments = [dict(ass) for ass in self.ass_perms for _ in range(self.num_agents)]
     if not self.is_community:
       rng.shuffle(assignments)
+    envs = cycle(self.environment_generator(rng)) if self.rand_envs else cycle(self.environments)
     for _ in range(len(self.ass_perms)):
-      databank = self.empty_databank()
-      envs = self.environment_generator(rng) if self.rand_envs else iter(self.environments)
+      databank = None
+      databank = DataBank(self.domains, self.act_var, self.rew_var, data={}, divergence={})
       agents = [self.agent_maker(rng, str(i), next(envs), databank, assignments.pop()) for i in range(self.num_agents)]
       yield World(agents, self.T, self.is_community)
   
@@ -137,10 +139,10 @@ class Sim:
         ind_var = world.agents[0].get_ind_var_value(self.ind_var)
         data = [sum(d) for d in zip(*raw[i].values())]
         if ind_var not in process_result[i]:
-          process_result[i][ind_var] = data
+          process_result[i][ind_var] = [data]
           continue
         process_result[i][ind_var].append(data)
-        break
+        continue
       for agent, data in raw[i].items():
         ind_var = agent.get_ind_var_value(self.ind_var)
         if ind_var not in process_result[i]:
@@ -159,19 +161,19 @@ class Sim:
             continue
           results[i][ind_var].extend(res)
     return results
-  
-  def get_pcr_plot(self, results, desc):
-    plot_title = "Community CPR of " + desc if self.is_community else "Mean Agent CPR of " + desc
+
+  def get_plot(self, results, plot_title, yaxis_title):
     figure = []
     x = list(range(self.T))
     for i, ind_var in enumerate(sorted(results)):
       line_hue = str(int(360 * (i / len(results))))
       df = DataFrame(results[ind_var])
-      self.saved_data.insert(0, str(ind_var), df.iloc[:,-1])
-      y = df.mean()
-      sqrt_variance = df.sem()
-      y_upper = y + sqrt_variance
-      y_lower = y - sqrt_variance
+      if yaxis_title == "Cumulative Pseudo Regret":
+        self.saved_data.insert(0, str(ind_var), df.iloc[:,-1])
+      y = df.mean(axis=0, numeric_only=True)
+      sem = df.sem(axis=0, numeric_only=True)
+      y_upper = y + sem
+      y_lower = y - sem
       line_color = "hsla(" + line_hue + ",100%,50%,1)"
       error_band_color = "hsla(" + line_hue + ",100%,50%,0.125)"
       figure.extend([
@@ -205,88 +207,50 @@ class Sim:
     ])
     plotly_fig = go.Figure(figure)
     plotly_fig.update_layout(
-      yaxis_title="Pseudo Cumulative Regret",
+      yaxis_title=yaxis_title,
       xaxis_title="Episodes",
       title=plot_title,
     )
     return plotly_fig
+
+  
+  def get_cpr_plot(self, results, desc):
+    plot_title = "Community CPR of " + desc if self.is_community else "Mean Agent CPR of " + desc
+    return self.get_plot(results, plot_title, "Cumulative Pseudo Regret")
   
   def get_poa_plot(self, results, desc):
     plot_title = "POA of " + desc
-    figure = []
-    x = list(range(self.T))
-    for i, ind_var in enumerate(sorted(results)):
-      line_hue = str(int(360 * (i / len(results))))
-      df = DataFrame(results[ind_var])
-      y = df.mean()
-      sqrt_variance = df.sem()
-      y_upper = y + sqrt_variance
-      y_lower = y - sqrt_variance
-      line_color = "hsla(" + line_hue + ",100%,50%,1)"
-      error_band_color = "hsla(" + line_hue + ",100%,50%,0.125)"
-      figure.extend([
-      go.Scatter(
-        name=str(ind_var),
-        x=x,
-        y=y,
-        line=dict(color=line_color),
-        mode='lines',
-      ),
-      go.Scatter(
-        name=str(ind_var)+"-upper",
-          x=x,
-          y=y_upper,
-          mode='lines',
-          marker=dict(color=error_band_color),
-          line=dict(width=0),
-          # showlegend=False,
-      ),
-      go.Scatter(
-          name=str(ind_var)+"-lower",
-          x=x,
-          y=y_lower,
-          marker=dict(color=error_band_color),
-          line=dict(width=0),
-          mode='lines',
-          fillcolor=error_band_color,
-          fill='tonexty',
-          # showlegend=False,
-      )
-    ])
-    plotly_fig = go.Figure(figure)
-    plotly_fig.update_layout(
-      yaxis_title="Probability of Optimal Action",
-      xaxis_title="Episodes",
-      title=plot_title,
-    )
-    return plotly_fig
-    
+    return self.get_plot(results, plot_title, "Probability of Optimal Action")
+
   def display_and_save(self, results, desc):
-    pcr_plot = self.get_pcr_plot(results[0], desc)
+    cpr_plot = self.get_cpr_plot(results[0], desc)
     poa_plot = self.get_poa_plot(results[1], desc)
     elapsed_time = time.time() - self.start_time
-    print("\nTime elapsed: {:02d}:{:02d}:{:05.2f}".format(
-      int(elapsed_time // (60 * 60)),
-      int((elapsed_time // 60 % 60)),
-      elapsed_time % 60
-    ))
-    print("Seed: %d" % self.seed)
-    N = self.get_N()
-    print("N=%d" % N)
+    print_info = "Time Elapsed: {}d {}h {}m {}s".format(\
+      int(elapsed_time // (60 * 60 * 24)),\
+      int(elapsed_time // (60 * 60)),\
+      int(elapsed_time // 60 % 60),\
+      int(elapsed_time % 60)
+    )
+    print(f'{print_info}{" " * (60 - len(print_info))}')
+
     if self.show:
-      pcr_plot.show()
+      cpr_plot.show()
       poa_plot.show()
     if self.save:
-      file_name = "{}_N{}".format(desc, N)
+      file_name = "{}_N{}".format(desc, self.get_N())
       dir_path = "../output/%s" % file_name
       mkdir(dir_path)
-      pcr_plot.write_html(dir_path + "/pcr.html")
+      cpr_plot.write_html(dir_path + "/cpr.html")
       poa_plot.write_html(dir_path + "/poa.html")
       self.saved_data.to_csv(dir_path + "/last_episode_data.csv")
       with open(dir_path + '/values.json', 'w') as outfile:
         dump(self.values, outfile)
       
   def run(self, desc=""):
+    if desc:
+      print(desc)
+    print("seed=%d | N=%d" % (self.seed, self.get_N()))
     results = self.combine_results(self.multithreaded_sim())
     self.display_and_save(results, desc)
     
@@ -306,43 +270,33 @@ class Sim:
     values["environment_dicts"] = tuple(parsed_env_dicts)
     values["seed"] = self.seed
     return values
-  
-  def empty_databank(self):
-    return DataBank(self.domains, self.act_var, self.rew_var)
 
 if __name__ == "__main__":
   baseline = {
     "W": RandomModel((0.5, 0.5)),
     "X": ActionModel(("W"), (0, 1)),
-    "Z": DiscreteModel(("X"), {(0,): (0.55, 0.45), (1,): (0.55, 0.45)}),
-    "Y": DiscreteModel(("W", "Z"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
+    "Z": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+    "Y": DiscreteModel(("W", "Z"), {(0,0): (1,0), (0,1): (1,0), (1,0): (1,0), (1,1): (0,1)})
+    #"Y": DiscreteModel(("W", "Z"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
   }
-  # w1 = dict(baseline)
-  # w1["W"] = RandomModel((0.1, 0.9))
-  # w9 = dict(baseline)
-  # w9["W"] = RandomModel((0.9, 0.1))
-  # z5 = dict(baseline)
-  # z5["Z"] = DiscreteModel(("X"), {(0,): (0.9, 0.1), (1,): (0.5, 0.5)})
   reversed_z = dict(baseline)
-  reversed_z["Z"] = DiscreteModel(("X"), {(0,): (0.45, 0.55), (1,): (0.55, 0.45)})
-  # reversed_y = dict(baseline)
-  # reversed_y["Y"] = DiscreteModel(("W", "Z"), {(0, 0): (0, 1), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)})
+  reversed_z["Z"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy="Adjust",
-    asr=("EG", "EF", "ED", "TS"),
+    policy=("Solo", "Naive", "Sensitive", "Adjust"),
+    asr="EG",
     T=250,
-    MC_sims=10,
-    div_node_conf=0.02,
-    EG_epsilon=0.04,
-    EF_rand_trials=10,
-    ED_cooling_rate=0.905,
-    is_community=True,
+    MC_sims=100,
+    div_node_conf=0.04,
+    EG_epsilon=0.2,
+    EF_rand_trials=40,
+    ED_cooling_rate=0.97,
+    is_community=False,
     rand_envs=True,
     env_mutation_chance=0.5,
     show=True,
     save=True,
     seed=None
   )
-  experiment.run(desc="Adjust Community ASR Comparison with Randomized Environments")
+  experiment.run(desc="Policy Comparison of Epsilon Greedy ASR using Randomized Environments (epsilon=0.2)")
