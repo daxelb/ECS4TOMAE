@@ -142,7 +142,7 @@ class Sim:
           process_result[i][ind_var] = [data]
           continue
         process_result[i][ind_var].append(data)
-        break
+        continue
       for agent, data in raw[i].items():
         ind_var = agent.get_ind_var_value(self.ind_var)
         if ind_var not in process_result[i]:
