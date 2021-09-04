@@ -275,12 +275,12 @@ if __name__ == "__main__":
   baseline = {
     "W": RandomModel((0.5, 0.5)),
     "X": ActionModel(("W"), (0, 1)),
-    "Z": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
-    "Y": DiscreteModel(("W", "Z"), {(0,0): (1,0), (0,1): (1,0), (1,0): (1,0), (1,1): (0,1)})
-    #"Y": DiscreteModel(("W", "Z"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
+    "Z": DiscreteModel(("X"), {(0,): (0.55, 0.45), (1,): (0.45, 0.55)}),
+    # "Y": DiscreteModel(("W", "Z"), {(0,0): (1,0), (0,1): (1,0), (1,0): (1,0), (1,1): (0,1)})
+    "Y": DiscreteModel(("W", "Z"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
   }
   reversed_z = dict(baseline)
-  reversed_z["Z"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
+  reversed_z["Z"] = DiscreteModel(("X"), {(0,): (0.45, 0.55), (1,): (0.55, 0.45)})
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
@@ -299,4 +299,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="Policy Comparison of Thompson Sampling ASR using Randomized Environments")
+  experiment.run(desc="Policy Comparison of Thompson Sampling ASR using 'Barely Divergent' Environments")
