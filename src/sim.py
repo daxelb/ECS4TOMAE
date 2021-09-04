@@ -285,7 +285,7 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy=("Solo", "Naive", "Sensitive", "Adjust"),
-    asr="EG",
+    asr="TS",
     T=250,
     MC_sims=100,
     div_node_conf=0.04,
@@ -299,4 +299,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="Policy Comparison of Epsilon Greedy ASR using Randomized Environments (epsilon=0.2)")
+  experiment.run(desc="Policy Comparison of Thompson Sampling ASR using Randomized Environments")
