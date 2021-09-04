@@ -101,10 +101,7 @@ class Sim:
       yield base
       
   def world_generator(self, rng):
-    # ap = list(self.ass_perms)
-    # rng.shuffle(ap)
-    ap = self.ass_perms
-    assignments = [dict(ass) for ass in ap for _ in range(self.num_agents)]
+    assignments = [dict(ass) for ass in self.ass_perms for _ in range(self.num_agents)]
     if not self.is_community:
       rng.shuffle(assignments)
     envs = cycle(self.environment_generator(rng)) if self.rand_envs else cycle(self.environments)
