@@ -299,4 +299,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="Community of Adjust Agent - ASR Comparison")
+  experiment.run(desc="ASR Comparison of Adjust Agent Communities using Randomized Environments")
