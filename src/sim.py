@@ -101,7 +101,10 @@ class Sim:
       yield base
       
   def world_generator(self, rng):
-    assignments = [dict(ass) for ass in self.ass_perms for _ in range(self.num_agents)]
+    # ap = list(self.ass_perms)
+    # rng.shuffle(ap)
+    ap = self.ass_perms
+    assignments = [dict(ass) for ass in ap for _ in range(self.num_agents)]
     if not self.is_community:
       rng.shuffle(assignments)
     envs = cycle(self.environment_generator(rng)) if self.rand_envs else cycle(self.environments)
@@ -284,19 +287,19 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy="Sensitive",
-    asr="EG",#("EG", "EF", "ED", "TS"),
-    T=100,
+    policy="Adjust",
+    asr=("EG", "EF", "ED", "TS"),
+    T=250,
     MC_sims=50,
     div_node_conf=0.04,
-    EG_epsilon=(0.1,0.100001),
-    EF_rand_trials=20,
-    ED_cooling_rate=0.9608,
+    EG_epsilon=0.2,
+    EF_rand_trials=40,
+    ED_cooling_rate=0.97,
     is_community=True,
     rand_envs=True,
     env_mutation_chance=0.5,
     show=True,
-    save=False,
-    seed=1000
+    save=True,
+    seed=None
   )
-  experiment.run(desc="ABCDEFGCommunity of Adjust Agent - ASR Comparison")
+  experiment.run(desc="Community of Adjust Agent - ASR Comparison")
