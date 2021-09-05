@@ -94,10 +94,11 @@ class Sim:
   def environment_generator(self, rng):
     template = {node: model.randomize(rng) for node, model in self.environments[0]._assignment.items()}
     base = Environment(template, self.rew_var)
+    rand_var = rng.choice(list(self.environments[0].get_non_act_vars()))
     for _ in range(self.num_agents):
       if rng.random() < self.emc:
         randomized = dict(template)
-        randomized[self.rew_var] = randomized[self.rew_var].randomize(rng)
+        randomized[rand_var] = randomized[rand_var].randomize(rng)
         yield Environment(randomized, self.rew_var)
         continue
       yield base
@@ -286,14 +287,14 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
     policy=("Solo", "Naive", "Sensitive", "ExtraSensitive", "Adjust"),
-    asr=("EG", "EF", "ED","TS"),
+    asr="TS",#("EG", "EF", "ED","TS"),
     T=250,
-    MC_sims=500,
+    MC_sims=5,
     div_node_conf=0.04,
     EG_epsilon=0.075,
     EF_rand_trials=28,
     ED_cooling_rate=0.9,
-    is_community=True,
+    is_community=False,
     rand_envs=True,
     env_mutation_chance=0.5,
     show=True,

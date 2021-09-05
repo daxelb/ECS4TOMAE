@@ -50,6 +50,9 @@ class Environment:
   def get_vars(self):
     return set(self.domains.keys())
   
+  def get_non_act_vars(self):
+    return self.get_vars() - {self.act_var}
+
   def get_act_var(self):
     return self.act_var
   
