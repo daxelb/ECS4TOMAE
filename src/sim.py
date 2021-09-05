@@ -286,7 +286,7 @@ if __name__ == "__main__":
     policy="Adjust",#("Solo", "Naive", "Sensitive", "Adjust"),
     asr=("EG", "EF", "ED","TS"),
     T=250,
-    MC_sims=100,
+    MC_sims=500,
     div_node_conf=0.04,
     EG_epsilon=0.075,
     EF_rand_trials=28,
