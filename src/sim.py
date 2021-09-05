@@ -1,4 +1,4 @@
-from agent import SoloAgent, NaiveAgent, SensitiveAgent, AdjustAgent
+from agent import SoloAgent, NaiveAgent, SensitiveAgent, ExtraSensitiveAgent, AdjustAgent
 from world import World
 from data import DataBank
 from assignment_models import ActionModel, DiscreteModel, RandomModel
@@ -84,6 +84,8 @@ class Sim:
       return NaiveAgent(rng, name, environment, databank, **assignments)
     elif policy == "Sensitive":
       return SensitiveAgent(rng, name, environment, databank, **assignments)
+    elif policy == "ExtraSensitive":
+      return ExtraSensitiveAgent(rng, name, environment, databank, **assignments)
     elif policy == "Adjust":
       return AdjustAgent(rng, name, environment, databank, **assignments)
     else:
@@ -283,7 +285,7 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy="Adjust",#("Solo", "Naive", "Sensitive", "Adjust"),
+    policy=("Solo", "Naive", "Sensitive", "ExtraSensitive", "Adjust"),
     asr=("EG", "EF", "ED","TS"),
     T=250,
     MC_sims=100,
