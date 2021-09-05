@@ -288,7 +288,7 @@ if __name__ == "__main__":
     asr="TS",
     T=250,
     MC_sims=100,
-    div_node_conf=0.04,
+    div_node_conf=0.02,
     EG_epsilon=0.2,
     EF_rand_trials=40,
     ED_cooling_rate=0.97,
