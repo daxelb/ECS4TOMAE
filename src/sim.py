@@ -273,25 +273,24 @@ class Sim:
 
 if __name__ == "__main__":
   baseline = {
-    "W": RandomModel((0.5, 0.5)),
-    "X": ActionModel(("W"), (0, 1)),
-    "Z": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
-    "Y": DiscreteModel(("W", "Z"), {(0,0): (1,0), (0,1): (1,0), (1,0): (1,0), (1,1): (0,1)})
-    #"Y": DiscreteModel(("W", "Z"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
+    "Z": RandomModel((0.5, 0.5)),
+    "X": ActionModel(("Z"), (0, 1)),
+    "W": DiscreteModel(("X"), {(0,): (0.55, 0.45), (1,): (0.45, 0.55)}),
+    "Y": DiscreteModel(("Z", "W"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
   }
   reversed_z = dict(baseline)
-  reversed_z["Z"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
+  reversed_z["W"] = DiscreteModel(("X"), {(0,): (0.45, 0.55), (1,): (0.55, 0.45)})
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy="Adjust",
-    asr=("EG", "EF", "ED", "TS"),
+    policy="Adjust",#("Solo", "Naive", "Sensitive", "Adjust"),
+    asr=("EG", "EF", "ED","TS"),
     T=250,
     MC_sims=100,
     div_node_conf=0.04,
-    EG_epsilon=0.2,
-    EF_rand_trials=40,
-    ED_cooling_rate=0.97,
+    EG_epsilon=0.075,
+    EF_rand_trials=28,
+    ED_cooling_rate=0.9,
     is_community=True,
     rand_envs=True,
     env_mutation_chance=0.5,
@@ -299,4 +298,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="ASR Comparison of Adjust Agent Communities using Randomized Environments")
+  experiment.run(desc="ASR Comparison for Adjust Agent Community using Randomized Environments")
