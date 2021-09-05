@@ -135,7 +135,15 @@ class SensitiveAgent(Agent):
   
   def thompson_sample(self, givens):
     return self.ts_from_dataset(self.databank.sensitive_data(self), givens)
-    
+
+class ExtraSensitiveAgent(SensitiveAgent):
+  def choose_optimal(self, givens):
+    optimal = self.databank.extra_sensitive_data(self).optimal_choice(
+        self.rng, self.action_domain, self.reward_var, givens)
+    return optimal if optimal else self.choose_random()
+
+  def thompson_sample(self, givens):
+    return self.ts_from_dataset(self.databank.extra_sensitive_data(self), givens)
     
 class AdjustAgent(SensitiveAgent):
   def __init__(self, *args, **kwargs):
