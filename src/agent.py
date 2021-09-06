@@ -70,6 +70,7 @@ class Agent:
     pass
   
   def choose_random(self):
+    # print("@!")
     return self.rng.choice(permutations(self.action_domain))
   
   def thompson_sample(self, givens):
@@ -192,24 +193,24 @@ class AdjustAgent(SensitiveAgent):
     return summation
 
   def solve_transport_formula_new(self, tf, other):
-    num_datapoints = [len(only_dicts_with_givens(self.databank[self], tf[0].get_assignments(tf[0].e()))),
-                      len(only_dicts_with_givens(self.databank[other], tf[1].get_assignments(tf[1].e())))]
+    num_datapoints = len(only_dicts_with_givens(self.databank[self], tf[0].get_assignments(tf[0].e()))) + \
+                     len(only_dicts_with_givens(self.databank[other], tf[1].get_assignments(tf[1].e())))
     tf = tf.deepcopy()
-    a_summation = 0
-    b_summation = 0
+    summation = 0
+    # b_summation = 0
     for summator in permutations(tf.get_unassigned()):
       tf.assign(summator)
       tf0 = tf[0].solve(self.databank[self])
       tf1 = tf[1].solve(self.databank[other])
       if tf0 is None or tf1 is None:
         return None
-      a_sol1 = tf0 * num_datapoints[0]
-      b_sol1 = num_datapoints[0] - a_sol1
-      a_sol2 = tf1 * num_datapoints[1]
-      b_sol2 = num_datapoints[1] - a_sol2
-      a_summation += a_sol1 * a_sol2
-      b_summation += b_sol1 * b_sol2
-    return (a_summation, b_summation)
+      a_sol1 = tf0 #* num_datapoints[0]
+      # b_sol1 = num_datapoints[0] - a_sol1
+      a_sol2 = tf1 #* num_datapoints[1]
+      # b_sol2 = num_datapoints[1] - a_sol2
+      summation += a_sol1 * a_sol2
+      # b_summation += b_sol1 * b_sol2
+    return (num_datapoints * summation, num_datapoints - (num_datapoints * summation))
     
   def choose_optimal(self, givens):
     actions = permutations(self.action_domain)
@@ -277,28 +278,87 @@ class AdjustAgent(SensitiveAgent):
 
 
   def new_ts(self, givens):
-    choice = None
-    max_sample = 0 #float('-inf')
-    for action in permutations(self.action_domain):
-      alpha, beta = 1, 1
-      for agent in self.databank:
-        transport_formula = self.transport_formula(agent, givens)
-        transport_formula.assign(action)
+    actions = permutations(self.action_domain)
+    rewards = permutations(self.reward_domain)
+    
+    action_rewards = {}
+    for action in actions:
+      act_hash = hash_from_dict(action)
+      action_rewards[act_hash] = {}
+      for rew in rewards:
+        action_rewards[act_hash][hash_from_dict(rew)] = [[],[]]
+    
+    for agent in self.databank:
+      transport_formula = self.transport_formula(agent, givens)
+      for act in actions:
+        transport_formula.assign(act)
+        act_hash = hash_from_dict(act)
         num_datapoints = self.get_num_datapoints(transport_formula, agent)
         if not num_datapoints:
           continue
-        transport_formula.assign({self.reward_var: 1})
-        tf_sol = self.solve_transport_formula_new(transport_formula, agent)
-        a = tf_sol[0] if tf_sol is not None else 0
-        b = tf_sol[1] if tf_sol is not None else 0
-        alpha += a
-        beta += b
-      # print("ADJ",alpha)
+        for rew in rewards:
+          transport_formula.assign(rew)
+          rew_hash = hash_from_dict(rew)
+          tf_sol = self.solve_transport_formula(transport_formula, agent)
+          if tf_sol is None:
+            continue
+          action_rewards[act_hash][rew_hash][0].append(num_datapoints)
+          action_rewards[act_hash][rew_hash][1].append(tf_sol)
+
+    
+    choice = None
+    max_sample = 0
+    for act in action_rewards:
+      alpha, beta = 1, 1
+      # alpha_weight_total = sum(action_rewards[act]["Y=1"][0])
+      # beta_weight_total = sum(action_rewards[act]["Y=0"][0])
+      # if not alpha_weight_total or not beta_weight_total:
+        # continue
+      for i in range(len(action_rewards[act]["Y=1"][0])):
+        alpha += action_rewards[act]["Y=1"][1][i] * (action_rewards[act]["Y=1"][0][i])
+      for i in range(len(action_rewards[act]["Y=0"][0])):
+        beta += action_rewards[act]["Y=0"][1][i] * (action_rewards[act]["Y=0"][0][i])
       sample = self.rng.beta(alpha, beta)
+      # print(alpha, beta)
+      # print(sample)
       if sample > max_sample:
-        choice = action
+        # print("!")
+        choice = dict_from_hash(act)
+        # print(choice)
         max_sample = sample
-    return choice
+    return choice if choice is not None else self.choose_random()
+    #   for rew in action_rewards[act]:
+    #     reward_prob = 0
+    #     weight_total = sum(action_rewards[act][rew][0])
+    #     if not weight_total:
+    #       continue
+    #     for i in range(len(action_rewards[act][rew][0])):
+    #       reward_prob += action_rewards[act][rew][1][i] * (action_rewards[act][rew][0][i] / weight_total)
+    #     weighted_act_rew[act] += reward_prob * float(rew.split("=",1)[1])
+    # optimal = dict_from_hash(max_key(self.rng, weighted_act_rew))
+    # return optimal if optimal else self.choose_random()
+    # choice = None
+    # max_sample = 0 #float('-inf')
+    # for action in permutations(self.action_domain):
+    #   alpha, beta = 1, 1
+    #   for agent in self.databank:
+    #     transport_formula = self.transport_formula(agent, givens)
+    #     transport_formula.assign(action)
+    #     num_datapoints = self.get_num_datapoints(transport_formula, agent)
+    #     if not num_datapoints:
+    #       continue
+    #     transport_formula.assign({self.reward_var: 1})
+    #     tf_sol = self.solve_transport_formula_new(transport_formula, agent)
+    #     a = tf_sol[0] if tf_sol is not None else 0
+    #     b = tf_sol[1] if tf_sol is not None else 0
+    #     alpha += a
+    #     beta += b
+    #   # print("ADJ",alpha)
+    #   sample = self.rng.beta(alpha, beta)
+    #   if sample > max_sample:
+    #     choice = action
+    #     max_sample = sample
+    # return choice
 
   def thompson_sample(self, givens):
       return self.new_ts(givens)
