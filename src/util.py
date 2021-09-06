@@ -65,15 +65,19 @@ def kl_divergence(domains, P_data, Q_data, query, log_base=e):
   Px_and_Qx = get_Px_and_Qx(domains, P_data, Q_data, query)
   if Px_and_Qx is None:
     return None
+  adjustment = len(Px_and_Qx) / 2
+  # print(query.query_var(), psum, qsum)
   kld = 0
-  for i in range(len(Px_and_Qx)):
-    P_i = Px_and_Qx[i][1][0]
-    Q_i = Px_and_Qx[i][1][1]
+  for Pi_and_Qi in Px_and_Qx:
+    P_i = Pi_and_Qi[1][0] / adjustment
+    Q_i = Pi_and_Qi[1][1] / adjustment
     if P_i == Q_i:
       continue
     if P_i == 0 or Q_i == 0:
       return None
     kld += P_i * log(P_i / Q_i, log_base)
+  # if query.query_var() == "Y":
+    # print(kld)
   return kld
 
 def get_Px_and_Qx(domains, P_data, Q_data, query):
