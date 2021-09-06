@@ -179,17 +179,35 @@ class AdjustAgent(SensitiveAgent):
         other_queries.append(q)
     return Product([my_queries, other_queries]).assign(self.environment.domains).assign(givens)
     
-  def solve_transport_formula(self, formula, other):
-    formula = formula.deepcopy()
+  def solve_transport_formula(self, tf, other):
+    tf = tf.deepcopy()
     summation = 0
-    for summator in permutations(formula.get_unassigned()):
-      formula.assign(summator)
-      sol1 = formula[0].solve(self.databank[self])
-      sol2 = formula[1].solve(self.databank[other])
+    for summator in permutations(tf.get_unassigned()):
+      tf.assign(summator)
+      sol1 = tf[0].solve(self.databank[self])
+      sol2 = tf[1].solve(self.databank[other])
       if sol1 is None or sol2 is None:
         return None
       summation += sol1 * sol2
     return summation
+
+  def solve_transport_formula_new(self, tf, other):
+    num_datapoints = [len(only_dicts_with_givens(self.databank[self], tf[0].get_assignments(tf[0].e()))),
+                      len(only_dicts_with_givens(self.databank[other], tf[1].get_assignments(tf[1].e())))]
+    tf = tf.deepcopy()
+    a_summation = 0
+    b_summation = 0
+    for summator in permutations(tf.get_unassigned()):
+      tf.assign(summator)
+      a_sol1 = tf[0].solve(self.databank[self]) * num_datapoints[0]
+      b_sol1 =  num_datapoints[0] - a_sol1
+      a_sol2 = tf[1].solve(self.databank[other]) * num_datapoints[1]
+      b_sol2 = num_datapoints[1] - a_sol1
+      if a_sol1 is None or a_sol2 is None:
+        return None
+      a_summation += a_sol1 * a_sol2
+      b_summation += b_sol1 * b_sol2
+    return (a_summation, b_summation)
     
   def choose_optimal(self, givens):
     actions = permutations(self.action_domain)
@@ -268,9 +286,9 @@ class AdjustAgent(SensitiveAgent):
         if not num_datapoints:
           continue
         transport_formula.assign({self.reward_var: 1})
-        a = self.solve_transport_formula(transport_formula, agent)
-        a = 0 if a is None else a * num_datapoints / len(self.databank.items())
-        b = (num_datapoints / len(self.databank.items())) - a
+        tf_sol = self.solve_transport_formula_new(transport_formula, agent)
+        a = tf_sol[0] if tf_sol is not None else 0
+        b = tf_sol[1] if tf_sol is not None else 0
         alpha += a
         beta += b
       # print("ADJ",alpha)
@@ -281,4 +299,4 @@ class AdjustAgent(SensitiveAgent):
     return choice
 
   def thompson_sample(self, givens):
-      return self.old_ts(givens) if self.epsilon == -99 else self.new_ts(givens)
+      return self.new_ts(givens)
