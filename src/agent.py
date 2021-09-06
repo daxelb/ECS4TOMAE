@@ -119,7 +119,7 @@ class NaiveAgent(Agent):
     super().__init__(*args, **kwargs)
     
   def choose_optimal(self, givens):
-    optimal = self.databank.all_data().optimal_choice(self.rng, self.action_domain, self.reward_var, givens)
+    optimal = self.databank[self].optimal_choice(self.rng, self.action_domain, self.reward_var, givens)
     return optimal if optimal else self.choose_random()
   
   def thompson_sample(self, givens):
@@ -191,7 +191,7 @@ class AdjustAgent(SensitiveAgent):
       summation += sol1 * sol2
     return summation
     
-  def choose_optimal(self, givens):    
+  def choose_optimal(self, givens):
     actions = permutations(self.action_domain)
     rewards = permutations(self.reward_domain)
     
