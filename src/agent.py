@@ -199,12 +199,14 @@ class AdjustAgent(SensitiveAgent):
     b_summation = 0
     for summator in permutations(tf.get_unassigned()):
       tf.assign(summator)
-      a_sol1 = tf[0].solve(self.databank[self]) * num_datapoints[0]
-      b_sol1 =  num_datapoints[0] - a_sol1
-      a_sol2 = tf[1].solve(self.databank[other]) * num_datapoints[1]
-      b_sol2 = num_datapoints[1] - a_sol1
-      if a_sol1 is None or a_sol2 is None:
+      tf0 = tf[0].solve(self.databank[self])
+      tf1 = tf[1].solve(self.databank[other])
+      if tf0 is None or tf1 is None:
         return None
+      a_sol1 = tf0 * num_datapoints[0]
+      b_sol1 = num_datapoints[0] - a_sol1
+      a_sol2 = tf1 * num_datapoints[1]
+      b_sol2 = num_datapoints[1] - a_sol1
       a_summation += a_sol1 * a_sol2
       b_summation += b_sol1 * b_sol2
     return (a_summation, b_summation)

@@ -47,7 +47,7 @@ class Sim:
     self.ind_var = self.get_ind_var()
     self.T = T
     self.MC_sims = MC_sims
-    self.num_threads = 1#mp.cpu_count()
+    self.num_threads = mp.cpu_count()
     self.ass_perms = self.get_assignment_permutations()
     self.is_community = is_community
     self.show = show
@@ -288,10 +288,10 @@ if __name__ == "__main__":
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
     policy="Adjust",
     asr="TS",#("EG", "EF", "ED","TS"),
-    T=250,
-    MC_sims=1,
+    T=500,
+    MC_sims=12,
     div_node_conf=0.4,
-    EG_epsilon=(-99,0.07),
+    EG_epsilon=0.07,
     EF_rand_trials=28,
     ED_cooling_rate=0.9,
     is_community=False,
