@@ -206,7 +206,7 @@ class AdjustAgent(SensitiveAgent):
       a_sol1 = tf0 * num_datapoints[0]
       b_sol1 = num_datapoints[0] - a_sol1
       a_sol2 = tf1 * num_datapoints[1]
-      b_sol2 = num_datapoints[1] - a_sol1
+      b_sol2 = num_datapoints[1] - a_sol2
       a_summation += a_sol1 * a_sol2
       b_summation += b_sol1 * b_sol2
     return (a_summation, b_summation)
