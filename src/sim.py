@@ -47,7 +47,7 @@ class Sim:
     self.ind_var = self.get_ind_var()
     self.T = T
     self.MC_sims = MC_sims
-    self.num_threads = 1#mp.cpu_count()
+    self.num_threads = mp.cpu_count()
     self.ass_perms = self.get_assignment_permutations()
     self.is_community = is_community
     self.show = show
@@ -286,11 +286,11 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    policy=("Solo", "Sensitive", "Adjust"),
+    policy=("Solo","Naive" "Sensitive", "ExtraSensitive","Adjust"),
     asr="TS",#("EG", "EF", "ED","TS"),
-    T=250,
-    MC_sims=15,
-    div_node_conf=0.4,
+    T=500,
+    MC_sims=120,
+    div_node_conf=0.2,
     EG_epsilon=0.07,
     EF_rand_trials=28,
     ED_cooling_rate=0.9,
@@ -298,7 +298,7 @@ if __name__ == "__main__":
     rand_envs=True,
     env_mutation_chance=0.5,
     show=True,
-    save=False,
+    save=True,
     seed=None
   )
-  experiment.run(desc="ASR Comparison for Adjust Community using Randomized MAT-Es")
+  experiment.run(desc="Policy Comparison using Thompson Sampling and Randomized MAT-Es")
