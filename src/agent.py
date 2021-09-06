@@ -232,10 +232,9 @@ class AdjustAgent(SensitiveAgent):
     optimal = dict_from_hash(max_key(self.rng, weighted_act_rew))
     return optimal if optimal else self.choose_random()
 
-  
-  def thompson_sample(self, givens):
+  def old_ts(self, givens):
     choice = None
-    max_sample = 0 #float('-inf')
+    max_sample = 0  # float('-inf')
     for action in permutations(self.action_domain):
       alpha, beta = 1, 1
       for agent in self.databank:
@@ -254,4 +253,32 @@ class AdjustAgent(SensitiveAgent):
       if sample > max_sample:
         choice = action
         max_sample = sample
-    return choice #if choice else self.choose_random()
+    return choice
+
+
+  def new_ts(self, givens):
+    choice = None
+    max_sample = 0 #float('-inf')
+    for action in permutations(self.action_domain):
+      alpha, beta = 1, 1
+      for agent in self.databank:
+        transport_formula = self.transport_formula(agent, givens)
+        transport_formula.assign(action)
+        num_datapoints = self.get_num_datapoints(transport_formula, agent)
+        if not num_datapoints:
+          continue
+        transport_formula.assign({self.reward_var: 1})
+        a = self.solve_transport_formula(transport_formula, agent)
+        a = 0 if a is None else a * num_datapoints / len(self.databank.items())
+        b = (num_datapoints / len(self.databank.items())) - a
+        alpha += a
+        beta += b
+      # print("ADJ",alpha)
+      sample = self.rng.beta(alpha, beta)
+      if sample > max_sample:
+        choice = action
+        max_sample = sample
+    return choice
+
+  def thompson_sample(self, givens):
+      return self.old_ts(givens) if self.epsilon == -99 else self.new_ts(givens)
