@@ -40,6 +40,10 @@ class DataSet(list):
           best_choice.append(choice)
     return rng.choice(best_choice) if best_choice else None
 
+  def debug_optimal_choice(self, rng, act_dom, rew_var, givens):
+    for choice in permutations(act_dom):
+      expected_rew = self.query({**choice, **givens}).mean(rew_var)
+      print(choice, expected_rew)
 
 class DataBank:
   def __init__(self, domains, act_var, rew_var, data={}, divergence={}):
@@ -61,7 +65,7 @@ class DataBank:
       self.divergence[new_agent][a] = {}
       self.divergence[a][new_agent] = {}
       for node in self.get_non_act_nodes():
-        div_val = 1 if a != new_agent else 0
+        div_val = inf if a != new_agent else 0
         self.divergence[a][new_agent][node] = div_val
         self.divergence[new_agent][a][node] = div_val
     
@@ -84,13 +88,24 @@ class DataBank:
           continue
         for node in self.get_non_act_nodes():
           query = P_agent.environment.cgm.get_node_dist(node)
+          # if node=="Y":
+            # print(query.combos(self.domains))
+          self.divergence[P_agent][Q_agent][node] = 0
           self.divergence[P_agent][Q_agent][node] = kl_divergence(self.domains, P_data, Q_data, query)
     return
   
   def div_nodes(self, P_agent, Q_agent):
     if P_agent == Q_agent:
       return []
-    return [node for node, divergence in self.divergence[P_agent][Q_agent].items() if divergence is None or divergence > P_agent.div_node_conf]
+    div_nodes = []
+    for node, divergence in self.divergence[P_agent][Q_agent].items():
+      # if node != "X":
+      #   print(node, divergence)
+      if divergence is None or divergence > P_agent.div_node_conf:
+        div_nodes.append(node)
+    # print(div_nodes)
+    return div_nodes
+    #[node for node, divergence in self.divergence[P_agent][Q_agent].items() if divergence is None or divergence > P_agent.div_node_conf]
 
   def all_data(self):
     data = DataSet()

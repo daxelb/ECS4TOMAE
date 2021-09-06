@@ -276,8 +276,8 @@ if __name__ == "__main__":
   baseline = {
     "Z": RandomModel((0.5, 0.5)),
     "X": ActionModel(("Z"), (0, 1)),
-    "W": DiscreteModel(("X"), {(0,): (0.55, 0.45), (1,): (0.45, 0.55)}),
-    "Y": DiscreteModel(("Z", "W"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
+    "W": DiscreteModel(("X"), {(0,): (0.9, 0.1), (1,): (0.1, 0.9)}),
+    "Y": DiscreteModel(("Z", "W"), {(0, 0): (0.9, 0.1), (0, 1): (0.7, 0.3), (1, 0): (0.7, 0.3), (1, 1): (0.05, 0.95)})
   }
   reversed_w = dict(baseline)
   reversed_w["W"] = DiscreteModel(("X"), {(0,): (0.45, 0.55), (1,): (0.55, 0.45)})
@@ -299,4 +299,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="ASR Comparison for Adjust Community using Randomized MAT-Es")
+  experiment.run(desc="Policy Comparison using Thompson Sampling and Randomized MAT-Es")
