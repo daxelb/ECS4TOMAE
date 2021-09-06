@@ -90,7 +90,7 @@ class DataBank:
   def div_nodes(self, P_agent, Q_agent):
     if P_agent == Q_agent:
       return []
-    return [node for node, divergence in self.divergence[P_agent][Q_agent].items() if divergence is None or abs(divergence) > P_agent.div_node_conf]
+    return [node for node, divergence in self.divergence[P_agent][Q_agent].items() if divergence is None or divergence > P_agent.div_node_conf]
 
   def all_data(self):
     data = DataSet()

@@ -286,19 +286,19 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, baseline, reversed_z, reversed_z),
-    policy=("Solo", "Naive", "Sensitive", "ExtraSensitive", "Adjust"),
-    asr="TS",#("EG", "EF", "ED","TS"),
-    T=250,
-    MC_sims=5,
+    policy="Adjust",#("Solo", "Naive", "Sensitive", "ExtraSensitive", "Adjust"),
+    asr=("EG", "EF", "ED","TS"),
+    T=500,
+    MC_sims=100,
     div_node_conf=0.04,
-    EG_epsilon=0.075,
+    EG_epsilon=0.07,
     EF_rand_trials=28,
     ED_cooling_rate=0.9,
-    is_community=False,
+    is_community=True,
     rand_envs=True,
     env_mutation_chance=0.5,
     show=True,
     save=True,
     seed=None
   )
-  experiment.run(desc="ASR Comparison for Adjust Agent Community using Randomized Environments")
+  experiment.run(desc="ASR Comparison for Adjust Community using Randomized MAT-Es")
