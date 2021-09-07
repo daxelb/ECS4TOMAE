@@ -109,16 +109,7 @@ class DataBank:
   def div_nodes(self, P_agent, Q_agent):
     if P_agent == Q_agent:
       return []
-    div_nodes = []
-    for node, divergence in self.divergence[P_agent][Q_agent].items():
-      # if node != "X":
-      #   print(node, divergence)
-      scaled_tau = self.get_scaled_tau(P_agent, node)
-      if divergence is None or divergence > scaled_tau:
-        div_nodes.append(node)
-    # print(div_nodes)
-    return div_nodes
-    #[node for node, divergence in self.divergence[P_agent][Q_agent].items() if divergence is None or divergence > P_agent.tau]
+    return [node for node, divergence in self.divergence[P_agent][Q_agent].items() if divergence is None or divergence > self.get_scaled_tau(P_agent, node)]
 
   def all_data(self):
     data = DataSet()
