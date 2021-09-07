@@ -278,21 +278,21 @@ if __name__ == "__main__":
   baseline = {
     "Z": RandomModel((0.5, 0.5)),
     "X": ActionModel(("Z"), (0, 1)),
-    "W": DiscreteModel(("X"), {(0,): (0.9, 0.1), (1,): (0.1, 0.9)}),
-    "Y": DiscreteModel(("Z", "W"), {(0, 0): (0.9, 0.1), (0, 1): (0.7, 0.3), (1, 0): (0.7, 0.3), (1, 1): (0.05, 0.95)})
+    "W": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+    "Y": DiscreteModel(("Z", "W"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
   }
   reversed_w = dict(baseline)
-  reversed_w["W"] = DiscreteModel(("X"), {(0,): (0.1, 0.9), (1,): (0.9, 0.1)})
+  reversed_w["W"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
 
   experiment = Sim(
-    environment_dicts=(baseline, reversed_w, baseline, reversed_w),
+    environment_dicts=(baseline, baseline, baseline, baseline),
     policy="Adjust",#("Solo","Naive", "Sensitive","Adjust"),
     asr="TS",#("EG", "EF", "ED","TS"),
-    T=500,
-    MC_sims=1,
+    T=250,
+    MC_sims=12,
     div_node_conf=0.2,
     EG_epsilon=0.07,
-    EF_rand_trials=28,
+    EF_rand_trials=100,#28,
     ED_cooling_rate=0.9,
     is_community=False,
     rand_envs=True,

@@ -92,7 +92,7 @@ class Query:
   def solve(self, data):
     # assert self.all_assigned()
     query_space = data.query(self.e)
-    return query_space.num(self.Q) / len(query_space) if query_space else None
+    return len(query_space.query(self.Q)) / len(query_space) if query_space else None
   
   def solve_unassigned(self, data, domains):
     return {q: q.solve(data) for q in self.unassigned_combos(domains)}
@@ -341,9 +341,10 @@ class Product(Queries):
       if isinstance(q, Queries) and not isinstance(q, Summation):
         self._list[i] = Product(q)
     
-  def solve(self, data=None):
+  def solve(self, data):
+    # assert all(is_Q(q) or is_num(q) for q in self._list)
     product = 1
-    for q in self:
+    for q in self._list:
       new_mult = q.solve(data) if is_Q(q) else q
       if new_mult is None:
         return None
@@ -364,9 +365,6 @@ class Product(Queries):
     if not len(self):
       return "1"
     return "[{}]".format(" * ".join([str(e) for e in self._list]))
-
-  def __iter__(self):
-    return iter(self._list)
   
 class Quotient():
   def __init__(self, nume=None, denom=None):

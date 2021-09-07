@@ -232,7 +232,7 @@ class AdjustAgent(SensitiveAgent):
       # b_summation += b_sol1 * b_sol2
     return (num_datapoints * summation, num_datapoints - (num_datapoints * summation))
     
-  def choose_optimal(self, givens):
+  def choose_optimal2(self, givens):
     actions = permutations(self.action_domain)
     rewards = permutations(self.reward_domain)
     
@@ -279,6 +279,8 @@ class AdjustAgent(SensitiveAgent):
     for node in self.environment.get_non_act_vars():
       CPTs[node] = DataSet()
       for agent, data in self.databank.items():
+        # if agent == self:
+          # CPTs[node].extend(data)
         if node not in div_nodes[agent]:
           CPTs[node].extend(data)
     max_sample = 0
@@ -286,36 +288,65 @@ class AdjustAgent(SensitiveAgent):
     for action in permutations(self.action_domain):
       alpha_beta = self.get_alpha_beta(CPTs, div_nodes, action, givens)
       sample = self.rng.beta(alpha_beta[0], alpha_beta[1])
+      # sample = alpha_beta#alpha_beta[0]
       if sample > max_sample:
         max_sample = sample
         choice = action
     return choice
 
   def get_alpha_beta(self, CPTs, div_nodes, action, givens):
-    alpha, beta = 1,1
-    for agent in self.databank.keys():
-      if div_nodes[agent].issubset(self.environment.get_feat_vars()):
-        tf = self.transport_formula(div_nodes[agent], givens)
-        tf.assign(action)
-        weight = self.databank[agent].num({**action, **givens})
-        tf.assign({"Y": 1})
-        sol = Product([q.solve(CPTs[q.query_var()])
-                       for q in tf]).solve()
-        alpha += 0 if sol is None else sol * weight
-        tf.assign({"Y": 0})
-        sol = Product([q.solve(CPTs[q.query_var()])
-                       for q in tf]).solve()
-        beta += 0 if sol is None else sol * weight
-      elif "Y" not in div_nodes[agent]:
-        tf = Query({"Y":(0,1)},{"W":(0,1), **givens}) #self.transport_formula(div_nodes[agent], givens)
-        weight = self.databank[agent].num({**givens})
-        tf.assign({"Y": 1})
-        sol = tf.solve(CPTs["Y"])
-        alpha += 0 if sol is None else sol * weight
-        tf.assign({"Y": 1})
-        sol = tf.solve(CPTs["Y"])
-        beta += 0 if sol is None else sol * weight
+    sol = 0
+    for w in (0,1):
+      pt1 = Query({"Y": 1}, {**{"W": w}, **givens}).solve(CPTs["Y"])
+      pt2 = Query({"W": w}, action).solve(CPTs["W"])
+      if pt1 is None or pt2 is None:
+        return (1,1)
+      sol += pt1 * pt2
+    weight = len(CPTs["Y"].query(givens)) + len(CPTs["W"].query({**givens, **action}))
+    alpha = 1 + sol * weight
+    beta = 1 + (1-sol) * weight
     return (alpha, beta)
+    #Query({"Y": 1}, givens).solve(CPTs["Y"]) * Query({"W": (0,1)}, action).solve(CPTs["W"])
+    # tf = (Query({"Y": 1}, {"W": (0,1), **givens}), Query({"W": (0,1)}, action))
+    # weight = CPTs["Y"].num(givens) + CPTs["W"].num({**givens, **action})
+    # weight = CPTs["Y"].num(givens) + CPTs["W"].num({**action})
+    # tf.assign({"Y": 1})
+    
+    # sol = 0 if tf[0].solve(CPTs["Y"]) is None or tf[1].solve(CPTs["W"]) is None else tf[0].solve(CPTs["Y"]) * tf[1].solve(CPTs["W"])
+    # sol = Product([q.solve(CPTs[q.query_var()])
+    #                 for q in tf]).solve()
+    # alpha = sol
+    # tf = (Query({"Y": 1}, {"W": (0, 1), **givens}),
+    #       Query({"W": (0, 1)}, action))
+    # sol = tf[0].solve(CPTs["Y"]) * tf[1].solve(CPTs["W"])
+    # beta = 0 if sol is None else sol
+    # return (alpha, 0)#(1 + (alpha * weight), 1 + (beta * weight))
+
+  # def get_alpha_beta(self, CPTs, div_nodes, action, givens):
+  #   alpha, beta = 1,1
+  #   for agent in self.databank.keys():
+  #     if div_nodes[agent].issubset(self.environment.get_feat_vars()):
+  #       tf = self.transport_formula(div_nodes[agent], givens)
+  #       tf.assign(action)
+  #       weight = self.databank[agent].num({**action, **givens})
+  #       tf.assign({"Y": 1})
+  #       sol = Product([q.solve(CPTs[q.query_var()])
+  #                      for q in tf]).solve()
+  #       alpha += 0 if sol is None else sol * weight
+  #       tf.assign({"Y": 0})
+  #       sol = Product([q.solve(CPTs[q.query_var()])
+  #                      for q in tf]).solve()
+  #       beta += 0 if sol is None else sol * weight
+  #     elif "Y" not in div_nodes[agent]:
+  #       tf = Query({"Y":(0,1)},{"W":(0,1), **givens}) #self.transport_formula(div_nodes[agent], givens)
+  #       weight = self.databank[agent].num({**givens})
+  #       tf.assign({"Y": 1})
+  #       sol = tf.solve(CPTs["Y"])
+  #       alpha += 0 if sol is None else sol * weight
+  #       tf.assign({"Y": 1})
+  #       sol = tf.solve(CPTs["Y"])
+  #       beta += 0 if sol is None else sol * weight
+  #   return (alpha, beta)
         
   
   # def thompson_sample(self, givens):
