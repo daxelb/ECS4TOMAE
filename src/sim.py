@@ -104,7 +104,9 @@ class Sim:
       yield base
       
   def world_generator(self, rng):
-    assignments = [dict(ass) for ass in self.ass_perms for _ in range(self.num_agents)]
+    ap = list(self.ass_perms)
+    rng.shuffle(ap)
+    assignments = [dict(ass) for ass in ap for _ in range(self.num_agents)]
     if not self.is_community:
       rng.shuffle(assignments)
     envs = cycle(self.environment_generator(rng)) if self.rand_envs else cycle(self.environments)
@@ -295,19 +297,19 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    policy=Policy.ADJUST,#"Sensitive",#("Solo","Naive", "Sensitive","Adjust"),
+    policy=(Policy.SOLO, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST),
     asr=ASR.TS, #(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
-    T=250,
-    MC_sims=40,
+    T=500,
+    MC_sims=100,
     tau=0.1,
-    EG_epsilon=0.07,
-    EF_rand_trials=35,
-    ED_cooling_rate=0.95,
-    is_community=True,
-    rand_envs=False,
+    # EG_epsilon=0.07,
+    # EF_rand_trials=35,
+    # ED_cooling_rate=(0.95,0.98),
+    is_community=False,
+    rand_envs=True,
     env_mutation_chance=0.5,
     show=True,
-    save=False,
+    save=True,
     seed=None
   )
-  experiment.run(desc="Adjust Community ASR Comparison with Randomized MAT-Es T=500")
+  experiment.run(desc="Policy Comparison using Thompson Sampling ASR with Randomied MAT-Es")
