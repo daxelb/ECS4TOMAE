@@ -170,47 +170,55 @@ class Sim:
       line_hue = str(int(360 * (i / len(results))))
       df = DataFrame(results[ind_var])
       if yaxis_title == "Cumulative Pseudo Regret":
-        self.saved_data.insert(0, str(ind_var), df.iloc[:,-1])
+        self.saved_data.insert(0, str(ind_var), df.iloc[:, -1])
       y = df.mean(axis=0, numeric_only=True)
       sem = df.sem(axis=0, numeric_only=True)
       y_upper = y + sem
       y_lower = y - sem
-      line_color = "hsla(" + line_hue + ",100%,50%,1)"
-      error_band_color = "hsla(" + line_hue + ",100%,50%,0.125)"
+      line_color = "hsla(" + line_hue + ",100%,40%,1)"
+      error_band_color = "hsla(" + line_hue + ",100%,40%,0.125)"
       figure.extend([
-      go.Scatter(
-        name=str(ind_var),
-        x=x,
-        y=y,
-        line=dict(color=line_color),
-        mode='lines',
-      ),
-      go.Scatter(
-        name=str(ind_var)+"-upper",
-          x=x,
-          y=y_upper,
-          mode='lines',
-          marker=dict(color=error_band_color),
-          line=dict(width=0),
-          showlegend=False,
-      ),
-      go.Scatter(
-          name=str(ind_var)+"-lower",
-          x=x,
-          y=y_lower,
-          marker=dict(color=error_band_color),
-          line=dict(width=0),
-          mode='lines',
-          fillcolor=error_band_color,
-          fill='tonexty',
-          showlegend=False,
-      )
-    ])
+          go.Scatter(
+              name=str(ind_var),
+              x=x,
+              y=y,
+              line=dict(color=line_color, width=3),
+              mode='lines',
+          ),
+          go.Scatter(
+              name=str(ind_var)+"-upper",
+              x=x,
+              y=y_upper,
+              mode='lines',
+              marker=dict(color=error_band_color),
+              line=dict(width=0),
+              showlegend=False,
+          ),
+          go.Scatter(
+              name=str(ind_var)+"-lower",
+              x=x,
+              y=y_lower,
+              marker=dict(color=error_band_color),
+              line=dict(width=0),
+              mode='lines',
+              fillcolor=error_band_color,
+              fill='tonexty',
+              showlegend=False,
+          )
+      ])
     plotly_fig = go.Figure(figure)
     plotly_fig.update_layout(
-      yaxis_title=yaxis_title,
-      xaxis_title="Episodes",
-      # title=plot_title,
+        font=dict(size=18),
+        margin=dict(l=20, r=20, t=20, b=20),
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        ),
+        yaxis_title=yaxis_title,
+        xaxis_title="Trial",
+        # title=plot_title,
     )
     return plotly_fig
 
