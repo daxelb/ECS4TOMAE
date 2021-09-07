@@ -111,13 +111,8 @@ class DataBank:
     data = DataSet()
     [data.extend(d) for d in self.data.values()]
     return data
-  
-  def sensitive_data(self, P_agent):
-    data = DataSet()
-    [data.extend(Q_data) for Q_agent, Q_data in self.data.items() if len(self.div_nodes(P_agent, Q_agent)) == 0]
-    return data
 
-  def extra_sensitive_data(self, P_agent):
+  def sensitive_data(self, P_agent):
     feat_vars = set(P_agent.environment.feat_vars)
     data = DataSet()
     for Q_agent, Q_data in self.data.items():
