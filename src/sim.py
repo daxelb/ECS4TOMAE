@@ -192,7 +192,7 @@ class Sim:
           mode='lines',
           marker=dict(color=error_band_color),
           line=dict(width=0),
-          # showlegend=False,
+          showlegend=False,
       ),
       go.Scatter(
           name=str(ind_var)+"-lower",
@@ -203,14 +203,14 @@ class Sim:
           mode='lines',
           fillcolor=error_band_color,
           fill='tonexty',
-          # showlegend=False,
+          showlegend=False,
       )
     ])
     plotly_fig = go.Figure(figure)
     plotly_fig.update_layout(
       yaxis_title=yaxis_title,
       xaxis_title="Episodes",
-      title=plot_title,
+      # title=plot_title,
     )
     return plotly_fig
 
@@ -276,8 +276,8 @@ if __name__ == "__main__":
   baseline = {
     "Z": RandomModel((0.5, 0.5)),
     "X": ActionModel(("Z"), (0, 1)),
-    "W": DiscreteModel(("X"), {(0,): (0.9, 0.1), (1,): (0.1, 0.9)}),
-    "Y": DiscreteModel(("Z", "W"), {(0, 0): (0.9, 0.1), (0, 1): (0.7, 0.3), (1, 0): (0.7, 0.3), (1, 1): (0.05, 0.95)})
+    "W": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+    "Y": DiscreteModel(("Z", "W"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
   }
   reversed_w = dict(baseline)
   reversed_w["W"] = DiscreteModel(("X"), {(0,): (0.45, 0.55), (1,): (0.55, 0.45)})

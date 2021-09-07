@@ -60,7 +60,7 @@ class Environment:
     return {self.act_var: self.domains[self.act_var]}
   
   def get_feat_vars(self):
-    return self.cgm.get_parents(self.act_var)
+    return set(self.cgm.get_parents(self.act_var))
 
   def get_feat_doms(self):
     return only_given_keys(self.domains, self.get_feat_vars())

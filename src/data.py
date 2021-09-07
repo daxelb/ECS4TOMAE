@@ -22,6 +22,12 @@ class DataSet(list):
       if consistent:
         res.append(e)
     return res
+
+  def num(self, assignments):
+    num_consistent = 0
+    for e in self:
+      num_consistent += all(e[key] == assignments[key] for key in assignments)
+    return num_consistent
     
   def mean(self, var):
     total = len(self)
@@ -113,7 +119,7 @@ class DataBank:
     return data
 
   def sensitive_data(self, P_agent):
-    feat_vars = set(P_agent.environment.feat_vars)
+    feat_vars = P_agent.environment.get_feat_vars()
     data = DataSet()
     for Q_agent, Q_data in self.data.items():
       div_nodes = self.div_nodes(P_agent, Q_agent)
@@ -121,8 +127,15 @@ class DataBank:
         data.extend(Q_data)
     return data
 
+  def keys(self):
+    return self.data.keys()
+
+  def values(self):
+    return self.data.values()
+
   def items(self):
     return self.data.items()
+  
   
   def __iter__(self):
     return self.data.__iter__()
