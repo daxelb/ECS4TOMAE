@@ -1,6 +1,8 @@
 from query import Product, Query
 from util import hash_from_dict, dict_from_hash, permutations, only_dicts_with_givens, max_key, Counter
 from data import DataSet
+from enums import Policy, ASR
+
 class Agent:
   def __init__(self, rng, name, environment, databank, div_node_conf=None, asr="EG", epsilon=0, rand_trials=0, cooling_rate=0):
     self.rng = rng
@@ -9,7 +11,7 @@ class Agent:
     self.databank = databank
     self.div_node_conf = div_node_conf
     self.asr = asr
-    self.epsilon = 1 if asr == "ED" else epsilon
+    self.epsilon = 1 if asr == ASR.ED else epsilon
     self.rand_trials = rand_trials
     self.rand_trials_rem = rand_trials
     self.cooling_rate = cooling_rate
@@ -46,24 +48,24 @@ class Agent:
     self.databank[self].append(observation)
       
   def choose(self, givens):
-    if self.asr == "G":
+    if self.asr == ASR.G:
       return self.choose_optimal(givens)
-    elif self.asr == "EG":
+    elif self.asr == ASR.EG:
       if self.rng.random() < self.epsilon:
         return self.choose_random()
       return self.choose_optimal(givens)
-    elif self.asr == "EF":
+    elif self.asr == ASR.EF:
       if self.rand_trials_rem > 0:
         self.rand_trials_rem -= 1
         return self.choose_random()
       return self.choose_optimal(givens)
-    elif self.asr == "ED":
+    elif self.asr == ASR.ED:
       if self.rng.random() < self.epsilon:
         self.epsilon *= self.cooling_rate
         return self.choose_random()
       self.epsilon *= self.cooling_rate
       return self.choose_optimal(givens)
-    elif self.asr == "TS":
+    elif self.asr == ASR.TS:
       return self.thompson_sample(givens)
   
   def choose_optimal(self, givens):
@@ -99,7 +101,7 @@ class Agent:
     return (self.__class__, (self.rng, self.name, self.environment, self.databank, self.div_node_conf, self.asr, self.epsilon, self.rand_trials, self.cooling_rate))
   
   def __repr__(self):
-    return "<" + self.get_policy() + self.name + ": " + self.asr + ">"
+    return "<" + self.get_policy() + self.name + ": " + self.asr.value + ">"
   
   def __eq__(self, other):
     return isinstance(other, self.__class__) \

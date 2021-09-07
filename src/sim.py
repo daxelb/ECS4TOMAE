@@ -1,3 +1,4 @@
+from enum import Enum
 from agent import SoloAgent, NaiveAgent, SensitiveAgent, AdjustAgent
 from world import World
 from data import DataBank
@@ -12,6 +13,7 @@ from pandas import DataFrame
 from os import mkdir
 from json import dump
 from itertools import cycle
+from enums import Policy, ASR
 
 class Sim:
   def __init__(self, environment_dicts, policy, div_node_conf, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, env_mutation_chance=0, show=True, save=False, seed=None):
@@ -31,18 +33,18 @@ class Sim:
       "cooling_rate": ED_cooling_rate,
     }
     if isinstance(asr, str):
-      if asr != "EG":
+      if asr != ASR.EG:
         del self.assignments["epsilon"]
-      if asr != "EF":
+      if asr != ASR.EF:
         del self.assignments["rand_trials"]
-      if asr != "ED":
+      if asr != ASR.ED:
         del self.assignments["cooling_rate"]
     elif isinstance(asr, (tuple, list, set)):
-      if "EG" not in asr:
+      if ASR.EG not in asr:
         del self.assignments["epsilon"]
-      if "EF" not in asr:
+      if ASR.EF not in asr:
         del self.assignments["rand_trials"]
-      if "ED" not in asr:
+      if ASR.ED not in asr:
         del self.assignments["cooling_rate"]
     self.ind_var = self.get_ind_var()
     self.T = T
@@ -167,10 +169,11 @@ class Sim:
     figure = []
     x = list(range(self.T))
     for i, ind_var in enumerate(sorted(results)):
+      line_name = ind_var.value if isinstance(ind_var, Enum) else str(ind_var)
       line_hue = str(int(360 * (i / len(results))))
       df = DataFrame(results[ind_var])
       if yaxis_title == "Cumulative Pseudo Regret":
-        self.saved_data.insert(0, str(ind_var), df.iloc[:, -1])
+        self.saved_data.insert(0, line_name, df.iloc[:, -1])
       y = df.mean(axis=0, numeric_only=True)
       sem = df.sem(axis=0, numeric_only=True)
       y_upper = y + sem
@@ -179,14 +182,14 @@ class Sim:
       error_band_color = "hsla(" + line_hue + ",100%,40%,0.125)"
       figure.extend([
           go.Scatter(
-              name=str(ind_var),
+              name=line_name,
               x=x,
               y=y,
               line=dict(color=line_color, width=3),
               mode='lines',
           ),
           go.Scatter(
-              name=str(ind_var)+"-upper",
+              name=line_name+"-upper",
               x=x,
               y=y_upper,
               mode='lines',
@@ -195,7 +198,7 @@ class Sim:
               showlegend=False,
           ),
           go.Scatter(
-              name=str(ind_var)+"-lower",
+              name=line_name+"-lower",
               x=x,
               y=y_lower,
               marker=dict(color=error_band_color),
@@ -307,4 +310,4 @@ if __name__ == "__main__":
     save=False,
     seed=None
   )
-  experiment.run(desc="Policy Comparison using Thompson Sampling and Randomized MAT-Es")
+  experiment.run(desc="Adjust Community ASR Comparison with Randomized MAT-Es T=250")
