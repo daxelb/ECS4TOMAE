@@ -4,12 +4,12 @@ from data import DataSet
 from enums import ASR
 
 class Agent:
-  def __init__(self, rng, name, environment, databank, div_node_conf=None, asr="EG", epsilon=0, rand_trials=0, cooling_rate=0):
+  def __init__(self, rng, name, environment, databank, tau=None, asr="EG", epsilon=0, rand_trials=0, cooling_rate=0):
     self.rng = rng
     self.name = name
     self.environment = environment
     self.databank = databank
-    self.div_node_conf = div_node_conf
+    self.tau = tau
     self.asr = asr
     self.epsilon = 1 if asr == ASR.ED else epsilon
     self.rand_trials = rand_trials
@@ -25,8 +25,8 @@ class Agent:
     return self.databank[self][-1]
   
   def get_ind_var_value(self, ind_var):
-    if ind_var == "div_node_conf":
-      return self.div_node_conf
+    if ind_var == "tau":
+      return self.tau
     elif ind_var == "policy":
       return self.get_policy()
     elif ind_var == "asr":
@@ -97,7 +97,7 @@ class Agent:
     return hash(self.name)
     
   def __reduce__(self):
-    return (self.__class__, (self.rng, self.name, self.environment, self.databank, self.div_node_conf, self.asr, self.epsilon, self.rand_trials, self.cooling_rate))
+    return (self.__class__, (self.rng, self.name, self.environment, self.databank, self.tau, self.asr, self.epsilon, self.rand_trials, self.cooling_rate))
   
   def __repr__(self):
     return "<" + self.get_policy() + self.name + ": " + self.asr.value + ">"

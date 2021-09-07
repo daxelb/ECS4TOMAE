@@ -46,6 +46,9 @@ class Environment:
   
   def get_domains(self):
     return self.domains
+
+  def get_domain(self, node):
+    return self.domains[node]
   
   def get_vars(self):
     return set(self.domains.keys())

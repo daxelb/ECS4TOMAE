@@ -100,6 +100,12 @@ class DataBank:
           self.divergence[P_agent][Q_agent][node] = kl_divergence(self.domains, P_data, Q_data, query)
     return
   
+  def get_scaled_tau(self, agent, node):
+    scale_factor = 1
+    for parent in agent.environment.cgm.get_parents(node):
+      scale_factor *= len(agent.environment.get_domain(parent))
+    return agent.tau * scale_factor
+
   def div_nodes(self, P_agent, Q_agent):
     if P_agent == Q_agent:
       return []
@@ -107,11 +113,12 @@ class DataBank:
     for node, divergence in self.divergence[P_agent][Q_agent].items():
       # if node != "X":
       #   print(node, divergence)
-      if divergence is None or divergence > P_agent.div_node_conf:
+      scaled_tau = self.get_scaled_tau(P_agent, node)
+      if divergence is None or divergence > scaled_tau:
         div_nodes.append(node)
     # print(div_nodes)
     return div_nodes
-    #[node for node, divergence in self.divergence[P_agent][Q_agent].items() if divergence is None or divergence > P_agent.div_node_conf]
+    #[node for node, divergence in self.divergence[P_agent][Q_agent].items() if divergence is None or divergence > P_agent.tau]
 
   def all_data(self):
     data = DataSet()

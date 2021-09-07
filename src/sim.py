@@ -16,7 +16,7 @@ from itertools import cycle
 from enums import Policy, ASR
 
 class Sim:
-  def __init__(self, environment_dicts, policy, div_node_conf, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, env_mutation_chance=0, show=True, save=False, seed=None):
+  def __init__(self, environment_dicts, policy, tau, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, env_mutation_chance=0, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(self.seed)
     self.start_time = time.time()
@@ -26,7 +26,7 @@ class Sim:
     self.num_agents = len(self.environments)
     self.assignments = {
       "policy": policy,
-      "div_node_conf": div_node_conf,
+      "tau": tau,
       "asr": asr,
       "epsilon": EG_epsilon,
       "rand_trials": EF_rand_trials,
@@ -291,20 +291,20 @@ if __name__ == "__main__":
     "Y": DiscreteModel(("Z", "W"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
   }
   reversed_w = dict(baseline)
-  reversed_w["W"] = DiscreteModel(("X"), {(0,): (0.45, 0.55), (1,): (0.55, 0.45)})
+  reversed_w["W"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
     policy=Policy.ADJUST,#"Sensitive",#("Solo","Naive", "Sensitive","Adjust"),
-    asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
-    T=500,
-    MC_sims=3,
-    div_node_conf=0.1,
+    asr=ASR.TS, #(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
+    T=250,
+    MC_sims=40,
+    tau=0.1,
     EG_epsilon=0.07,
     EF_rand_trials=35,
     ED_cooling_rate=0.95,
     is_community=True,
-    rand_envs=True,
+    rand_envs=False,
     env_mutation_chance=0.5,
     show=True,
     save=False,
