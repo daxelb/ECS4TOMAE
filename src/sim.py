@@ -47,7 +47,7 @@ class Sim:
     self.ind_var = self.get_ind_var()
     self.T = T
     self.MC_sims = MC_sims
-    self.num_threads = 1#mp.cpu_count()
+    self.num_threads = mp.cpu_count()
     self.ass_perms = self.get_assignment_permutations()
     self.is_community = is_community
     self.show = show
