@@ -1,4 +1,4 @@
-from agent import SoloAgent, NaiveAgent, SensitiveAgent, ExtraSensitiveAgent, AdjustAgent
+from agent import SoloAgent, NaiveAgent, SensitiveAgent, AdjustAgent
 from world import World
 from data import DataBank
 from assignment_models import ActionModel, DiscreteModel, RandomModel
@@ -84,8 +84,6 @@ class Sim:
       return NaiveAgent(rng, name, environment, databank, **assignments)
     elif policy == "Sensitive":
       return SensitiveAgent(rng, name, environment, databank, **assignments)
-    elif policy == "ExtraSensitive":
-      return ExtraSensitiveAgent(rng, name, environment, databank, **assignments)
     elif policy == "Adjust":
       return AdjustAgent(rng, name, environment, databank, **assignments)
     else:
@@ -282,15 +280,15 @@ if __name__ == "__main__":
     "Y": DiscreteModel(("Z", "W"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
   }
   reversed_w = dict(baseline)
-  reversed_w["W"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
+  reversed_w["W"] = DiscreteModel(("X"), {(0,): (0.45, 0.55), (1,): (0.55, 0.45)})
 
   experiment = Sim(
-    environment_dicts=(baseline, baseline, baseline, baseline),
-    policy="Adjust",#("Solo","Naive", "Sensitive","Adjust"),
+    environment_dicts=(baseline, reversed_w, baseline, reversed_w),
+    policy=("Solo","Naive", "Sensitive","Adjust"),
     asr="TS",#("EG", "EF", "ED","TS"),
     T=500,
-    MC_sims=50,
-    div_node_conf=0.1,
+    MC_sims=100,
+    div_node_conf=0.2,
     EG_epsilon=0.07,
     EF_rand_trials=28,
     ED_cooling_rate=0.9,
@@ -298,7 +296,7 @@ if __name__ == "__main__":
     rand_envs=True,
     env_mutation_chance=0.5,
     show=True,
-    save=False,
+    save=True,
     seed=None
   )
-  experiment.run(desc="ASR Comparison for Adjust Community using Randomized MAT-Es")
+  experiment.run(desc="Policy Comparison using Thompson Sampling and Randomized MAT-Es")
