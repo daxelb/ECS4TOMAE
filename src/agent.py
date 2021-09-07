@@ -294,6 +294,20 @@ class AdjustAgent(SensitiveAgent):
         choice = action
     return choice
 
+  # def get_alpha_beta(self, CPTs, div_nodes, action, givens):
+  #   alpha, beta = 1, 1
+  #   for w in (0,1):
+  #     weight = len(CPTs["Y"].query({**{"W": w},**givens})) + len(CPTs["W"].query({**{"W":w}, **givens, **action}))
+  #     pt1 = Query({"Y": 1}, {**{"W": w}, **givens}).solve(CPTs["Y"])
+  #     pt2 = Query({"W": w}, action).solve(CPTs["W"])
+  #     if pt1 is None or pt2 is None:
+  #       return (1,1)
+  #     alpha += pt1 * pt2 * weight
+  #     beta += (1-(pt1 * pt2)) * weight
+  #   return (alpha, beta)
+
+
+
   def get_alpha_beta(self, CPTs, div_nodes, action, givens):
     sol = 0
     for w in (0,1):
@@ -306,6 +320,12 @@ class AdjustAgent(SensitiveAgent):
     alpha = 1 + sol * weight
     beta = 1 + (1-sol) * weight
     return (alpha, beta)
+
+
+
+
+
+
     #Query({"Y": 1}, givens).solve(CPTs["Y"]) * Query({"W": (0,1)}, action).solve(CPTs["W"])
     # tf = (Query({"Y": 1}, {"W": (0,1), **givens}), Query({"W": (0,1)}, action))
     # weight = CPTs["Y"].num(givens) + CPTs["W"].num({**givens, **action})

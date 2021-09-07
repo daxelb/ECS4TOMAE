@@ -194,7 +194,7 @@ class Sim:
           mode='lines',
           marker=dict(color=error_band_color),
           line=dict(width=0),
-          # showlegend=False,
+          showlegend=False,
       ),
       go.Scatter(
           name=str(ind_var)+"-lower",
@@ -205,14 +205,14 @@ class Sim:
           mode='lines',
           fillcolor=error_band_color,
           fill='tonexty',
-          # showlegend=False,
+          showlegend=False,
       )
     ])
     plotly_fig = go.Figure(figure)
     plotly_fig.update_layout(
       yaxis_title=yaxis_title,
       xaxis_title="Episodes",
-      title=plot_title,
+      # title=plot_title,
     )
     return plotly_fig
 
@@ -288,11 +288,11 @@ if __name__ == "__main__":
     environment_dicts=(baseline, baseline, baseline, baseline),
     policy="Adjust",#("Solo","Naive", "Sensitive","Adjust"),
     asr="TS",#("EG", "EF", "ED","TS"),
-    T=250,
-    MC_sims=12,
-    div_node_conf=0.2,
+    T=500,
+    MC_sims=50,
+    div_node_conf=0.1,
     EG_epsilon=0.07,
-    EF_rand_trials=100,#28,
+    EF_rand_trials=28,
     ED_cooling_rate=0.9,
     is_community=False,
     rand_envs=True,
