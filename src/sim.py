@@ -286,11 +286,11 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    policy=("Solo", "Sensitive", "Adjust"),
+    policy="Sensitive",#("Solo", "Sensitive", "Adjust"),
     asr="TS",#("EG", "EF", "ED","TS"),
-    T=250,
-    MC_sims=15,
-    div_node_conf=0.4,
+    T=500,
+    MC_sims=250,
+    div_node_conf=(0.1, 0.2, 0.3, 0.4, 0.5),
     EG_epsilon=0.07,
     EF_rand_trials=28,
     ED_cooling_rate=0.9,
@@ -298,7 +298,7 @@ if __name__ == "__main__":
     rand_envs=True,
     env_mutation_chance=0.5,
     show=True,
-    save=False,
+    save=True,
     seed=None
   )
-  experiment.run(desc="ASR Comparison for Adjust Community using Randomized MAT-Es")
+  experiment.run(desc="DNC Comparison with Sensitive Agent using Thompson Sampling")
