@@ -80,13 +80,13 @@ class Sim:
       
   def agent_maker(self, rng, name, environment, databank, assignments):
     policy = assignments.pop("policy")
-    if policy == "Solo":
+    if policy == Policy.SOLO:
       return SoloAgent(rng, name, environment, databank, **assignments)
-    elif policy == "Naive":
+    elif policy == Policy.NAIVE:
       return NaiveAgent(rng, name, environment, databank, **assignments)
-    elif policy == "Sensitive":
+    elif policy == Policy.SENSITIVE:
       return SensitiveAgent(rng, name, environment, databank, **assignments)
-    elif policy == "Adjust":
+    elif policy == Policy.ADJUST:
       return AdjustAgent(rng, name, environment, databank, **assignments)
     else:
       raise ValueError("Policy type %s is not supported." % policy)
@@ -295,11 +295,11 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    policy="Adjust",#("Solo","Naive", "Sensitive","Adjust"),
-    asr=("EG", "EF", "ED","TS"),
+    policy=Policy.ADJUST,#"Sensitive",#("Solo","Naive", "Sensitive","Adjust"),
+    asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
     T=500,
-    MC_sims=100,
-    div_node_conf=0.2,
+    MC_sims=3,
+    div_node_conf=0.1,
     EG_epsilon=0.07,
     EF_rand_trials=35,
     ED_cooling_rate=0.95,
@@ -310,4 +310,4 @@ if __name__ == "__main__":
     save=False,
     seed=None
   )
-  experiment.run(desc="Adjust Community ASR Comparison with Randomized MAT-Es T=250")
+  experiment.run(desc="Adjust Community ASR Comparison with Randomized MAT-Es T=500")

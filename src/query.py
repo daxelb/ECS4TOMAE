@@ -86,11 +86,9 @@ class Query:
     return len(data.query(self.parse_as_df_query())) if self else len(data)
 
   def uncomputed_prob(self, data):
-    # assert self.all_assigned()
     return (Query(self.Q_and_e()).num_consistent(data), Query(self.e).num_consistent(data))
   
   def solve(self, data):
-    # assert self.all_assigned()
     query_space = data.query(self.e)
     return len(query_space.query(self.Q)) / len(query_space) if query_space else None
   
