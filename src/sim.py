@@ -286,10 +286,10 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    policy="Adjust",
+    policy="Adjust",#("Solo","Naive", "Sensitive","Adjust"),
     asr="TS",#("EG", "EF", "ED","TS"),
     T=500,
-    MC_sims=25,
+    MC_sims=1,
     div_node_conf=0.2,
     EG_epsilon=0.07,
     EF_rand_trials=28,

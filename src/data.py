@@ -11,17 +11,37 @@ class DataSet(list):
   def is_empty(self):
     return len(self) == 0
     
-  def query(self, query_dict):
+  # def query(self, query_dict):
+  #   res = DataSet()
+  #   for e in self:
+  #     consistent = True
+  #     for key in query_dict:
+  #       if isinstance(query_dict[key], tuple):
+  #         if e[key] not in query_dict[key]:
+  #           consistent = False
+  #           break
+  #       elif e[key] != query_dict[key]:
+  #         consistent = False
+  #         break
+  #     if consistent:
+  #       res.append(e)
+  #   return res
+
+  def query(self, assignments):
     res = DataSet()
     for e in self:
-      consistent = True
-      for key in query_dict:
-        if e[key] != query_dict[key]:
-          consistent = False
-          break
-      if consistent:
+      if all(e[key] == assignments[key] or (isinstance(
+            assignments[key], tuple) and e[key] in assignments[key]) for key in assignments):
         res.append(e)
     return res
+
+
+  def num(self, assignments):
+    num_consistent = 0
+    for e in self:
+      num_consistent += all(e[key] == assignments[key] or (isinstance(
+          assignments[key], tuple) and e[key] in assignments[key]) for key in assignments)
+    return num_consistent
     
   def mean(self, var):
     total = len(self)
@@ -96,13 +116,13 @@ class DataBank:
   
   def div_nodes(self, P_agent, Q_agent):
     if P_agent == Q_agent:
-      return []
-    div_nodes = []
+      return set()
+    div_nodes = set()
     for node, divergence in self.divergence[P_agent][Q_agent].items():
       # if node != "X":
       #   print(node, divergence)
       if divergence is None or divergence > P_agent.div_node_conf:
-        div_nodes.append(node)
+        div_nodes.add(node)
     # print(div_nodes)
     return div_nodes
     #[node for node, divergence in self.divergence[P_agent][Q_agent].items() if divergence is None or divergence > P_agent.div_node_conf]
@@ -113,12 +133,7 @@ class DataBank:
     return data
   
   def sensitive_data(self, P_agent):
-    data = DataSet()
-    [data.extend(Q_data) for Q_agent, Q_data in self.data.items() if len(self.div_nodes(P_agent, Q_agent)) == 0]
-    return data
-
-  def extra_sensitive_data(self, P_agent):
-    feat_vars = set(P_agent.environment.feat_vars)
+    feat_vars = P_agent.environment.get_feat_vars()
     data = DataSet()
     for Q_agent, Q_data in self.data.items():
       div_nodes = self.div_nodes(P_agent, Q_agent)
@@ -126,8 +141,15 @@ class DataBank:
         data.extend(Q_data)
     return data
 
+  def keys(self):
+    return self.data.keys()
+
+  def values(self):
+    return self.data.values()
+
   def items(self):
     return self.data.items()
+  
   
   def __iter__(self):
     return self.data.__iter__()
