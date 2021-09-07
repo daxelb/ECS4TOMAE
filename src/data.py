@@ -136,7 +136,6 @@ class DataBank:
   def items(self):
     return self.data.items()
   
-  
   def __iter__(self):
     return self.data.__iter__()
 

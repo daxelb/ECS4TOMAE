@@ -270,8 +270,6 @@ class AdjustAgent(SensitiveAgent):
     for node in self.environment.get_non_act_vars():
       CPTs[node] = DataSet()
       for agent, data in self.databank.items():
-        # if agent == self:
-          # CPTs[node].extend(data)
         if node not in div_nodes[agent]:
           CPTs[node].extend(data)
     max_sample = 0
@@ -279,7 +277,6 @@ class AdjustAgent(SensitiveAgent):
     for action in permutations(self.action_domain):
       alpha_beta = self.get_alpha_beta(CPTs, div_nodes, action, givens)
       sample = self.rng.beta(alpha_beta[0], alpha_beta[1])
-      # sample = alpha_beta#alpha_beta[0]
       if sample > max_sample:
         max_sample = sample
         choice = action
