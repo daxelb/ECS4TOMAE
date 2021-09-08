@@ -11,14 +11,16 @@ class Agent:
     self.databank = databank
     self.tau = tau
     self.asr = asr
-    self.epsilon = 1 if asr == ASR.ED else epsilon
+    self.feat_perms = permutations(environment.get_feat_doms())
+    self.epsilon = [1] * len(self.feat_perms) if asr == ASR.ED else epsilon
     self.rand_trials = rand_trials
-    self.rand_trials_rem = rand_trials
+    self.rand_trials_rem = [rand_trials] * len(self.feat_perms)
     self.cooling_rate = cooling_rate
     self.action_var = environment.get_act_var()
     self.action_domain = environment.get_act_dom()
     self.reward_var = environment.get_rew_var()
     self.reward_domain = environment.get_rew_dom()
+    
     self.databank.add_agent(self)
       
   def get_recent(self):
@@ -55,15 +57,17 @@ class Agent:
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == ASR.EF:
-      if self.rand_trials_rem > 0:
-        self.rand_trials_rem -= 1
+      given_i = self.feat_perms.index(givens)
+      if self.rand_trials_rem[given_i] > 0:
+        self.rand_trials_rem[given_i] -= 1
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == ASR.ED:
-      if self.rng.random() < self.epsilon:
-        self.epsilon *= self.cooling_rate
+      given_i = self.feat_perms.index(givens)
+      if self.rng.random() < self.epsilon[given_i]:
+        self.epsilon[given_i] *= self.cooling_rate
         return self.choose_random()
-      self.epsilon *= self.cooling_rate
+      self.epsilon[given_i] *= self.cooling_rate
       return self.choose_optimal(givens)
     elif self.asr == ASR.TS:
       return self.thompson_sample(givens)
