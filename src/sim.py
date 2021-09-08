@@ -133,15 +133,16 @@ class Sim:
     for i in range(self.MC_sims):
       sim_start = time.time()
       for j, world in enumerate(self.world_generator(rng)):
+        time_rem = None if not sim_time else \
+          (sum(sim_time) / len(sim_time)) * \
+          (self.MC_sims - (i + (j / len(self.ass_perms))))
+        time_rem_str = '?' if time_rem is None else \
+            '%dh %dm   ' % (time_rem // (60 * 60), time_rem // 60 % 60)
         for k in range(self.T):
           world.run_episode(k)
-          time_rem = None if not sim_time else (sum(sim_time) / len(sim_time)) * (self.MC_sims - (i+1))
-          time_rem_str = '?' if time_rem is None else \
-            '%dh %dm   ' % (time_rem // (60 * 60), time_rem // 60 % 60)
           printProgressBar(
             iteration=i*len(self.ass_perms)+j+(k+1)/self.T,
             total=self.MC_sims * len(self.ass_perms),
-            prefix=' o' if k % 2 else ' O',
             suffix=time_rem_str,
           )
         self.update_process_result(process_result, world)
@@ -285,6 +286,8 @@ class Sim:
   
   def get_values(self, locals):
     values = {key: val for key, val in locals.items() if key != 'self'}
+    values["policy"] = values["policy"].value if isinstance(values["policy"], Enum) else (e.value for e in values["policy"])
+    values["asr"] = values["asr"].value if isinstance(values["asr"], Enum) else (e.value for e in values["asr"])
     parsed_env_dicts = []
     for env in values["environment_dicts"]:
       parsed_env = {}
@@ -307,19 +310,19 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    policy=(Policy.ADJUST, Policy.SOLO, Policy.NAIVE, Policy.SENSITIVE),
-    asr=ASR.TS,#(ASR.EF, ASR.ED, ASR.TS),
-    T=1000,
-    MC_sims=100,
+    policy=Policy.ADJUST,#, Policy.SOLO, Policy.NAIVE, Policy.SENSITIVE),
+    asr=ASR.EG,#(ASR.EF, ASR.ED, ASR.TS),
+    T=100,
+    MC_sims=3,
     tau=0.05,
-    EG_epsilon=0.07,
+    EG_epsilon=0.05,
     EF_rand_trials=28,
-    ED_cooling_rate=0.96,
-    is_community=False,
+    ED_cooling_rate=0.97  ,
+    is_community=True,
     rand_envs=True,
     node_mutation_chance=(0.2,0.8),
     show=True,
-    save=False,
+    save=True,
     seed=None
   )
-  experiment.run(desc="Community ASR Comparison with Randomized MAT-Es T=500")
+  experiment.run(desc="XXXCommunity ASR Comparison with Randomized MAT-Es T=500")
