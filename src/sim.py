@@ -286,8 +286,8 @@ class Sim:
   
   def get_values(self, locals):
     values = {key: val for key, val in locals.items() if key != 'self'}
-    values["policy"] = values["policy"].value if isinstance(values["policy"], Enum) else (e.value for e in values["policy"])
-    values["asr"] = values["asr"].value if isinstance(values["asr"], Enum) else (e.value for e in values["asr"])
+    values["policy"] = values["policy"].value if isinstance(values["policy"], Enum) else [e.value for e in values["policy"]]
+    values["asr"]    = values["asr"].value    if isinstance(values["asr"], Enum)    else [e.value for e in values["asr"]]
     parsed_env_dicts = []
     for env in values["environment_dicts"]:
       parsed_env = {}
@@ -310,19 +310,19 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    policy=Policy.ADJUST,#, Policy.SOLO, Policy.NAIVE, Policy.SENSITIVE),
-    asr=ASR.EG,#(ASR.EF, ASR.ED, ASR.TS),
-    T=100,
-    MC_sims=3,
+    policy=Policy.ADJUST,#(Policy.ADJUST, Policy.SOLO, Policy.NAIVE, Policy.SENSITIVE),
+    asr=(ASR.EF, ASR.ED, ASR.TS),
+    T=500,
+    MC_sims=5,
     tau=0.05,
-    EG_epsilon=0.05,
+    EG_epsilon=0.07,
     EF_rand_trials=28,
-    ED_cooling_rate=0.97  ,
-    is_community=True,
+    ED_cooling_rate=0.96,
+    is_community=False,
     rand_envs=True,
     node_mutation_chance=(0.2,0.8),
     show=True,
-    save=True,
+    save=False,
     seed=None
   )
-  experiment.run(desc="XXXCommunity ASR Comparison with Randomized MAT-Es T=500")
+  experiment.run(desc="Community ASR Comparison with Randomized MAT-Es T=500")
