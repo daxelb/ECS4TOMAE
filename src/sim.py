@@ -16,12 +16,12 @@ from itertools import cycle
 from enums import Policy, ASR
 
 class Sim:
-  def __init__(self, environment_dicts, policy, tau, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, env_mutation_chance=0, show=True, save=False, seed=None):
+  def __init__(self, environment_dicts, policy, tau, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(self.seed)
     self.start_time = time.time()
     self.rand_envs = rand_envs
-    self.emc = env_mutation_chance
+    self.nmc = node_mutation_chance
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     self.num_agents = len(self.environments)
     self.assignments = {
@@ -92,16 +92,16 @@ class Sim:
       raise ValueError("Policy type %s is not supported." % policy)
       
   def environment_generator(self, rng):
+    nmc = self.nmc if isinstance(self.nmc, float) else rng.uniform(self.nmc[0], self.nmc[1])
     template = {node: model.randomize(rng) for node, model in self.environments[0]._assignment.items()}
     base = Environment(template, self.rew_var)
-    rand_var = rng.choice(list(self.environments[0].get_non_act_vars()))
-    for _ in range(self.num_agents):
-      if rng.random() < self.emc:
-        randomized = dict(template)
-        randomized[rand_var] = randomized[rand_var].randomize(rng)
-        yield Environment(randomized, self.rew_var)
-        continue
-      yield base
+    yield base
+    for _ in range(self.num_agents - 1):
+      randomized = dict(template)
+      for node in base.get_non_act_vars():
+        if rng.random() < nmc:
+          randomized[node] = randomized[node].randomize(rng)
+      yield Environment(randomized, self.rew_var)
       
   def world_generator(self, rng):
     ap = list(self.ass_perms)
@@ -129,12 +129,23 @@ class Sim:
   def simulate(self, results, index):
     rng = random.default_rng(self.seed - index)
     process_result = [{},{}]
+    sim_time = []
     for i in range(self.MC_sims):
+      sim_start = time.time()
       for j, world in enumerate(self.world_generator(rng)):
         for k in range(self.T):
           world.run_episode(k)
-          printProgressBar(i*len(self.ass_perms)+j+(k+1)/self.T, self.MC_sims * len(self.ass_perms))
+          time_rem = None if not sim_time else (sum(sim_time) / len(sim_time)) * (self.MC_sims - (i+1))
+          time_rem_str = '?' if time_rem is None else \
+            '%dh %dm   ' % (time_rem // (60 * 60), time_rem // 60 % 60)
+          printProgressBar(
+            iteration=i*len(self.ass_perms)+j+(k+1)/self.T,
+            total=self.MC_sims * len(self.ass_perms),
+            prefix=' o' if k % 2 else ' O',
+            suffix=time_rem_str,
+          )
         self.update_process_result(process_result, world)
+      sim_time.append(time.time() - sim_start)
     results[index] = process_result
   
   def update_process_result(self, process_result, world):
@@ -240,13 +251,12 @@ class Sim:
     cpr_plot = self.get_cpr_plot(results[0], desc)
     poa_plot = self.get_poa_plot(results[1], desc)
     elapsed_time = time.time() - self.start_time
-    print_info = "Time Elapsed: {}d {}h {}m {}s".format(\
-      int(elapsed_time // (60 * 60 * 24)),\
+    print_info = "Time Elapsed: {}h {}m {}s".format(\
       int(elapsed_time // (60 * 60)),\
       int(elapsed_time // 60 % 60),\
       int(elapsed_time % 60)
     )
-    print(f'{print_info}{" " * (60 - len(print_info))}')
+    print(f'{print_info}{" " * (70 - len(print_info))}')
 
     if self.show:
       cpr_plot.show()
@@ -297,17 +307,17 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    policy=Policy.ADJUST,
-    asr=(ASR.EF, ASR.ED, ASR.TS),
+    policy=(Policy.ADJUST, Policy.SOLO, Policy.NAIVE, Policy.SENSITIVE),
+    asr=ASR.TS,#(ASR.EF, ASR.ED, ASR.TS),
     T=1000,
-    MC_sims=3,
-    tau=0.1,
+    MC_sims=100,
+    tau=0.05,
     EG_epsilon=0.07,
     EF_rand_trials=28,
     ED_cooling_rate=0.96,
-    is_community=True,
+    is_community=False,
     rand_envs=True,
-    env_mutation_chance=0.5,
+    node_mutation_chance=(0.2,0.8),
     show=True,
     save=False,
     seed=None
