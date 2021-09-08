@@ -189,7 +189,7 @@ class AdjustAgent(SensitiveAgent):
     max_val = 0
     choices = []
     for action in permutations(self.action_domain):
-      expected_value = self.get_alpha_beta(CPTs, action, givens)[0]
+      expected_value = self.get_expected_value(CPTs, action, givens)
       if expected_value > max_val:
         max_val = expected_value
         choices = [action]
@@ -211,6 +211,16 @@ class AdjustAgent(SensitiveAgent):
         choices.append(action)
     return self.rng.choice(choices)
 
+
+  def get_expected_value(self, CPTs, action, givens):
+    prob = 0
+    for w in (0,1):
+      y_prob = Query({"Y": 1}, {**{"W": w}, **givens}).solve(CPTs["Y"])
+      w_prob = Query({"W": w}, action).solve(CPTs["W"])
+      if y_prob is None or w_prob is None:
+        return 0
+      prob += y_prob * w_prob
+    return prob
 
   def get_alpha_beta(self, CPTs, action, givens):
     weight = len(CPTs["Y"].query(givens)) + len(CPTs["W"].query({**givens, **action}))

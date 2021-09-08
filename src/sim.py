@@ -297,14 +297,14 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    policy=Policy.ADJUST,
+    policy=Policy.ADJUST, #(Policy.SENSITIVE, Policy.ADJUST),
     asr=ASR.ED,#(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
-    T=2000,
-    MC_sims=1,
+    T=1000,
+    MC_sims=5,
     tau=0.1,
     EG_epsilon=0.07,
     EF_rand_trials=50,
-    ED_cooling_rate=0.9985,
+    ED_cooling_rate=0.99336,
     is_community=False,
     rand_envs=True,
     env_mutation_chance=0.5,
