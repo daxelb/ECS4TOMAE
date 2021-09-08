@@ -179,7 +179,7 @@ class Counter(dict):
   def copy(self):
     return Counter(dict.copy(self))
 
-def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 50, fill = '█', printEnd = "\r"):
+def printProgressBar (iteration, total, prefix = '', suffix = '', length = 50, fill = '█', printEnd = "\r"):
     """
     Author: greenstick (Stack Overflow/GitHub)
     Call in a loop to create terminal progress bar
@@ -193,7 +193,7 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
       fill        - Optional  : bar fill character (Str)
       printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
     """
-    percent = ("{00:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    percent = "%04.1f" % 100 * (iteration / float(total))
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + '-' * (length - filledLength)
     space = ' ' if float(percent) < 100 else ''
