@@ -141,4 +141,4 @@ class DataBank:
     return self.data[key]
   
   def __reduce__(self):
-    return type(self), (self.domains, self.act_var, self.rew_var, self.data, self.divergence)
+    return (self.__class__, (self.domains, self.act_var, self.rew_var, self.data, self.divergence))
