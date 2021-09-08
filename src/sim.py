@@ -311,18 +311,18 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
     policy=Policy.ADJUST,#(Policy.ADJUST, Policy.SOLO, Policy.NAIVE, Policy.SENSITIVE),
-    asr=(ASR.EF, ASR.ED, ASR.TS),
-    T=500,
-    MC_sims=5,
+    asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
+    T=1000,
+    MC_sims=100,
     tau=0.05,
-    EG_epsilon=0.07,
+    EG_epsilon=0.05,
     EF_rand_trials=28,
-    ED_cooling_rate=0.96,
-    is_community=False,
+    ED_cooling_rate=0.97,
+    is_community=True,
     rand_envs=True,
     node_mutation_chance=(0.2,0.8),
     show=True,
     save=False,
     seed=None
   )
-  experiment.run(desc="Community ASR Comparison with Randomized MAT-Es T=500")
+  experiment.run(desc="Community ASR Comparison with Randomized MAT-Es")
