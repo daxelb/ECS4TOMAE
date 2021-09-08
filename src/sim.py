@@ -310,10 +310,10 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    policy=Policy.ADJUST,#(Policy.ADJUST, Policy.SOLO, Policy.NAIVE, Policy.SENSITIVE),
-    asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
+    policy=(Policy.SOLO, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST),
+    asr=ASR.EG,#(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
     T=1000,
-    MC_sims=100,
+    MC_sims=1,
     tau=0.05,
     EG_epsilon=0.05,
     EF_rand_trials=28,
@@ -325,4 +325,4 @@ if __name__ == "__main__":
     save=False,
     seed=None
   )
-  experiment.run(desc="Community ASR Comparison with Randomized MAT-Es")
+  experiment.run(desc="Policy Comparison using Epsilon Greedy ASR with Randomized MAT-Es")
