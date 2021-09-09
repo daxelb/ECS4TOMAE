@@ -152,7 +152,7 @@ class Sim:
   
   def update_process_result(self, process_result, world):
     raw = (world.pseudo_cum_regret, world.optimal_action)
-    for i in range(len(raw)):
+    for i in (0,1):
       for agent, data in raw[i].items():
         ind_var = agent.get_ind_var_value(self.ind_var)
         if ind_var not in process_result[i]:
@@ -314,7 +314,7 @@ if __name__ == "__main__":
     otp=OTP.ADJUST,
     asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
     T=1000,
-    MC_sims=7,
+    MC_sims=6,
     tau=0.1,
     EG_epsilon=0.05,
     EF_rand_trials=25,
