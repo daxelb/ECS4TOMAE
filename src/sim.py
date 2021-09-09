@@ -326,8 +326,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-<<<<<<< Updated upstream
-  experiment.run(desc="9-Community ASR-1-7")
-=======
   experiment.run(desc="8-Community ASR-2-6")
->>>>>>> Stashed changes
