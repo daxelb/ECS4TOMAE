@@ -314,11 +314,11 @@ if __name__ == "__main__":
     otp=OTP.ADJUST,
     asr=ASR.ED,
     T=1000,
-    MC_sims=8,
+    MC_sims=10,
     tau=0.1,
     # EG_epsilon=0.1,
     # EF_rand_trials=28,
-    ED_cooling_rate=0.99,
+    ED_cooling_rate=0.965,
     is_community=True,
     rand_envs=True,
     node_mutation_chance=(0.2,0.8),
@@ -326,4 +326,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="ED=0.99 T=1000 ")
+  experiment.run(desc="ED=0.965 xT=1000")
