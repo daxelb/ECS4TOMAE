@@ -265,11 +265,12 @@ class Sim:
       cpr_plot.write_html(dir_path + "/cpr.html")
       poa_plot.write_html(dir_path + "/poa.html")
       self.saved_data.to_csv(dir_path + "/last_episode_data.csv")
-      with ExcelWriter(dir_path + '/all_data.xlsx') as writer: # doctest: +SKIP
-        for i in (0,1):
-          res_type = "cpr_" if i == 0 else "poa_"
-          for ind_var, df in self.to_save[i].items():
-            df.to_excel(writer, sheet_name=res_type+str(ind_var))
+      with ExcelWriter(dir_path + '/cpr.xlsx') as writer:  # doctest: +SKIP
+        for ind_var, df in self.to_save[0].items():
+          df.to_excel(writer, sheet_name=str(ind_var))
+      with ExcelWriter(dir_path + '/poa.xlsx') as writer: # doctest: +SKIP
+        for ind_var, df in self.to_save[1].items():
+          df.to_excel(writer, sheet_name=str(ind_var))
       with open(dir_path + '/values.json', 'w') as outfile:
         dump(self.values, outfile)
       
@@ -326,4 +327,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="x-Community ASR Comp")
+  experiment.run(desc="YO")
