@@ -1,7 +1,6 @@
 from enum import Enum
-import json
 
-class Policy(Enum):
+class OTP(Enum):
   ADJUST = "Adjust"
   NAIVE = "Naive"
   SENSITIVE = "Sensitive"
@@ -12,8 +11,10 @@ class Policy(Enum):
       return self.value < other.value
     return NotImplemented  
 
+  def __str__(self):
+    return self.value
+
 class ASR(Enum):
-  G = "Greedy"
   EG = "Epsilon Greedy"
   EF = "Epsilon First"
   ED = "Epsilon Decreasing"
@@ -23,3 +24,6 @@ class ASR(Enum):
     if self.__class__ is other.__class__:
       return self.value < other.value
     return NotImplemented  
+
+  def __str__(self):
+    return self.value
