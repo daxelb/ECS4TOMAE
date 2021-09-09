@@ -311,7 +311,7 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    policy=OTP.ADJUST,
+    otp=OTP.ADJUST,
     asr=ASR.ED,
     T=1000,
     MC_sims=8,
