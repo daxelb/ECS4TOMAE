@@ -97,7 +97,7 @@ class Sim:
     template = {node: model.randomize(rng) for node, model in self.environments[0]._assignment.items()}
     base = Environment(template, self.rew_var)
     yield base
-    for _ in range(self.num_agents - 1):
+    for i in range(self.num_agents - 1):
       randomized = dict(template)
       for node in base.get_non_act_vars():
         if rng.random() < nmc:
@@ -151,7 +151,7 @@ class Sim:
     results[index] = process_result
   
   def update_process_result(self, process_result, world):
-    raw = [world.pseudo_cum_regret, world.optimal_action]
+    raw = (world.pseudo_cum_regret, world.optimal_action)
     for i in range(len(raw)):
       for agent, data in raw[i].items():
         ind_var = agent.get_ind_var_value(self.ind_var)
@@ -311,17 +311,17 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    otp=OTP.ADJUST,#(OTP.SOLO, OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
+    policy=OTP.ADJUST,
     asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
-    T=40,
-    MC_sims=3,
-    tau=0.1,
+    T=1000,
+    MC_sims=4,
+    tau=0.12,
     EG_epsilon=0.1,
-    EF_rand_trials=50,
-    ED_cooling_rate=0.98,
+    EF_rand_trials=28,
+    ED_cooling_rate=0.965,
     is_community=True,
     rand_envs=True,
-    node_mutation_chance=(0.2,0.6),
+    node_mutation_chance=0.3,#(0.2,0.8),
     show=True,
     save=True,
     seed=None

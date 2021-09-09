@@ -69,6 +69,8 @@ class Agent:
       return self.choose_optimal(givens)
     elif self.asr == ASR.TS:
       return self.thompson_sample(givens)
+    else:
+      raise ValueError("%s ASR not found" % self.asr)
   
   def choose_optimal(self, givens):
     pass
