@@ -69,6 +69,8 @@ class Agent:
       return self.choose_optimal(givens)
     elif self.asr == ASR.TS:
       return self.thompson_sample(givens)
+    else:
+      raise ValueError("%s ASR not found" % self.asr)
   
   def choose_optimal(self, givens):
     pass
@@ -216,7 +218,8 @@ class AdjustAgent(SensitiveAgent):
       y_prob = Query({"Y": 1}, {**{"W": w}, **givens}).solve(CPTs["Y"])
       w_prob = Query({"W": w}, action).solve(CPTs["W"])
       if y_prob is None or w_prob is None:
-        return 0
+        prob += 0
+        continue
       prob += y_prob * w_prob
     return prob
 
