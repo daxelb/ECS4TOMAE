@@ -265,12 +265,11 @@ class Sim:
       cpr_plot.write_html(dir_path + "/cpr.html")
       poa_plot.write_html(dir_path + "/poa.html")
       self.saved_data.to_csv(dir_path + "/last_episode_data.csv")
-      with ExcelWriter(dir_path + '/cpr.xlsx') as writer:  # doctest: +SKIP
-        for ind_var, df in self.to_save[0].items():
-          df.to_excel(writer, sheet_name=str(ind_var))
-      with ExcelWriter(dir_path + '/poa.xlsx') as writer: # doctest: +SKIP
-        for ind_var, df in self.to_save[1].items():
-          df.to_excel(writer, sheet_name=str(ind_var))
+      with ExcelWriter(dir_path + '/all_data.xlsx') as writer: # doctest: +SKIP
+        for i in (0,1):
+          res_type = "cpr_" if i == 0 else "poa_"
+          for ind_var, df in self.to_save[i].items():
+            df.to_excel(writer, sheet_name=res_type+str(ind_var))
       with open(dir_path + '/values.json', 'w') as outfile:
         dump(self.values, outfile)
       
@@ -313,13 +312,13 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
     otp=OTP.ADJUST,
-    asr=(ASR.EG,ASR.EF, ASR.ED, ASR.TS),
+    asr=ASR.ED,
     T=1000,
     MC_sims=2,
     tau=0.1,
     EG_epsilon=0.05,
     EF_rand_trials=25,
-    ED_cooling_rate=0.95,
+    ED_cooling_rate=0.955,
     is_community=True,
     rand_envs=True,
     node_mutation_chance=(0.2,0.8),
@@ -327,4 +326,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="ED=0.99 T=1000 ")
+  experiment.run(desc="Community ASR")
