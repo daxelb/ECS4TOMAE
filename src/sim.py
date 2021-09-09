@@ -314,7 +314,7 @@ if __name__ == "__main__":
     otp=OTP.ADJUST,
     asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
     T=1000,
-    MC_sims=2,
+    MC_sims=8,
     tau=0.1,
     EG_epsilon=0.05,
     EF_rand_trials=25,
@@ -326,4 +326,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="Community ASR")
+  experiment.run(desc="6-Community ASR-1-8")
