@@ -4,7 +4,7 @@ from data import DataSet
 from enums import ASR
 
 class Agent:
-  def __init__(self, rng, name, environment, databank, tau=None, asr="EG", epsilon=0, rand_trials=0, cooling_rate=0):
+  def __init__(self, rng, name, environment, databank, tau=None, asr=ASR.EG, epsilon=0, rand_trials=0, cooling_rate=0):
     self.rng = rng
     self.name = name
     self.environment = environment
@@ -29,8 +29,8 @@ class Agent:
   def get_ind_var_value(self, ind_var):
     if ind_var == "tau":
       return self.tau
-    elif ind_var == "policy":
-      return self.get_policy()
+    elif ind_var == "otp":
+      return self.get_otp()
     elif ind_var == "asr":
       return self.asr
     elif ind_var == "epsilon":
@@ -50,9 +50,7 @@ class Agent:
     self.databank[self].append(observation)
       
   def choose(self, givens):
-    if self.asr == ASR.G:
-      return self.choose_optimal(givens)
-    elif self.asr == ASR.EG:
+    if self.asr == ASR.EG:
       if self.rng.random() < self.epsilon:
         return self.choose_random()
       return self.choose_optimal(givens)
@@ -94,7 +92,7 @@ class Agent:
         max_sample = sample
     return choice
   
-  def get_policy(self):
+  def get_otp(self):
     return self.__class__.__name__[:-5]
 
   def __hash__(self):
@@ -104,7 +102,7 @@ class Agent:
     return (self.__class__, (self.rng, self.name, self.environment, self.databank, self.tau, self.asr, self.epsilon, self.rand_trials, self.cooling_rate))
   
   def __repr__(self):
-    return "<" + self.get_policy() + self.name + ": " + self.asr.value + ">"
+    return "<" + self.get_otp() + self.name + ": " + self.asr.value + ">"
   
   def __eq__(self, other):
     return isinstance(other, self.__class__) \

@@ -9,14 +9,14 @@ import plotly.graph_objs as go
 import time
 from numpy import random
 import multiprocessing as mp
-from pandas import DataFrame
+from pandas import DataFrame, ExcelWriter
 from os import mkdir
 from json import dump
 from itertools import cycle
-from enums import Policy, ASR
+from enums import OTP, ASR
 
 class Sim:
-  def __init__(self, environment_dicts, policy, tau, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
+  def __init__(self, environment_dicts, otp, tau, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(self.seed)
     self.start_time = time.time()
@@ -25,7 +25,7 @@ class Sim:
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     self.num_agents = len(self.environments)
     self.assignments = {
-      "policy": policy,
+      "otp": otp,
       "tau": tau,
       "asr": asr,
       "epsilon": EG_epsilon,
@@ -55,6 +55,7 @@ class Sim:
     self.show = show
     self.save = save
     self.saved_data = DataFrame()
+    self.to_save = [{},{}]
     self.values = self.get_values(locals())
     self.domains = self.environments[0].get_domains()
     self.act_var = self.environments[0].get_act_var()
@@ -79,17 +80,17 @@ class Sim:
     return permutations
       
   def agent_maker(self, rng, name, environment, databank, assignments):
-    policy = assignments.pop("policy")
-    if policy == Policy.SOLO:
+    otp = assignments.pop("otp")
+    if otp == OTP.SOLO:
       return SoloAgent(rng, name, environment, databank, **assignments)
-    elif policy == Policy.NAIVE:
+    elif otp == OTP.NAIVE:
       return NaiveAgent(rng, name, environment, databank, **assignments)
-    elif policy == Policy.SENSITIVE:
+    elif otp == OTP.SENSITIVE:
       return SensitiveAgent(rng, name, environment, databank, **assignments)
-    elif policy == Policy.ADJUST:
+    elif otp == OTP.ADJUST:
       return AdjustAgent(rng, name, environment, databank, **assignments)
     else:
-      raise ValueError("Policy type %s is not supported." % policy)
+      raise ValueError("OTP type %s is not supported." % otp)
       
   def environment_generator(self, rng):
     nmc = self.nmc if isinstance(self.nmc, float) else rng.uniform(self.nmc[0], self.nmc[1])
@@ -152,14 +153,6 @@ class Sim:
   def update_process_result(self, process_result, world):
     raw = [world.pseudo_cum_regret, world.optimal_action]
     for i in range(len(raw)):
-      if i == 0 and self.is_community:
-        ind_var = world.agents[0].get_ind_var_value(self.ind_var)
-        data = [sum(d) for d in zip(*raw[i].values())]
-        if ind_var not in process_result[i]:
-          process_result[i][ind_var] = [data]
-          continue
-        process_result[i][ind_var].append(data)
-        continue
       for agent, data in raw[i].items():
         ind_var = agent.get_ind_var_value(self.ind_var)
         if ind_var not in process_result[i]:
@@ -180,12 +173,15 @@ class Sim:
     return results
 
   def get_plot(self, results, plot_title, yaxis_title):
+    y_i = 0 if yaxis_title == "Cumulative Pseudo Regret" else 1
     figure = []
     x = list(range(self.T))
     for i, ind_var in enumerate(sorted(results)):
       line_name = ind_var.value if isinstance(ind_var, Enum) else str(ind_var)
       line_hue = str(int(360 * (i / len(results))))
       df = DataFrame(results[ind_var])
+      self.to_save[y_i][ind_var] = df
+      # df.to_csv("../output/%s%s.csv" % (ind_var, yaxis_title))
       if yaxis_title == "Cumulative Pseudo Regret":
         self.saved_data.insert(0, line_name, df.iloc[:, -1])
       y = df.mean(axis=0, numeric_only=True)
@@ -269,6 +265,11 @@ class Sim:
       cpr_plot.write_html(dir_path + "/cpr.html")
       poa_plot.write_html(dir_path + "/poa.html")
       self.saved_data.to_csv(dir_path + "/last_episode_data.csv")
+      with ExcelWriter(dir_path + '/all_data.xlsx') as writer: # doctest: +SKIP
+        for i in (0,1):
+          res_type = "cpr_" if i == 0 else "poa_"
+          for ind_var, df in self.to_save[i].items():
+            df.to_excel(writer, sheet_name=res_type+str(ind_var))
       with open(dir_path + '/values.json', 'w') as outfile:
         dump(self.values, outfile)
       
@@ -280,13 +281,13 @@ class Sim:
     self.display_and_save(results, desc)
     
   def get_N(self):
-    if self.is_community:
-      return self.num_threads * self.MC_sims
+    # if self.is_community:
+    #   return self.num_threads * self.MC_sims
     return self.num_threads * self.MC_sims * self.num_agents
   
   def get_values(self, locals):
     values = {key: val for key, val in locals.items() if key != 'self'}
-    values["policy"] = values["policy"].value if isinstance(values["policy"], Enum) else [e.value for e in values["policy"]]
+    values["otp"] = values["otp"].value if isinstance(values["otp"], Enum) else [e.value for e in values["otp"]]
     values["asr"]    = values["asr"].value    if isinstance(values["asr"], Enum)    else [e.value for e in values["asr"]]
     parsed_env_dicts = []
     for env in values["environment_dicts"]:
@@ -310,19 +311,19 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    policy=(Policy.SOLO, Policy.NAIVE, Policy.SENSITIVE, Policy.ADJUST),
-    asr=ASR.EG,#(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
-    T=1000,
-    MC_sims=1,
-    tau=0.05,
-    EG_epsilon=0.05,
-    EF_rand_trials=28,
-    ED_cooling_rate=0.97,
+    otp=OTP.ADJUST,#(OTP.SOLO, OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
+    asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
+    T=40,
+    MC_sims=3,
+    tau=0.1,
+    EG_epsilon=0.1,
+    EF_rand_trials=50,
+    ED_cooling_rate=0.98,
     is_community=True,
     rand_envs=True,
-    node_mutation_chance=(0.2,0.8),
+    node_mutation_chance=(0.2,0.6),
     show=True,
-    save=False,
+    save=True,
     seed=None
   )
-  experiment.run(desc="Policy Comparison using Epsilon Greedy ASR with Randomized MAT-Es")
+  experiment.run(desc="x-Community ASR Comp")
