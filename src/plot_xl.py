@@ -1,7 +1,7 @@
 from pandas import ExcelFile
 import plotly.graph_objs as go
 
-desc = 'ayo'
+desc = 'final'
 yaxis_short = 'poa'
 directory = '../output/%s' % desc
 ex_file = '/%s.xlsx' % yaxis_short
@@ -53,10 +53,10 @@ plotly_fig.update_layout(
     font=dict(size=18),
     margin=dict(l=20, r=20, t=20, b=20),
     legend=dict(
-        yanchor="top",
-        y=0.99,
-        xanchor="left",
-        x=0.01
+        yanchor="bottom",
+        y=0.01,
+        xanchor="right",
+        x=0.99
     ),
     yaxis_title=yaxis_title,
     xaxis_title="Trial",
