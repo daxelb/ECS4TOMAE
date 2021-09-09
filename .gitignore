@@ -2,3 +2,4 @@
 *.pyc
 .vs/
 src/sim.py
+src/sim.py
