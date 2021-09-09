@@ -312,7 +312,7 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
     otp=OTP.ADJUST,
-    asr=ASR.ED,
+    asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
     T=1000,
     MC_sims=2,
     tau=0.1,
