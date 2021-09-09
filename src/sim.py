@@ -312,13 +312,13 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
     otp=OTP.ADJUST,
-    asr=ASR.ED,
+    asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
     T=1000,
-    MC_sims=8,
+    MC_sims=2,
     tau=0.1,
-    # EG_epsilon=0.1,
-    # EF_rand_trials=28,
-    ED_cooling_rate=0.99,
+    EG_epsilon=0.05,
+    EF_rand_trials=25,
+    ED_cooling_rate=0.955,
     is_community=True,
     rand_envs=True,
     node_mutation_chance=(0.2,0.8),
@@ -326,4 +326,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="ED=0.99 T=1000 ")
+  experiment.run(desc="Community ASR")
