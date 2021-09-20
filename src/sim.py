@@ -74,8 +74,25 @@ class Sim:
     [job.join() for job in jobs]
     return results
 
+  def process_args(self, index):
+    return {
+      'rng': random.default_rng(abs(self.seed - index)),
+      'environments': self.environments,
+      'rew_var': self.rew_var,
+      'is_community': self.is_community,
+      'nmc': self.nmc,
+      'ind_var': self.ind_var,
+      'mc_sims': self.mc_sims,
+      'T': self.T,
+      'ass_perms': self.ass_perms,
+      'num_agents': self.num_agents,
+      'rand_envs': self.rand_envs,
+      'domains': self.domains,
+      'act_var': self.act_var
+    }
+
   def sim_process(self, results, index):
-    proc = Process(random.default_rng(abs(self.seed - index)), self.environments, self.rew_var, self.is_community, self.nmc, self.ind_var, self.mc_sims, self.T, self.ass_perms, self.num_agents, self.rand_envs, self.domains, self.act_var)
+    proc = Process(**self.process_args(index))
     results[index] = proc.simulate()
     return
 
@@ -211,7 +228,7 @@ class Sim:
       with open(dir_path + '/values.json', 'w') as outfile:
         dump(self.values, outfile)
       
-  def run(self, desc=""):
+  def run(self, desc=None):
     if desc:
       print(desc)
     print("seed=%d | N=%d" % (self.seed, self.get_N()))
