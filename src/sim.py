@@ -14,9 +14,10 @@ from os import mkdir
 from json import dump
 from itertools import cycle
 from enums import OTP, ASR
+from process import Process
 
 class Sim:
-  def __init__(self, environment_dicts, otp, tau, asr, T, MC_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
+  def __init__(self, environment_dicts, otp, tau, asr, T, mc_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(self.seed)
     self.start_time = time.time()
@@ -48,7 +49,7 @@ class Sim:
         del self.assignments["cooling_rate"]
     self.ind_var = self.get_ind_var()
     self.T = T
-    self.MC_sims = MC_sims
+    self.mc_sims = mc_sims
     self.num_threads = mp.cpu_count()
     self.ass_perms = self.get_assignment_permutations()
     self.is_community = is_community
@@ -60,107 +61,22 @@ class Sim:
     self.domains = self.environments[0].get_domains()
     self.act_var = self.environments[0].get_act_var()
     self.rew_var = self.environments[0].get_rew_var()
-    
-  def get_ind_var(self):
-    ind_var = None
-    for var, assignment in self.assignments.items():
-      if isinstance(assignment, (list, tuple, set)):
-        assert ind_var is None
-        ind_var = var
-    return ind_var
-  
-  def get_assignment_permutations(self):
-    if self.ind_var is None:
-      return [self.assignments]
-    permutations = []
-    for ind_var_assignment in self.assignments[self.ind_var]:
-      permutation = dict(self.assignments)
-      permutation[self.ind_var] = ind_var_assignment
-      permutations.append(permutation)
-    return permutations
-      
-  def agent_maker(self, rng, name, environment, databank, assignments):
-    otp = assignments.pop("otp")
-    if otp == OTP.SOLO:
-      return SoloAgent(rng, name, environment, databank, **assignments)
-    elif otp == OTP.NAIVE:
-      return NaiveAgent(rng, name, environment, databank, **assignments)
-    elif otp == OTP.SENSITIVE:
-      return SensitiveAgent(rng, name, environment, databank, **assignments)
-    elif otp == OTP.ADJUST:
-      return AdjustAgent(rng, name, environment, databank, **assignments)
-    else:
-      raise ValueError("OTP type %s is not supported." % otp)
-      
-  def environment_generator(self, rng):
-    nmc = self.nmc if isinstance(self.nmc, float) else rng.uniform(self.nmc[0], self.nmc[1])
-    template = {node: model.randomize(rng) for node, model in self.environments[0]._assignment.items()}
-    base = Environment(template, self.rew_var)
-    yield base
-    for i in range(self.num_agents - 1):
-      randomized = dict(template)
-      for node in base.get_non_act_vars():
-        if rng.random() < nmc:
-          randomized[node] = randomized[node].randomize(rng)
-      yield Environment(randomized, self.rew_var)
-      
-  def world_generator(self, rng):
-    ap = list(self.ass_perms)
-    rng.shuffle(ap)
-    assignments = [dict(ass) for ass in ap for _ in range(self.num_agents)]
-    if not self.is_community:
-      rng.shuffle(assignments)
-    envs = cycle(self.environment_generator(rng)) if self.rand_envs else cycle(self.environments)
-    for _ in range(len(self.ass_perms)):
-      databank = None
-      databank = DataBank(self.domains, self.act_var, self.rew_var, data={}, divergence={})
-      agents = [self.agent_maker(rng, str(i), next(envs), databank, assignments.pop()) for i in range(self.num_agents)]
-      yield World(agents, self.T, self.is_community)
   
   def multithreaded_sim(self):
     jobs = []
     results = mp.Manager().list([None] * self.num_threads)
     for i in range(self.num_threads):
-      job = mp.Process(target=self.simulate, args=(results, i))
+      job = mp.Process(target=self.sim_process, args=(results, i))
       jobs.append(job)
       job.start()
     [job.join() for job in jobs]
     return results
-  
-  def simulate(self, results, index):
-    rng = random.default_rng(self.seed - index)
-    process_result = [{},{}]
-    sim_time = []
-    for i in range(self.MC_sims):
-      sim_start = time.time()
-      for j, world in enumerate(self.world_generator(rng)):
-        time_rem = None if not sim_time else \
-          (sum(sim_time) / len(sim_time)) * \
-          (self.MC_sims - (i + (j / len(self.ass_perms))))
-        time_rem_str = '?' if time_rem is None else \
-            '%dh %dm   ' % (time_rem // (60 * 60), time_rem // 60 % 60)
-        for k in range(self.T):
-          world.run_episode(k)
-          printProgressBar(
-            iteration=i*len(self.ass_perms)+j+(k+1)/self.T,
-            total=self.MC_sims * len(self.ass_perms),
-            suffix=time_rem_str,
-          )
-        self.update_process_result(process_result, world)
-      sim_time.append(time.time() - sim_start)
-    results[index] = process_result
-  
-  def update_process_result(self, process_result, world):
-    raw = (world.pseudo_cum_regret, world.optimal_action)
-    for i in (0,1):
-      for agent, data in raw[i].items():
-        ind_var = agent.get_ind_var_value(self.ind_var)
-        if ind_var not in process_result[i]:
-          process_result[i][ind_var] = [data]
-          continue
-        process_result[i][ind_var].append(data)
+
+  def sim_process(self, results, index):
+    proc = Process(random.default_rng(abs(self.seed - index)), self.environments, self.rew_var, self.is_community, self.nmc, self.ind_var, self.mc_sims, self.T, self.ass_perms, self.num_agents, self.rand_envs, self.domains, self.act_var)
+    results[index] = proc.simulate()
     return
-  
+
   def combine_results(self, process_results):
     results = [{},{}]
     for pr in process_results:
@@ -172,12 +88,30 @@ class Sim:
           results[i][ind_var].extend(res)
     return results
 
+  def get_ind_var(self):
+    ind_var = None
+    for var, assignment in self.assignments.items():
+      if isinstance(assignment, (list, tuple, set)):
+        assert ind_var is None
+        ind_var = var
+    return ind_var
+
+  def get_assignment_permutations(self):
+    if self.ind_var is None:
+      return [self.assignments]
+    permutations = []
+    for ind_var_assignment in self.assignments[self.ind_var]:
+      permutation = dict(self.assignments)
+      permutation[self.ind_var] = ind_var_assignment
+      permutations.append(permutation)
+    return permutations
+
   def get_plot(self, results, plot_title, yaxis_title):
     y_i = 0 if yaxis_title == "Cumulative Pseudo Regret" else 1
     figure = []
     x = list(range(self.T))
     for i, ind_var in enumerate(sorted(results)):
-      line_name = ind_var.value if isinstance(ind_var, Enum) else str(ind_var)
+      line_name = str(ind_var)
       line_hue = str(int(360 * (i / len(results))))
       df = DataFrame(results[ind_var])
       self.to_save[y_i][ind_var] = df
@@ -281,9 +215,7 @@ class Sim:
     self.display_and_save(results, desc)
     
   def get_N(self):
-    # if self.is_community:
-    #   return self.num_threads * self.MC_sims
-    return self.num_threads * self.MC_sims * self.num_agents
+    return self.num_threads * self.mc_sims * self.num_agents
   
   def get_values(self, locals):
     values = {key: val for key, val in locals.items() if key != 'self'}
@@ -312,9 +244,9 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
     otp=OTP.ADJUST,
-    asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
-    T=1000,
-    MC_sims=6,
+    asr=(ASR.EF, ASR.ED),#(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
+    T=250,
+    mc_sims=1,
     tau=0.1,
     EG_epsilon=0.05,
     EF_rand_trials=25,
@@ -323,7 +255,7 @@ if __name__ == "__main__":
     rand_envs=True,
     node_mutation_chance=(0.2,0.8),
     show=True,
-    save=True,
+    save=False,
     seed=None
   )
   experiment.run(desc="8-Community ASR-2-6")
