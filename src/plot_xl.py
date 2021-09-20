@@ -24,7 +24,7 @@ for i, ind_var in enumerate(sorted(results)):
           name=line_name,
           x=x,
           y=y,
-          line=dict(color=line_color, width=3),
+          line=dict(color=line_color, width=2.4),
           mode='lines',
       ),
       go.Scatter(
