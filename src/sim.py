@@ -55,8 +55,10 @@ class Sim:
     self.is_community = is_community
     self.show = show
     self.save = save
-    self.saved_data = DataFrame()
-    self.to_save = [{},{}]
+    self.data_cpr = {}
+    self.data_poa = {}
+    self.last_episode_cpr = DataFrame()
+    self.last_episode_poa = DataFrame()
     self.values = self.get_values(locals())
     self.domains = self.environments[0].get_domains()
     self.act_var = self.environments[0].get_act_var()
@@ -107,17 +109,18 @@ class Sim:
     return permutations
 
   def get_plot(self, results, plot_title, yaxis_title):
-    y_i = 0 if yaxis_title == "Cumulative Pseudo Regret" else 1
     figure = []
     x = list(range(self.T))
     for i, ind_var in enumerate(sorted(results)):
       line_name = str(ind_var)
       line_hue = str(int(360 * (i / len(results))))
       df = DataFrame(results[ind_var])
-      self.to_save[y_i][ind_var] = df
-      # df.to_csv("../output/%s%s.csv" % (ind_var, yaxis_title))
       if yaxis_title == "Cumulative Pseudo Regret":
-        self.saved_data.insert(0, line_name, df.iloc[:, -1])
+        self.last_episode_cpr.insert(0, line_name, df.iloc[:, -1])
+        self.data_cpr[ind_var] = df
+      else:
+        self.last_episode_poa.insert(0, line_name, df.iloc[:, -1])
+        self.data_poa[ind_var] = df
       y = df.mean(axis=0, numeric_only=True)
       sem = df.sem(axis=0, numeric_only=True)
       y_upper = y + sem
@@ -198,12 +201,13 @@ class Sim:
       mkdir(dir_path)
       cpr_plot.write_html(dir_path + "/cpr.html")
       poa_plot.write_html(dir_path + "/poa.html")
-      self.saved_data.to_csv(dir_path + "/last_episode_data.csv")
-      with ExcelWriter(dir_path + '/all_data.xlsx') as writer: # doctest: +SKIP
-        for i in (0,1):
-          res_type = "cpr_" if i == 0 else "poa_"
-          for ind_var, df in self.to_save[i].items():
-            df.to_excel(writer, sheet_name=res_type+str(ind_var))
+      self.last_episode_cpr.to_csv(dir_path + "/last_episode_cpr.csv")
+      with ExcelWriter(dir_path + '/cpr.xlsx') as writer:  # doctest: +SKIP
+        for ind_var, df in self.data_cpr.items():
+          df.to_excel(writer, sheet_name=str(ind_var))
+      with ExcelWriter(dir_path + '/poa.xlsx') as writer:  # doctest: +SKIP
+        for ind_var, df in self.data_poa.items():
+          df.to_excel(writer, sheet_name=str(ind_var))
       with open(dir_path + '/values.json', 'w') as outfile:
         dump(self.values, outfile)
       
@@ -255,7 +259,7 @@ if __name__ == "__main__":
     rand_envs=True,
     node_mutation_chance=(0.2,0.8),
     show=True,
-    save=False,
+    save=True,
     seed=None
   )
   experiment.run(desc="8-Community ASR-2-6")
