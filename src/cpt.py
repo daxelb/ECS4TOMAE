@@ -1,5 +1,5 @@
 from util import only_given_keys, permutations, hash_from_dict, Counter
-from query import Query, Product
+from query import Query, Product, Summation
 from re import findall
 from math import inf
 
@@ -7,6 +7,7 @@ from numpy import random
 from cgm import CausalGraph
 class Knowledge:
   def __init__(self, rng, cgm, domains, act_var, rew_var):
+    self.rng = rng
     self.cgm = cgm
     self.domains = domains
     self.act_var = act_var
@@ -23,24 +24,35 @@ class Knowledge:
     
   def get_rew_query(self):
     dist_vars = self.cgm.an(self.rew_var).difference(self.cgm.an(self.act_var))
-    return Product([
+    return Product(
       self.cgm.get_node_dist(v)
       for v in dist_vars
-    ])
+    ).assign(self.domains)
     
   def expected_rew(self, givens):
-    summation = 0
+    query = self.rew_query.assign(givens)
+    sum_over_rew = 0
     for rew_val in self.domains[self.rew_var]:
-      product = 1
-      for query in self.rew_query:
-        product *= rew_val * self.cpts[query.query_var()].prob({**givens, **{self.rew_var: rew_val}})
-      summation += product
-    return summation
+      query[self.rew_var] = rew_val
+      if query.all_assigned():
+        sum_over_rew += self.exp_rew_addition(rew_val, query)
+        continue
+      for q in query.over_unassigned():
+        sum_over_rew += self.exp_rew_addition(rew_val, q)
+    return sum_over_rew
+  
+  def exp_rew_addition(self, rew_val, query):
+    try:
+      return rew_val * query.solve(self.cpts)
+    except TypeError:
+      # is this the right thing to return when query.solve returns None?...
+      return 0
     
   def optimal_choice(self, givens):
     best_choice = []
     best_rew = -inf
-    for choice in permutations(self.domains[self.act_var]):
+    choices = permutations({self.act_var: self.domains[self.act_var]})
+    for choice in choices:
       expected_rew = self.expected_rew({**choice, **givens})
       if expected_rew is not None:
         if expected_rew > best_rew:
@@ -57,9 +69,6 @@ class CPT:
     self.domains = only_given_keys(domains, self.parents | {self.var})
     parent_assignments = permutations(only_given_keys(domains, parents))
     self.table = {hash_from_dict(pa): Counter() for pa in parent_assignments} if self.has_parents() else Counter()
-
-  def has_parents(self):
-    return bool(self.parents)
 
   def add(self, obs):
     if self.has_parents():
@@ -83,11 +92,17 @@ class CPT:
       except ZeroDivisionError:
         return None
       
+  def as_query(self):
+    return Query(self.var, self.parents)
+      
   def size(self):
-    return sum([sum(e.values()) for e in a.table.values()])
+    return sum(sum(e.values()) for e in self.table.values())
   
   def is_empty(self):
     return self.size() == 0
+  
+  def has_parents(self):
+    return bool(self.parents)
   
   def __getitem__(self, key):
     if isinstance(key, Query):
@@ -117,24 +132,26 @@ class CPT:
       
 if __name__ == "__main__":
   domains = {"Y": (0,1), "X": (0,1), "W": (0,1), "Z": (0,1)}
-  var = "Y"
-  parents = {"Z", "W"}
-  a = CPT(var, parents, domains)
-  print(a.size())
-  a.add({"W": 0, "X": 0, "Z": 1, "Y": 1})
-  a.add({"W": 0, "X": 0, "Z": 1, "Y": 1})
-  a.add({"W": 0, "X": 0, "Z": 1, "Y": 1})
-  a.add({"W": 0, "X": 0, "Z": 1, "Y": 0})
-  print(a.prob(Query({"Y": 1}, {"W": 0, "Z": 1})))
-  print(a.size())
+  # var = "Y"
+  # parents = {"Z", "W"}
+  # a = CPT(var, parents, domains)
+  # print(a.size())
+  # a.add({"W": 0, "X": 0, "Z": 1, "Y": 1})
+  # a.add({"W": 0, "X": 0, "Z": 1, "Y": 1})
+  # a.add({"W": 0, "X": 0, "Z": 1, "Y": 1})
+  # a.add({"W": 0, "X": 0, "Z": 1, "Y": 0})
+  # print(a.prob(Query({"Y": 1}, {"W": 0, "Z": 1})))
+  # print(a.size())
   rng = random.default_rng(100)
   nodes = ["W", "X", "Y", "Z"]
   edges = [("Z","X"),("Z", "Y"), ("X", "W"), ("W", "Y")]
   cgm = CausalGraph(nodes, edges, set_nodes={"X"})
   k = Knowledge(rng, cgm, domains, "X", "Y")
-  print(k.rew_query)
+  # print(k.rew_query)
   k.observe({"W": 0, "X": 0, "Z": 1, "Y": 1})
   k.observe({"W": 0, "X": 0, "Z": 1, "Y": 1})
   k.observe({"W": 0, "X": 0, "Z": 1, "Y": 0})
   k.observe({"W": 0, "X": 0, "Z": 1, "Y": 1})
-  print(k.expected_rew({"X": 0, "Z": 1, "W": 0}))
+  print(k.expected_rew({"X": 0, "Z": 1}))
+  print(k.optimal_choice({"Z": 1}))
+  print(k.cpts["Y"].size())

@@ -54,17 +54,6 @@ class Query:
   def all_assigned(self):
     return len(self.get_unassigned()) == 0
   
-  def contains_var(self, var):
-    return var in self.Q_and_e()
-  
-  def contains(self, el):
-    if isinstance(el, Iterable):
-      for var in el:
-        if self.contains_var(var):
-          return True
-      return False
-    return self.contains_var(el)
-  
   def combos(self, domains):
     if self.all_assigned():
       return {self}
@@ -89,8 +78,10 @@ class Query:
     return (Query(self.Q_and_e()).num_consistent(data), Query(self.e).num_consistent(data))
   
   def solve(self, data):
-    query_space = data.query(self.e)
-    return len(query_space.query(self.Q)) / len(query_space) if query_space else None
+    return data.prob(self)
+  
+  def vars_as_tup(self):
+    return (tuple(self.Q.keys()), tuple(self.e.keys()))
   
   def solve_unassigned(self, data, domains):
     return {q: q.solve(data) for q in self.unassigned_combos(domains)}
@@ -149,6 +140,14 @@ class Query:
   def __bool__(self):
     return len(self.Q_and_e()) != 0
   
+  def __setitem__(self, key, val):
+    return self.assign_one(key, val)
+  
+  def __contains__(self, item):
+    if isinstance(item, Iterable):
+      return all(e in self.Q_and_e().keys() for e in item)
+    return item in self.Q_and_e()
+
 class Queries(MutableSequence):
   def __init__(self, data=None):
     super(Queries, self).__init__()
@@ -191,29 +190,9 @@ class Queries(MutableSequence):
   def all_assigned(self):
     return len(self.get_unassigned()) == 0
   
-  def contains_var(self, var):
-    for q in self:
-      if is_Q(q) and q.contains(var):
-        return True
-    return False
-  
-  def contains(self, el):
-    if isinstance(el, Iterable):
-      for var in el:
-        if self.contains(var):
-          return True
-      return False
-    return self.contains_var(el)
-  
-  def included_domains(self, domains):
-    included = {}
-    for var in domains:
-      if self.contains(var):
-        included[var] = domains[var]
-    return included
-  
   def over(self, domains):
-    return self.over_helper(self.included_domains(domains), self)
+    assert all(var in self for var in domains)
+    return self.over_helper(domains, self)
   
   def over_unassigned(self):
     return self.over_helper(self.get_unassigned(), self)
@@ -270,14 +249,27 @@ class Queries(MutableSequence):
   def __delitem__(self, i):
     del self._list[i]
     
-  def __setitem__(self, i, val):
-    self._list[i] = val
+  def __setitem__(self, key, val):
+    if isinstance(key, int):
+      self._list[key] = val
+    else:
+      for e in self._list:
+        e[key] = val
     
   def __str__(self):
     return "[{}]".format(", ".join([str(e) for e in self._list]))
   
   def __copy__(self):
     return self.__class__(self._list)
+  
+  def __contains__(self, item):
+    if isinstance(item, Iterable):
+      for var in item:
+        if not any(var in q for q in self):
+          return False
+      return True
+    return any(item in q for q in self)
+    
   
   # try to get this to work with __deepcopy__
   def deepcopy(self):
@@ -339,11 +331,21 @@ class Product(Queries):
       if isinstance(q, Queries) and not isinstance(q, Summation):
         self._list[i] = Product(q)
     
-  def solve(self, data):
+  # def solve(self, data):
+  #   # assert all(is_Q(q) or is_num(q) for q in self._list)
+  #   product = 1
+  #   for q in self._list:
+  #     new_mult = q.solve(data) if is_Q(q) else q
+  #     if new_mult is None:
+  #       return None
+  #     product *= new_mult
+  #   return product
+  
+  def solve(self, cpts):
     # assert all(is_Q(q) or is_num(q) for q in self._list)
     product = 1
     for q in self._list:
-      new_mult = q.solve(data) if is_Q(q) else q
+      new_mult = q.solve(cpts[q.query_var()]) if is_Q(q) else q
       if new_mult is None:
         return None
       product *= new_mult
@@ -377,9 +379,6 @@ class Quotient():
     if nume is None or denom is None:
       return None
     return nume / denom
-        
-  def contains(self, el):
-    return self.nume.contains(el) or self.denom.contains(el)
   
   def assign(self, dict_or_var, assignment=None):
     if assignment is None:
@@ -406,16 +405,21 @@ class Quotient():
   def __str__(self):
     return "({}) / ({})".format(str(self.nume), str(self.denom))
   
+  def __contains__(self, item):
+    return item in self.nume or item in self.denom
+  
 if __name__ == "__main__":
-  q = Query({"Y": 1}, {"X": 0, "Z":1, "S":None})
-  q1 = Query({"S": None}, {"Z": 1})
+  q = Query({"Y": 1}, {"X": 0, "Z":1, "S":1})
+  q1 = Query({"S": 1}, {"Z": 1})
   qs = Product([q1, q])
-  qs.assign_many({"S": (0,1)})
+  qs.assign_many({"S": 1})
   # data = [{"X": 1, "Y": 0, "W": 1}]
   # print(qs.solve(data))
+  print(qs)
   so = Summation(qs.over_unassigned())
+  print(so)
   quo = Quotient(qs, so)
   # print(quo)
-  print(Summation(qs.over({"X": (0,1), "R": (0,1)})))
+  # print(Summation(qs.over({"X": (0,1)})))
   # print(so)
   
