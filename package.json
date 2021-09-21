@@ -1,22 +1,22 @@
 {
-  "name": "ECS4TIME",
+  "name": "ecs4tomae",
   "version": "0.0.0",
   "description": "Exploting Causal Structure for Transportability in Multi-Agent Environments",
   "repository": {
     "type": "git",
-    "url": "https://github.com/damianbrowne/ECS4TIME"
+    "url": "https://github.com/axelbrowne/ECS4TIME"
   },
-  "author": "Damián Browne",
+  "author": "Axel Browne",
   "contributors": [
     {
-      "name": "Damián Browne",
-      "email": "Andrew.Forney@lmu.edu",
-      "url": "http://damianbrowne.github.io/"
+      "name": "Axel Browne",
+      "email": "damianabrowne@gmail.edu",
+      "url": "http://axelbrowne.github.io/"
     },
     {
       "name": "Andrew Forney",
       "email": "Andrew.Forney@lmu.edu",
-      "url": "http://forns.lmu.build/",
+      "url": "http://forns.lmu.build/"
     }
   ],
   "license": "MIT",
