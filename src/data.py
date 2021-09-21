@@ -11,6 +11,10 @@ class DataSet(list):
   def is_empty(self):
     return len(self) == 0
     
+  def prob(self, query):
+    query_space = self.query(query.e)
+    return len(query_space.query(query.Q)) / len(query_space) if query_space else None
+    
   def query(self, query_dict):
     res = DataSet()
     for e in self:
