@@ -266,7 +266,6 @@ class AdjustAgent(SensitiveAgent):
       raise ValueError
 
   def thompson_sample(self, givens):
-    CPTs = self.get_CPTs()
     max_sample = 0
     choices = []
     for action in permutations(self.action_domain):
