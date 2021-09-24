@@ -224,7 +224,7 @@ class AdjustAgent(SensitiveAgent):
     return self.home(query)
 
   def post(self, target_agent, query):
-    return self.target(target_agent, query)
+    return self.home_and_target(target_agent, query)
 
   def get_pre_nodes(self, target_agent):
     div_nodes = self.div_nodes(target_agent)
@@ -276,7 +276,7 @@ class AdjustAgent(SensitiveAgent):
           else:
             assert alpha_y_prob + beta_y_prob == 1
             # print("!")
-            count = self.databank[agent].num({**action, **givens})
+            count = self.databank[agent].num({**{"W": w}, **action, **givens})
             alpha += w_prob * alpha_y_prob * count
             beta += w_prob * beta_y_prob * count
       # print(alpha, beta)
