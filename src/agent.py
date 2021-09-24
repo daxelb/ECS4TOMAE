@@ -258,11 +258,6 @@ class AdjustAgent(SensitiveAgent):
     elif node in self.get_post_nodes(target_agent):
       return self.post(target_agent, query)
     else:
-      print()
-      print(node)
-      print(self.div_nodes(target_agent))
-      print(self.get_pre_nodes(target_agent))
-      print(self.get_post_nodes(target_agent))
       raise ValueError
 
   def thompson_sample(self, givens):
@@ -280,9 +275,11 @@ class AdjustAgent(SensitiveAgent):
             continue
           else:
             assert alpha_y_prob + beta_y_prob == 1
-            count = self.databank[agent].num({**{"X": action}, **{"W": w}, **givens})
+            # print("!")
+            count = self.databank[agent].num({**action, **givens})
             alpha += w_prob * alpha_y_prob * count
             beta += w_prob * beta_y_prob * count
+      # print(alpha, beta)
       sample = self.rng.beta(alpha + 1, beta + 1)
       if sample > max_sample:
         max_sample = sample

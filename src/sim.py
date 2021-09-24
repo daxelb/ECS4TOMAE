@@ -221,10 +221,12 @@ class Sim:
       self.last_episode_cpr.to_csv(dir_path + "/last_episode_cpr.csv")
       with ExcelWriter(dir_path + '/cpr.xlsx') as writer:  # doctest: +SKIP
         for ind_var, df in self.data_cpr.items():
-          df.to_excel(writer, sheet_name=str(ind_var))
+          sheet_name = str(ind_var) if ind_var else 'Sheet1'
+          df.to_excel(writer, sheet_name=sheet_name)
       with ExcelWriter(dir_path + '/poa.xlsx') as writer:  # doctest: +SKIP
         for ind_var, df in self.data_poa.items():
-          df.to_excel(writer, sheet_name=str(ind_var))
+          sheet_name = str(ind_var) if ind_var else 'Sheet1'
+          df.to_excel(writer, sheet_name=sheet_name)
       with open(dir_path + '/values.json', 'w') as outfile:
         dump(self.values, outfile)
       
@@ -273,10 +275,10 @@ if __name__ == "__main__":
     EF_rand_trials=25,
     ED_cooling_rate=0.955,
     is_community=True,
-    rand_envs=True,
+    rand_envs=False,
     node_mutation_chance=(0.2,0.8),
     show=True,
     save=True,
     seed=None
   )
-  experiment.run(desc="New TS")
+  experiment.run(desc="New TS (W removed from count)")
