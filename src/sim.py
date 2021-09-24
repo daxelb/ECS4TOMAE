@@ -265,7 +265,7 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
     otp=OTP.ADJUST,
-    asr=(ASR.EF, ASR.ED),#(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
+    asr=ASR.TS,#(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
     T=250,
     mc_sims=1,
     tau=0.1,

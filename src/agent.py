@@ -197,20 +197,94 @@ class AdjustAgent(SensitiveAgent):
         choices.append(action)
     return self.rng.choice(choices)
 
+
+  def home(self, query):
+      return query.solve(self.databank[self])
+
+  def target(self, target_agent, query):
+      return query.solve(self.databank[target_agent])
+
+  def home_and_target(self, target_agent, query):
+    data = DataSet(self.databank[self] + self.databank[target_agent])
+    return query.solve(data)
+
+
+  def all(self, query):
+      node = query.query_var()
+      transportable_data = DataSet()
+      for agent in self.databank:
+          if node not in self.div_nodes(agent):
+              transportable_data.extend(self.databank[agent])
+    return self.home(query)
+
+  def post(self, target_agent, query):
+    return self.target(target_agent, query)
+
+  def get_pre_nodes(self, target_agent):
+    div_nodes = self.div_nodes(target_agent)
+    dn_list = list(div_nodes)
+    if not div_nodes:
+      return self.environment.get_non_act_vars()
+    pre = self.environment.cgm.get_ancestors(dn_list[0])
+    if len(div_nodes) > 1:
+      for i in range(1, len(dn_list)):
+        pre = pre.intersection(self.environment.cgm.get_ancestors(dn_list[i]))
+    return pre
+
+  def get_post_nodes(self, target_agent):
+    div_nodes = self.div_nodes(target_agent)
+    dn_list = list(div_nodes)
+    if not div_nodes:
+      return set()
+    post = self.environment.cgm.get_descendants(dn_list[0])
+    if len(div_nodes) > 1:
+      for i in range(1, len(dn_list)):
+        post = post.union(self.environment.cgm.get_descendants(dn_list[i]))
+    return post
+
+  def solve_query(self, target_agent, query):
+    node = query.query_var()
+    div_nodes = self.div_nodes(target_agent)
+    if node in div_nodes:
+      return self.node(target_agent, query)
+    elif node in self.get_pre_nodes(target_agent):
+      return self.home_and_target(target_agent, query)
+    elif node in self.get_post_nodes(target_agent):
+      return self.target(target_agent, query)
+    else:
+      print()
+      print(node)
+      print(self.div_nodes(target_agent))
+      print(self.get_pre_nodes(target_agent))
+      print(self.get_post_nodes(target_agent))
+      raise ValueError
+
   def thompson_sample(self, givens):
     CPTs = self.get_CPTs()
     max_sample = 0
     choices = []
     for action in permutations(self.action_domain):
-      alpha_beta = self.get_alpha_beta(CPTs, action, givens)
-      sample = self.rng.beta(alpha_beta[0] + 1, alpha_beta[1] + 1)
+      alpha = 0
+      beta = 0
+      for agent in self.databank:
+        for w in (0,1):
+          alpha_y_prob = self.solve_query(agent, Query({"Y": 1}, {**{"W": w}, **givens}))
+          beta_y_prob = self.solve_query(agent, Query({"Y": 0}, {**{"W": w}, **givens}))
+          w_prob = self.solve_query(agent, Query({"W": w}, action))
+          if alpha_y_prob is None or beta_y_prob is None or w_prob is None:
+            continue
+          else:
+            assert alpha_y_prob + beta_y_prob == 1
+            count = self.databank[agent].num({**{"X": action}, **{"W": w}, **givens})
+            alpha += w_prob * alpha_y_prob * count
+            beta += w_prob * beta_y_prob * count
+      sample = self.rng.beta(alpha + 1, beta + 1)
       if sample > max_sample:
         max_sample = sample
         choices = [action]
       if sample == max_sample:
         choices.append(action)
     return self.rng.choice(choices)
-
 
   def get_expected_value(self, CPTs, action, givens):
     prob = 0
@@ -223,78 +297,22 @@ class AdjustAgent(SensitiveAgent):
       prob += y_prob * w_prob
     return prob
 
-  def get_alpha_beta(self, CPTs, action, givens):
-    weight = len(CPTs["Y"].query(givens)) + len(CPTs["W"].query({**givens, **action}))
-    alpha_prob = self.get_prob_reward(CPTs, action, givens, 1)
-    if alpha_prob is None:
-      return (0,0)
-    return (alpha_prob * weight, (1-alpha_prob) * weight)
 
-  def get_prob_reward(self, CPTs, action, givens, rew_assignment):
-    prob = 0
-    for w in (0,1):
-      y_prob = Query({"Y": rew_assignment}, {**{"W": w}, **givens}).solve(CPTs["Y"])
-      w_prob = Query({"W": w}, action).solve(CPTs["W"])
-      if y_prob is None or w_prob is None:
-        return None
-      prob += y_prob * w_prob
-    return prob
-      
 
-  # def get_alpha_beta(self, CPTs, div_nodes, action, givens):
-  #   alpha, beta = 1, 1
+
+  # def get_alpha_beta(self, CPTs, action, givens):
+  #   weight = len(CPTs["Y"].query(givens)) + len(CPTs["W"].query({**givens, **action}))
+  #   alpha_prob = self.get_prob_reward(CPTs, action, givens, 1)
+  #   if alpha_prob is None:
+  #     return (0,0)
+  #   return (alpha_prob * weight, (1-alpha_prob) * weight)
+
+  # def get_prob_reward(self, CPTs, action, givens, rew_assignment):
+  #   prob = 0
   #   for w in (0,1):
-  #     weight = len(CPTs["Y"].query({**{"W": w},**givens})) + len(CPTs["W"].query({**{"W":w}, **givens, **action}))
-  #     pt1 = Query({"Y": 1}, {**{"W": w}, **givens}).solve(CPTs["Y"])
-  #     pt2 = Query({"W": w}, action).solve(CPTs["W"])
-  #     if pt1 is None or pt2 is None:
-  #       return (1,1)
-  #     alpha += pt1 * pt2 * weight
-  #     beta += (1-(pt1 * pt2)) * weight
-  #   return (alpha, beta)
-
-
-
-
-
-    #Query({"Y": 1}, givens).solve(CPTs["Y"]) * Query({"W": (0,1)}, action).solve(CPTs["W"])
-    # tf = (Query({"Y": 1}, {"W": (0,1), **givens}), Query({"W": (0,1)}, action))
-    # weight = CPTs["Y"].num(givens) + CPTs["W"].num({**givens, **action})
-    # weight = CPTs["Y"].num(givens) + CPTs["W"].num({**action})
-    # tf.assign({"Y": 1})
-    
-    # sol = 0 if tf[0].solve(CPTs["Y"]) is None or tf[1].solve(CPTs["W"]) is None else tf[0].solve(CPTs["Y"]) * tf[1].solve(CPTs["W"])
-    # sol = Product([q.solve(CPTs[q.query_var()])
-    #                 for q in tf]).solve()
-    # alpha = sol
-    # tf = (Query({"Y": 1}, {"W": (0, 1), **givens}),
-    #       Query({"W": (0, 1)}, action))
-    # sol = tf[0].solve(CPTs["Y"]) * tf[1].solve(CPTs["W"])
-    # beta = 0 if sol is None else sol
-    # return (alpha, 0)#(1 + (alpha * weight), 1 + (beta * weight))
-
-  # def get_alpha_beta(self, CPTs, div_nodes, action, givens):
-  #   alpha, beta = 1,1
-  #   for agent in self.databank.keys():
-  #     if div_nodes[agent].issubset(self.environment.get_feat_vars()):
-  #       tf = self.transport_formula(div_nodes[agent], givens)
-  #       tf.assign(action)
-  #       weight = self.databank[agent].num({**action, **givens})
-  #       tf.assign({"Y": 1})
-  #       sol = Product([q.solve(CPTs[q.query_var()])
-  #                      for q in tf]).solve()
-  #       alpha += 0 if sol is None else sol * weight
-  #       tf.assign({"Y": 0})
-  #       sol = Product([q.solve(CPTs[q.query_var()])
-  #                      for q in tf]).solve()
-  #       beta += 0 if sol is None else sol * weight
-  #     elif "Y" not in div_nodes[agent]:
-  #       tf = Query({"Y":(0,1)},{"W":(0,1), **givens}) #self.transport_formula(div_nodes[agent], givens)
-  #       weight = self.databank[agent].num({**givens})
-  #       tf.assign({"Y": 1})
-  #       sol = tf.solve(CPTs["Y"])
-  #       alpha += 0 if sol is None else sol * weight
-  #       tf.assign({"Y": 1})
-  #       sol = tf.solve(CPTs["Y"])
-  #       beta += 0 if sol is None else sol * weight
-  #   return (alpha, beta)
+  #     y_prob = Query({"Y": rew_assignment}, {**{"W": w}, **givens}).solve(CPTs["Y"])
+  #     w_prob = Query({"W": w}, action).solve(CPTs["W"])
+  #     if y_prob is None or w_prob is None:
+  #       return None
+  #     prob += y_prob * w_prob
+  #   return prob
