@@ -215,6 +215,12 @@ class AdjustAgent(SensitiveAgent):
       for agent in self.databank:
           if node not in self.div_nodes(agent):
               transportable_data.extend(self.databank[agent])
+      return query.solve(transportable_data)
+
+  def pre(self, target_agent, query):
+    return self.home_and_target(target_agent, query)
+
+  def node(self, target_agent, query):
     return self.home(query)
 
   def post(self, target_agent, query):
