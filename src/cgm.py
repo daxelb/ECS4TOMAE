@@ -89,9 +89,9 @@ class CausalGraph:
     [ancestors.update(nx.ancestors(self.dag, node)) for node in nodes]
     return ancestors
   
-  def get_descendants(self, node):
+  def get_descendants(self, nodes):
     if isinstance(nodes, str):
-      return nx.descendants(self.dag, node)
+      return nx.descendants(self.dag, nodes)
     descendants = set()
     [descendants.update(nx.descendants(self.dag, node)) for node in nodes]
     return descendants
