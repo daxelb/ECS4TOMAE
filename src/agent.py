@@ -254,9 +254,9 @@ class AdjustAgent(SensitiveAgent):
     if node in div_nodes:
       return self.node(target_agent, query)
     elif node in self.get_pre_nodes(target_agent):
-      return self.home_and_target(target_agent, query)
+      return self.pre(target_agent, query)
     elif node in self.get_post_nodes(target_agent):
-      return self.target(target_agent, query)
+      return self.post(target_agent, query)
     else:
       print()
       print(node)
