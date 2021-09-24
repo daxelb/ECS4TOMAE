@@ -266,8 +266,8 @@ if __name__ == "__main__":
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
     otp=OTP.ADJUST,
     asr=ASR.TS,#(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
-    T=250,
-    mc_sims=1,
+    T=1000,
+    mc_sims=4,
     tau=0.1,
     EG_epsilon=0.05,
     EF_rand_trials=25,
@@ -279,4 +279,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="8-Community ASR-2-6")
+  experiment.run(desc="New TS")
