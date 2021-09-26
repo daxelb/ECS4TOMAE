@@ -269,8 +269,8 @@ if __name__ == "__main__":
     otp=OTP.ADJUST,
     asr=ASR.TS,#(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
     T=1500,
-    mc_sims=10,
-    tau=0.05,#0.1,
+    mc_sims=20,
+    tau=0.1,
     EG_epsilon=0.05,
     EF_rand_trials=25,
     ED_cooling_rate=0.955,
@@ -281,4 +281,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="home+target for all non-node -- with W")
+  experiment.run(desc="preAll-nodeAll-postTarget T=1500")
