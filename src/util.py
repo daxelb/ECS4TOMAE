@@ -1,4 +1,4 @@
-from math import inf, e, log
+from math import inf, e, log, sqrt
 from collections.abc import Iterable
 
 def hash_from_dict(dictionary):
@@ -75,6 +75,18 @@ def kl_divergence(domains, P_data, Q_data, query, log_base=e):
       return None
     kld += P_i * log(P_i / Q_i, log_base)
   return kld
+
+def hellinger_distance(domains, P_data, Q_data, query):
+  Px_and_Qx = get_Px_and_Qx(domains, P_data, Q_data, query)
+  if Px_and_Qx is None:
+    return None
+  summation = 0
+  for Pi_and_Qi in Px_and_Qx:
+    # [!] Could probably remove the "query" portion of the tuple...
+    pi = Pi_and_Qi[1][0]
+    qi = Pi_and_Qi[1][1]
+    summation += (sqrt(pi) - sqrt(qi)) ** 2
+  return (1/sqrt(2)) * sqrt(summation)
 
 def get_Px_and_Qx(domains, P_data, Q_data, query):
   probs = []
