@@ -221,10 +221,12 @@ class Sim:
       self.last_episode_cpr.to_csv(dir_path + "/last_episode_cpr.csv")
       with ExcelWriter(dir_path + '/cpr.xlsx') as writer:  # doctest: +SKIP
         for ind_var, df in self.data_cpr.items():
-          df.to_excel(writer, sheet_name=str(ind_var))
+          sheet_name = str(ind_var) if ind_var else 'Sheet1'
+          df.to_excel(writer, sheet_name=sheet_name)
       with ExcelWriter(dir_path + '/poa.xlsx') as writer:  # doctest: +SKIP
         for ind_var, df in self.data_poa.items():
-          df.to_excel(writer, sheet_name=str(ind_var))
+          sheet_name = str(ind_var) if ind_var else 'Sheet1'
+          df.to_excel(writer, sheet_name=sheet_name)
       with open(dir_path + '/values.json', 'w') as outfile:
         dump(self.values, outfile)
       
@@ -265,10 +267,10 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
     otp=OTP.ADJUST,
-    asr=ASR.ED,#(ASR.EF, ASR.ED),#(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
-    T=250,
-    mc_sims=5,
-    tau=0.1,
+    asr=ASR.TS,#(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
+    T=1500,
+    mc_sims=10,
+    tau=0.05,#0.1,
     EG_epsilon=0.05,
     EF_rand_trials=25,
     ED_cooling_rate=0.955,
@@ -279,4 +281,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="8-Community ASR-2-6")
+  experiment.run(desc="home+target for all non-node -- with W")
