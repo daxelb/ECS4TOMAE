@@ -274,7 +274,7 @@ if __name__ == "__main__":
     EG_epsilon=0.05,
     EF_rand_trials=25,
     ED_cooling_rate=0.955,
-    is_community=True,
+    is_community=False,
     rand_envs=True,
     node_mutation_chance=(0.2,0.8),
     show=True,
