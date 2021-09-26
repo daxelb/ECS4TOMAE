@@ -1,5 +1,5 @@
 from math import inf
-from util import permutations, kl_divergence
+from util import hellinger_distance, permutations, kl_divergence
 
 def pairs(lst):
   return [(a, b) for i, a in enumerate(lst) for b in lst[i + 1:]]
@@ -85,9 +85,15 @@ class DataBank:
         
   def kl_div_of_query(self, query, P_agent, Q_agent):
     return kl_divergence(self.domains, self.data[P_agent], self.data[hash(Q_agent)], query)
-  
+
   def kl_div_of_node(self, node, P_agent, Q_agent):
     return self.kl_div_of_query(P_agent.environment.cgm.get_node_dist(node), P_agent, Q_agent)
+
+  def hellinger_dist_of_query(self, query, P_agent, Q_agent):
+    return hellinger_distance(self.domains, self.data[P_agent], self.data[Q_agent], query)
+
+  def hellinger_dist_of_node(self, node, P_agent, Q_agent):
+    return self.hellinger_dist_of_query(P_agent.environment.cgm.get_node_dist(node), P_agent, Q_agent)
         
   def update_divergence(self):
     for P_agent, P_data in self.data.items():
@@ -101,7 +107,10 @@ class DataBank:
           # if node=="Y":
             # print(query.combos(self.domains))
           self.divergence[P_agent][Q_agent][node] = 0
-          self.divergence[P_agent][Q_agent][node] = kl_divergence(self.domains, P_data, Q_data, query)
+          self.divergence[P_agent][Q_agent][node] = hellinger_distance(self.domains, P_data, Q_data, query)
+          # print(hellinger_distance(self.domains,
+          #       P_data, Q_data, query), kl_divergence(self.domains, P_data, Q_data, query))
+          #kl_divergence(self.domains, P_data, Q_data, query)
     return
   
   def get_scaled_tau(self, agent, node):
