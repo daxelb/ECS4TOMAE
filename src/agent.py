@@ -218,13 +218,13 @@ class AdjustAgent(SensitiveAgent):
       return query.solve(transportable_data)
 
   def pre(self, target_agent, query):
-    return self.home_and_target(target_agent, query)
+    return self.all(query)
 
   def node(self, target_agent, query):
-    return self.home(query)
+    return self.all(query)
 
   def post(self, target_agent, query):
-    return self.home_and_target(target_agent, query)
+    return self.target(target_agent, query)
 
   def get_pre_nodes(self, target_agent):
     div_nodes = self.div_nodes(target_agent)
@@ -269,14 +269,14 @@ class AdjustAgent(SensitiveAgent):
       for agent in self.databank:
         for w in (0,1):
           alpha_y_prob = self.solve_query(agent, Query({"Y": 1}, {**{"W": w}, **givens}))
-          beta_y_prob = self.solve_query(agent, Query({"Y": 0}, {**{"W": w}, **givens}))
+          beta_y_prob = 1 - alpha_y_prob if alpha_y_prob is not None else None#self.solve_query(agent, Query({"Y": 0}, {**{"W": w}, **givens}))
           w_prob = self.solve_query(agent, Query({"W": w}, action))
           if alpha_y_prob is None or beta_y_prob is None or w_prob is None:
             continue
           else:
-            assert alpha_y_prob + beta_y_prob == 1
+            # assert alpha_y_prob + beta_y_prob == 1
             # print("!")
-            count = self.databank[agent].num({**{"W": w}, **action, **givens})
+            count = self.databank[agent].num({**action, **givens})
             alpha += w_prob * alpha_y_prob * count
             beta += w_prob * beta_y_prob * count
       # print(alpha, beta)

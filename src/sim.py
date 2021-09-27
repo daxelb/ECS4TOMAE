@@ -267,18 +267,18 @@ if __name__ == "__main__":
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
     otp=OTP.ADJUST,
-    asr=ASR.TS,#(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
-    T=1500,
-    mc_sims=10,
-    tau=0.05,#0.1,
-    EG_epsilon=0.05,
+    asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
+    T=2000,
+    mc_sims=20,
+    tau=0.05,
+    EG_epsilon=0.02,
     EF_rand_trials=25,
-    ED_cooling_rate=0.955,
-    is_community=False,
+    ED_cooling_rate=0.96,
+    is_community=True,
     rand_envs=True,
     node_mutation_chance=(0.2,0.8),
     show=True,
     save=True,
     seed=None
   )
-  experiment.run(desc="home+target for all non-node -- with W")
+  experiment.run(desc="ASR Comparison")
