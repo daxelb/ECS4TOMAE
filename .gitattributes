@@ -1,1 +1,2 @@
 output/** linguist-vendored
+.xlsb filter=lfs diff=lfs merge=lfs -text
