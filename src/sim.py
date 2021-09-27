@@ -1,9 +1,5 @@
 from enum import Enum
-from agent import SoloAgent, NaiveAgent, SensitiveAgent, AdjustAgent
-from world import World
-from data import DataBank
 from assignment_models import ActionModel, DiscreteModel, RandomModel
-from util import printProgressBar
 from environment import Environment
 import plotly.graph_objs as go
 import time
@@ -12,7 +8,6 @@ import multiprocessing as mp
 from pandas import DataFrame, ExcelWriter
 from os import mkdir
 from json import dump
-from itertools import cycle
 from enums import OTP, ASR
 from process import Process
 
@@ -266,19 +261,19 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    otp=OTP.ADJUST,
-    asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
+    otp=(OTP.SOLO, OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
+    asr=ASR.TS,
     T=2000,
     mc_sims=25,
     tau=0.05,
     EG_epsilon=0.02,
     EF_rand_trials=25,
     ED_cooling_rate=0.96,
-    is_community=True,
+    is_community=False,
     rand_envs=True,
     node_mutation_chance=(0.2,0.8),
     show=True,
     save=True,
     seed=None
   )
-  experiment.run(desc="ASR Comparison")
+  experiment.run(desc="OTP Comparison for TS_1")

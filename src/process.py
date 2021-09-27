@@ -4,7 +4,6 @@ from data import DataBank
 from util import printProgressBar
 from environment import Environment
 import time
-from numpy import random
 from itertools import cycle
 from enums import OTP
 
