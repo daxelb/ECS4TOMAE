@@ -269,7 +269,7 @@ if __name__ == "__main__":
     otp=OTP.ADJUST,
     asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
     T=2000,
-    mc_sims=20,
+    mc_sims=25,
     tau=0.05,
     EG_epsilon=0.02,
     EF_rand_trials=25,
