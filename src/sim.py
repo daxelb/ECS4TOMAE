@@ -264,7 +264,7 @@ if __name__ == "__main__":
     otp=OTP.ADJUST,
     asr=ASR.TS,
     T=3000,
-    mc_sims=30,
+    mc_sims=5,
     tau=0.05,
     EG_epsilon=0.02,
     EF_rand_trials=25,
@@ -276,4 +276,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="skip agents with S-node on W and Y")
+  experiment.run(desc="1b2b3a_9")
