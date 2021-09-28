@@ -262,7 +262,7 @@ class AdjustAgent(SensitiveAgent):
       raise ValueError
 
   def all_causal_path_nodes_corrupted(self, agent):
-    return set(self.div_nodes(agent)).issubset(self.environment.cgm.get_descendants(self.action_var))
+    return self.environment.cgm.get_descendants(self.action_var).issubset(set(self.div_nodes(agent)))
 
 
   def thompson_sample(self, givens):
@@ -271,11 +271,11 @@ class AdjustAgent(SensitiveAgent):
     for action in permutations(self.action_domain):
       alpha = 0
       beta = 0
-      # transport_agents = 0
+      transport_agents = 0
       for agent in self.databank:
         if self.all_causal_path_nodes_corrupted(agent):
           continue
-        # transport_agents += 1
+        transport_agents += 1
         for w in (0,1):
           alpha_y_prob = self.solve_query(agent, Query({"Y": 1}, {**{"W": w}, **givens}))
           beta_y_prob = 1 - alpha_y_prob if alpha_y_prob is not None else None
@@ -286,8 +286,8 @@ class AdjustAgent(SensitiveAgent):
             count = self.databank[agent].num({**action, **givens})
             alpha += w_prob * alpha_y_prob * count
             beta += w_prob * beta_y_prob * count
-      # alpha /= transport_agents
-      # beta /= transport_agents
+      alpha /= transport_agents
+      beta /= transport_agents
       sample = self.rng.beta(alpha + 1, beta + 1)
       if sample > max_sample:
         max_sample = sample
