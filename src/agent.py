@@ -271,7 +271,7 @@ class AdjustAgent(SensitiveAgent):
     for action in permutations(self.action_domain):
       alpha = 0
       beta = 0
-      transport_agents = 0
+      # transport_agents = 0
       for agent in self.databank:
         # if self.all_causal_path_nodes_corrupted(agent):
         #   continue

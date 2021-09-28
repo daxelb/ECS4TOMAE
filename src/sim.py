@@ -261,10 +261,10 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    otp=(OTP.SOLO, OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
+    otp=OTP.ADJUST,
     asr=ASR.TS,
-    T=2000,
-    mc_sims=25,
+    T=3000,
+    mc_sims=30,
     tau=0.05,
     EG_epsilon=0.02,
     EF_rand_trials=25,
@@ -276,4 +276,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="OTP Comparison for TS_1")
+  experiment.run(desc="skip agents with S-node on W and Y")
