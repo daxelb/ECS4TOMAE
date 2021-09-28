@@ -217,14 +217,14 @@ class AdjustAgent(SensitiveAgent):
               transportable_data.extend(self.databank[agent])
       return query.solve(transportable_data)
 
-  def pre(self, target_agent, query):
-    return self.all(query)
+  # def pre(self, target_agent, query):
+  #   return self.all(query)
 
-  def node(self, target_agent, query):
-    return self.all(query)
+  # def node(self, target_agent, query):
+  #   return self.all(query)
 
-  def post(self, target_agent, query):
-    return self.target(target_agent, query)
+  # def post(self, target_agent, query):
+  #   return self.target(target_agent, query)
 
   def get_pre_nodes(self, target_agent):
     div_nodes = self.div_nodes(target_agent)
@@ -249,20 +249,20 @@ class AdjustAgent(SensitiveAgent):
     return post
 
   def solve_query(self, target_agent, query):
-    # return self.all(query)
-    node = query.query_var()
-    div_nodes = self.div_nodes(target_agent)
-    if node in div_nodes:
-      return self.node(target_agent, query)
-    elif node in self.get_pre_nodes(target_agent):
-      return self.pre(target_agent, query)
-    elif node in self.get_post_nodes(target_agent):
-      return self.post(target_agent, query)
-    else:
-      raise ValueError
+    return self.all(query)
+    # node = query.query_var()
+    # div_nodes = self.div_nodes(target_agent)
+    # if node in div_nodes:
+    #   return self.node(target_agent, query)
+    # elif node in self.get_pre_nodes(target_agent):
+    #   return self.pre(target_agent, query)
+    # elif node in self.get_post_nodes(target_agent):
+    #   return self.post(target_agent, query)
+    # else:
+    #   raise ValueError
 
   def all_causal_path_nodes_corrupted(self, agent):
-    return set(self.div_nodes(agent)).issubset(self.environment.cgm.get_descendants(self.action_var))
+    return self.environment.cgm.get_descendants(self.action_var).issubset(set(self.div_nodes(agent)))
 
 
   def thompson_sample(self, givens):
