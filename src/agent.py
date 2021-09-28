@@ -249,6 +249,7 @@ class AdjustAgent(SensitiveAgent):
     return post
 
   def solve_query(self, target_agent, query):
+    # return self.all(query)
     node = query.query_var()
     div_nodes = self.div_nodes(target_agent)
     if node in div_nodes:
@@ -260,26 +261,33 @@ class AdjustAgent(SensitiveAgent):
     else:
       raise ValueError
 
+  def all_causal_path_nodes_corrupted(self, agent):
+    return self.div_nodes(agent).issubset(self.environment.cgm.get_descendants(self.action_var))
+
+
   def thompson_sample(self, givens):
     max_sample = 0
     choices = []
     for action in permutations(self.action_domain):
       alpha = 0
       beta = 0
+      transport_agents = 0
       for agent in self.databank:
+        # if self.all_causal_path_nodes_corrupted(agent):
+        #   continue
+        # transport_agents += 1
         for w in (0,1):
           alpha_y_prob = self.solve_query(agent, Query({"Y": 1}, {**{"W": w}, **givens}))
-          beta_y_prob = 1 - alpha_y_prob if alpha_y_prob is not None else None#self.solve_query(agent, Query({"Y": 0}, {**{"W": w}, **givens}))
+          beta_y_prob = 1 - alpha_y_prob if alpha_y_prob is not None else None
           w_prob = self.solve_query(agent, Query({"W": w}, action))
-          if alpha_y_prob is None or beta_y_prob is None or w_prob is None:
+          if alpha_y_prob is None or w_prob is None:
             continue
           else:
-            # assert alpha_y_prob + beta_y_prob == 1
-            # print("!")
             count = self.databank[agent].num({**action, **givens})
             alpha += w_prob * alpha_y_prob * count
             beta += w_prob * beta_y_prob * count
-      # print(alpha, beta)
+      # alpha /= transport_agents
+      # beta /= transport_agents
       sample = self.rng.beta(alpha + 1, beta + 1)
       if sample > max_sample:
         max_sample = sample
@@ -298,23 +306,3 @@ class AdjustAgent(SensitiveAgent):
         continue
       prob += y_prob * w_prob
     return prob
-
-
-
-
-  # def get_alpha_beta(self, CPTs, action, givens):
-  #   weight = len(CPTs["Y"].query(givens)) + len(CPTs["W"].query({**givens, **action}))
-  #   alpha_prob = self.get_prob_reward(CPTs, action, givens, 1)
-  #   if alpha_prob is None:
-  #     return (0,0)
-  #   return (alpha_prob * weight, (1-alpha_prob) * weight)
-
-  # def get_prob_reward(self, CPTs, action, givens, rew_assignment):
-  #   prob = 0
-  #   for w in (0,1):
-  #     y_prob = Query({"Y": rew_assignment}, {**{"W": w}, **givens}).solve(CPTs["Y"])
-  #     w_prob = Query({"W": w}, action).solve(CPTs["W"])
-  #     if y_prob is None or w_prob is None:
-  #       return None
-  #     prob += y_prob * w_prob
-  #   return prob
