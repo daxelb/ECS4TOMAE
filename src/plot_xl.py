@@ -1,7 +1,7 @@
 from pandas import ExcelFile
 import plotly.graph_objs as go
 
-desc = 'otpTS_N800'
+desc = '1b2b3a_N960'
 yaxis_short = 'poa'
 directory = '../output/%s' % desc
 ex_file = '/%s.xlsx' % yaxis_short
