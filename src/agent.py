@@ -22,7 +22,7 @@ class Agent:
     self.reward_domain = environment.get_rew_dom()
     
     self.databank.add_agent(self)
-      
+
   def get_recent(self):
     return self.databank[self][-1]
   
@@ -41,6 +41,9 @@ class Agent:
       return self.cooling_rate
     else:
       return ""
+
+  def communicate(self, agents):
+    pass
       
   def act(self):
     givens = self.environment.pre.sample(self.rng)
@@ -113,6 +116,9 @@ class Agent:
 class SoloAgent(Agent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
+
+  def communicate(self, agents):
+    return
     
   def choose_optimal(self, givens):
     optimal = self.databank[self].optimal_choice(self.rng, self.action_domain, self.reward_var, givens)
@@ -124,6 +130,12 @@ class SoloAgent(Agent):
 class NaiveAgent(Agent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
+
+  def communicate(self, agents):
+    for a in agents:
+      if a == self:
+        continue
+      self.knowledge.listen(a.knowledge.recent)
     
   def choose_optimal(self, givens):
     optimal = self.databank[self].optimal_choice(self.rng, self.action_domain, self.reward_var, givens)
@@ -135,6 +147,15 @@ class NaiveAgent(Agent):
 class SensitiveAgent(Agent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
+
+  def communicate(self, agents):
+    for a in agents:
+      if a == self:
+        continue
+      elif self.div_nodes(a):
+        return
+
+
     
   def choose_optimal(self, givens):
     optimal = self.databank.sensitive_data(self).optimal_choice(self.rng, self.action_domain, self.reward_var, givens)

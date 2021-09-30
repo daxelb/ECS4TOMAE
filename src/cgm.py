@@ -116,7 +116,21 @@ class CausalGraph:
   
   def get_unset_nodes(self):
     return {n for n in self.dag.nodes if n not in self.set_nodes}
-    
+
+  def causal_path(self, n1, n2):
+    """
+    Returns the nodes along the causal path from
+    n1 to n2.
+    Ex:
+           Z
+         /   \
+        /     \
+       v       v
+      X -> W -> Y
+      
+      causal_path(X, Y) = {W, Y}
+    """
+    self.an(n2).union(self.get_descendants(n1))
 
   def draw_model(self, v=True):
     self.draw().render('output/causal-model.gv', view=v)
@@ -149,7 +163,8 @@ class CausalGraph:
   
   def get_model_dist(self):
     """
-    Returns a parsed version of the model's joint prob. dist.
+    Returns a the Markovian Factorization (MF) of the model's
+    Joint Probability Distribution (JPD).
     """
     product = Product()
     for node in nx.topological_sort(self.dag):

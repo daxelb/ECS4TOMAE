@@ -6,24 +6,29 @@ from math import inf
 from numpy import random
 from cgm import CausalGraph
 class Knowledge:
-  def __init__(self, rng, cgm, domains, act_var, rew_var):
+  def __init__(self, rng, cgm, domains, X, Y):
     self.rng = rng
     self.cgm = cgm
     self.domains = domains
-    self.act_var = act_var
-    self.rew_var = rew_var
+    self.X = X
+    self.Y = Y
     self.cpts = {
       var: CPT(var, self.cgm.get_parents(var), domains) \
-        for var in domains if var != act_var
+        for var in domains if var != X
     }
     self.rew_query = self.get_rew_query()
     
-  def observe(self, observation):
+  def observe(self, sample):
+    self.recent = sample
     for cpt in self.cpts.values():
-      cpt.add(observation)
+      cpt.add(sample)
     
+  def listen(self, sample):
+    for cpt in self.cpts.values():
+      cpt.add(sample)
+
   def get_rew_query(self):
-    dist_vars = self.cgm.an(self.rew_var).difference(self.cgm.an(self.act_var))
+    dist_vars = self.cgm.causal_path(self.X, self.Y)
     return Product(
       self.cgm.get_node_dist(v)
       for v in dist_vars
@@ -32,8 +37,8 @@ class Knowledge:
   def expected_rew(self, givens):
     query = self.rew_query.assign(givens)
     sum_over_rew = 0
-    for rew_val in self.domains[self.rew_var]:
-      query[self.rew_var] = rew_val
+    for rew_val in self.domains[self.Y]:
+      query[self.Y] = rew_val
       if query.all_assigned():
         sum_over_rew += self.exp_rew_addition(rew_val, query)
         continue
@@ -51,7 +56,7 @@ class Knowledge:
   def optimal_choice(self, givens):
     best_choice = []
     best_rew = -inf
-    choices = permutations({self.act_var: self.domains[self.act_var]})
+    choices = permutations({self.X: self.domains[self.X]})
     for choice in choices:
       expected_rew = self.expected_rew({**choice, **givens})
       if expected_rew is not None:
