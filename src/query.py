@@ -1,18 +1,19 @@
 from networkx.classes.function import create_empty_copy
+from data import DataSet
 from util import hash_from_dict, only_given_keys, permutations
 from collections.abc import MutableSequence, Iterable
 from copy import deepcopy, copy
-# from cpt import CPT   
 
 def is_Q(obj):
   return isinstance(obj, (Query, Queries, Quotient))
 
 def is_num(obj):
   return isinstance(obj, (int, float))
-class Query:
+class Query(object):
   def __init__(self, Q, e={}):
     self.Q = self.parse_entry(Q)
     self.e = self.parse_entry(e)
+    self.q_e = self.Q_and_e()
 
   def parse_entry(self, entry):
     if isinstance(entry, dict):
@@ -28,6 +29,18 @@ class Query:
     
   def get_vars(self):
     return set(self.Q_and_e().keys())
+  
+  def solve(self, data):
+    try:
+      return data.prob(self)
+    except:
+      count_e = Count(self)
+      for v in self.get_vars():
+        count_e.assign_one(v, None)
+      count_e = count_e.solve(data)
+      if count_e is None:
+        return None
+      return Count(self).solve(data) / count_e
   
   def var(self):
     """
@@ -73,7 +86,8 @@ class Query:
   def unassigned_combos(self, domains):
     if self.all_assigned():
       return {self}
-    return {copy(self).assign_unassigned(combo) for combo in permutations(domains)}
+    unassigned = permutations(only_given_keys(domains, self.get_unassigned()))
+    return {copy(self).assign(combo) for combo in unassigned}
   
   def parse_as_df_query(self):
     str_query = ""
@@ -88,14 +102,14 @@ class Query:
   def uncomputed_prob(self, data):
     return (Query(self.Q_and_e()).num_consistent(data), Query(self.e).num_consistent(data))
   
-  def solve(self, data):
-    return data.prob(self)
-  
   def vars_as_tup(self):
     return (tuple(self.Q.keys()), tuple(self.e.keys()))
   
   def solve_unassigned(self, data, domains):
     return {q: q.solve(data) for q in self.unassigned_combos(domains)}
+    
+  def assign_(self, var_or_dict, ass=None):
+    return copy(self).assign(var_or_dict, ass)
     
   def assign(self, var_or_dict, ass=None):
     return self.assign_many(var_or_dict) if ass is None else self.assign_one(var_or_dict, ass)
@@ -107,8 +121,8 @@ class Query:
       self.e[var] = ass
     return self
       
-  def assign_many(self, domains):
-    for var, ass in domains.items():
+  def assign_many(self, assignments):
+    for var, ass in assignments.items():
       self.assign_one(var, ass)
     return self
   
@@ -131,13 +145,16 @@ class Query:
     return (self.Q, self.e)
   
   def __copy__(self):
-    return Query(copy(self.Q), copy(self.e))
+    return self.__class__(copy(self.Q), copy(self.e))
   
   def __hash__(self):
-    return hash((tuple(sorted(self.Q.items())),tuple(sorted(self.e.items()))))
+    return hash((
+      tuple(sorted(self.Q.items())),
+      tuple(sorted(self.e.items()))
+    ))
   
   def __repr__(self):
-    return "<Query: {}>".format(str(self))
+    return "<{}>".format(str(self))
   
   def __str__(self):
     if self.e:
@@ -158,6 +175,39 @@ class Query:
     if isinstance(item, Iterable):
       return all(e in self.Q_and_e().keys() for e in item)
     return item in self.Q_and_e()
+  
+  
+class Count(Query):
+  def __init__(self, Q, e={}):
+    if isinstance(Q, Query):
+      super(self.__class__, self).__init__({**Q.Q, **Q.e})
+    else:
+      super(self.__class__, self).__init__({**self.parse_entry(Q), **self.parse_entry(e)})
+      
+  def assign_(self, var_or_dict, ass=None):
+    return copy(self).assign(var_or_dict, ass)
+    
+  def assign(self, var_or_dict, ass=None):
+    self.assign_many(var_or_dict) if ass is None else self.assign_one(var_or_dict, ass)
+    return self
+  
+  def assign_one(self, var, ass):
+    if var in self.Q:
+      self.Q[var] = ass
+    if var in self.e:
+      self.e[var] = ass
+    # return self
+      
+  def assign_many(self, assignments):
+    for var, ass in assignments.items():
+      self.assign_one(var, ass)
+    # return self
+  
+  def solve(self, data):
+    return data[self]
+  
+  def __str__(self):
+    return "N({})".format(hash_from_dict(self.Q))
 
 class Queries(MutableSequence):
   def __init__(self, data=None):
@@ -216,6 +266,11 @@ class Queries(MutableSequence):
     for a in dom:
       new_assignments.append(deepcopy(assignments).assign_one(var, a))
     return self.over_helper(unassigned, new_assignments)
+  
+  def assign_(self, var_or_dict, ass=None):
+    new = copy(self)
+    new.assign(var_or_dict, ass)
+    return new
   
   def assign(self, var_or_dict, ass=None):
     if ass is None:
@@ -390,6 +445,11 @@ class Quotient():
       return None
     return nume / denom
   
+  def assign_(self, var_or_dict, ass=None):
+    new = copy(self)
+    new.assign(var_or_dict, ass)
+    return new
+  
   def assign(self, dict_or_var, assignment=None):
     if assignment is None:
       return self.assign_many(dict_or_var)
@@ -410,7 +470,7 @@ class Quotient():
     return self
     
   def __repr__(self):
-    return "<Quotient: {}>".format(str(self))
+    return "<{}>".format(str(self))
     
   def __str__(self):
     return "({}) / ({})".format(str(self.nume), str(self.denom))
@@ -418,13 +478,91 @@ class Quotient():
   def __contains__(self, item):
     return item in self.nume or item in self.denom
   
-if __name__ == "__main__":
-  cpt_y = CPT("Y", ("W", "Z"), {"Y": (0,1), "W": (0,1), "Z": (0,1)})
-  cpt_w = CPT("W", "X", {"W": (0,1), "X": (0,1)})
-  cpts = {"Y": cpt_y, "W": cpt_w}
-  rew_query = Product([Query({"Y": 1},{"Z": 1, "W": (0,1)}), Query({"W": (0,1)},{"X": 0})])
-  prod = 1
-  for q in rew_query:
-    q.q_var()
-    prod *= q.solve(cpt_y)
+# if __name__ == "__main__":
+#   cpt_y = CPT("Y", ("W", "Z"), {"Y": (0,1), "W": (0,1), "Z": (0,1)})
+#   cpt_w = CPT("W", "X", {"W": (0,1), "X": (0,1)})
+#   cpt_w.add({"X": 0, "W": 0})
+#   cpt_w.add({"X": 0, "W": 0})
+#   cpt_w.add({"X": 0, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 0})
+#   cpt_w.add({"X": 0, "W": 0})
+#   cpt_w.add({"X": 0, "W": 0})
+#   cpt_w.add({"X": 0, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 0})
+#   cpt_w.add({"X": 0, "W": 0})
+#   cpt_w.add({"X": 0, "W": 0})
+#   cpt_w.add({"X": 0, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 0})
+#   cpt_w.add({"X": 0, "W": 0})
+#   cpt_w.add({"X": 0, "W": 0})
+#   cpt_w.add({"X": 0, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 0})
+#   cpt_w.add({"X": 0, "W": 0})
+#   cpt_w.add({"X": 0, "W": 0})
+#   cpt_w.add({"X": 0, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 1})
+#   cpt_w.add({"X": 1, "W": 0})
+            
+#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
+#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
+#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
+#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
+#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
+#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
+#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
+#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
+#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
+#   cpt_y.add({"Y": 1, "Z": 0, "W": 0})
+#   #
+#   cpt_y.add({"Y": 1, "Z": 0, "W": 1})
+#   cpt_y.add({"Y": 1, "Z": 0, "W": 1})
+#   cpt_y.add({"Y": 1, "Z": 0, "W": 1})
+#   cpt_y.add({"Y": 1, "Z": 0, "W": 1})
+#   cpt_y.add({"Y": 1, "Z": 0, "W": 1})
+#   cpt_y.add({"Y": 0, "Z": 0, "W": 1})
+#   cpt_y.add({"Y": 0, "Z": 0, "W": 1})
+#   cpt_y.add({"Y": 0, "Z": 0, "W": 1})
+#   cpt_y.add({"Y": 0, "Z": 0, "W": 1})
+#   cpt_y.add({"Y": 0, "Z": 0, "W": 1})
+#   #
+#   cpt_y.add({"Y": 1, "Z": 1, "W": 0})#
+#   cpt_y.add({"Y": 1, "Z": 1, "W": 0})
+#   cpt_y.add({"Y": 1, "Z": 1, "W": 0})
+#   cpt_y.add({"Y": 1, "Z": 1, "W": 0})
+#   cpt_y.add({"Y": 1, "Z": 1, "W": 0})
+#   cpt_y.add({"Y": 0, "Z": 1, "W": 0})
+#   cpt_y.add({"Y": 0, "Z": 1, "W": 0})
+#   cpt_y.add({"Y": 0, "Z": 1, "W": 0})
+#   cpt_y.add({"Y": 0, "Z": 1, "W": 0})
+#   cpt_y.add({"Y": 0, "Z": 1, "W": 0})
+# #
+#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})#
+#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})
+#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})
+#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})
+#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})
+#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})
+#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})
+#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})
+#   cpt_y.add({"Y": 0, "Z": 1, "W": 1})
+#   cpts = {"Y": cpt_y, "W": cpt_w}
+#   rew_query = Product([Query({"Y": 1},{"Z": 1, "W": (0,1)}), Query({"W": (0,1)},{"X": 0})])
+#   prod = 1
+#   for q in rew_query:
+#     prod *= q.solve(cpts[q.var()])
+#   print(prod)
     
