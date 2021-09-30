@@ -276,4 +276,4 @@ if __name__ == "__main__":
     save=True,
     seed=None
   )
-  experiment.run(desc="CommunityASR")
+  experiment.run(desc="asrCommunity_T3000")
