@@ -270,16 +270,6 @@ class AdjustAgent(SensitiveAgent):
 
   def solve_query(self, target_agent, query):
     return self.all(query)
-    # node = query.var()
-    # div_nodes = self.div_nodes(target_agent)
-    # if node in div_nodes:
-    #   return self.node(target_agent, query)
-    # elif node in self.get_pre_nodes(target_agent):
-    #   return self.pre(target_agent, query)
-    # elif node in self.get_post_nodes(target_agent):
-    #   return self.post(target_agent, query)
-    # else:
-    #   raise ValueError
     
   def all_causal_path_nodes_corrupted(self, agent):
     return self.environment.cgm.causal_path(self.act_var, self.rew_var).issubset(set(self.div_nodes(agent)))
@@ -290,11 +280,9 @@ class AdjustAgent(SensitiveAgent):
     for action in permutations(self.act_dom):
       alpha = 0
       beta = 0
-      # transport_agents = 0
       for agent in self.databank:
         if self.all_causal_path_nodes_corrupted(agent):
           continue
-        # transport_agents += 1
         for w in (0,1):
           alpha_y_prob = self.solve_query(agent, Query({"Y": 1}, {**{"W": w}, **givens}))
           beta_y_prob = 1 - alpha_y_prob if alpha_y_prob is not None else None
@@ -305,8 +293,6 @@ class AdjustAgent(SensitiveAgent):
             count = self.databank[agent].num({**action, **givens})
             alpha += w_prob * alpha_y_prob * count
             beta += w_prob * beta_y_prob * count
-      # alpha /= transport_agents
-      # beta /= transport_agents
       sample = self.rng.beta(alpha + 1, beta + 1)
       if sample > max_sample:
         max_sample = sample
