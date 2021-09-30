@@ -16,10 +16,10 @@ class Agent:
     self.rand_trials = rand_trials
     self.rand_trials_rem = [rand_trials] * len(self.feat_perms)
     self.cooling_rate = cooling_rate
-    self.action_var = environment.get_act_var()
-    self.action_domain = environment.get_act_dom()
-    self.reward_var = environment.get_rew_var()
-    self.reward_domain = environment.get_rew_dom()
+    self.act_var = environment.get_act_var()
+    self.act_dom = environment.get_act_dom()
+    self.rew_var = environment.get_rew_var()
+    self.rew_dom = environment.get_rew_dom()
     
     self.databank.add_agent(self)
 
@@ -79,7 +79,7 @@ class Agent:
     pass
   
   def choose_random(self):
-    return self.rng.choice(permutations(self.action_domain))
+    return self.rng.choice(permutations(self.act_dom))
   
   def thompson_sample(self, givens):
     pass
@@ -88,9 +88,9 @@ class Agent:
     choice = None
     max_sample = 0 #float('-inf')
     data = dataset.query(givens)
-    for action in permutations(self.action_domain):
-      alpha = len(data.query({**action, **{self.reward_var: 1}}))
-      beta = len(data.query({**action, **{self.reward_var: 0}}))
+    for action in permutations(self.act_dom):
+      alpha = len(data.query({**action, **{self.rew_var: 1}}))
+      beta = len(data.query({**action, **{self.rew_var: 0}}))
       sample = self.rng.beta(alpha + 1, beta + 1)
       if sample > max_sample:
         choice = action
@@ -121,7 +121,7 @@ class SoloAgent(Agent):
     return
     
   def choose_optimal(self, givens):
-    optimal = self.databank[self].optimal_choice(self.rng, self.action_domain, self.reward_var, givens)
+    optimal = self.databank[self].optimal_choice(self.rng, self.act_dom, self.rew_var, givens)
     return optimal if optimal else self.choose_random()
   
   def thompson_sample(self, givens):
@@ -138,7 +138,7 @@ class NaiveAgent(Agent):
       self.knowledge.listen(a.knowledge.recent)
     
   def choose_optimal(self, givens):
-    optimal = self.databank[self].optimal_choice(self.rng, self.action_domain, self.reward_var, givens)
+    optimal = self.databank[self].optimal_choice(self.rng, self.act_dom, self.rew_var, givens)
     return optimal if optimal else self.choose_random()
   
   def thompson_sample(self, givens):
@@ -158,7 +158,7 @@ class SensitiveAgent(Agent):
 
     
   def choose_optimal(self, givens):
-    optimal = self.databank.sensitive_data(self).optimal_choice(self.rng, self.action_domain, self.reward_var, givens)
+    optimal = self.databank.sensitive_data(self).optimal_choice(self.rng, self.act_dom, self.rew_var, givens)
     return optimal if optimal else self.choose_random()
   
   def thompson_sample(self, givens):
@@ -167,7 +167,7 @@ class SensitiveAgent(Agent):
 class AdjustAgent(SensitiveAgent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
-    self.action_var = self.environment.get_act_var()
+    self.act_var = self.environment.get_act_var()
     
   def has_S_node(self, node, other):
     return node in self.div_nodes(other)
@@ -185,13 +185,13 @@ class AdjustAgent(SensitiveAgent):
         model.selection_diagram(
           div_nodes
         ).get_transport_formula(
-          self.action_var, self.reward_var, set(givens)
+          self.act_var, self.rew_var, set(givens)
         )
       )
     query = Product()
     for q in unformatted_tf:
-      query_var = q.query_var()
-      if query_var not in givens and query_var != self.action_var:
+      query_var = q.var()
+      if query_var not in givens and query_var != self.act_var:
         query.append(q)
     return query.assign(self.environment.domains).assign(givens)
 
@@ -209,7 +209,7 @@ class AdjustAgent(SensitiveAgent):
     CPTs = self.get_CPTs()
     max_val = 0
     choices = []
-    for action in permutations(self.action_domain):
+    for action in permutations(self.act_dom):
       expected_value = self.get_expected_value(CPTs, action, givens)
       if expected_value > max_val:
         max_val = expected_value
@@ -217,7 +217,6 @@ class AdjustAgent(SensitiveAgent):
       elif expected_value == max_val:
         choices.append(action)
     return self.rng.choice(choices)
-
 
   def home(self, query):
       return query.solve(self.databank[self])
@@ -231,7 +230,7 @@ class AdjustAgent(SensitiveAgent):
 
 
   def all(self, query):
-      node = query.query_var()
+      node = query.var()
       transportable_data = DataSet()
       for agent in self.databank:
           if node not in self.div_nodes(agent):
@@ -271,7 +270,7 @@ class AdjustAgent(SensitiveAgent):
 
   def solve_query(self, target_agent, query):
     return self.all(query)
-    # node = query.query_var()
+    # node = query.var()
     # div_nodes = self.div_nodes(target_agent)
     # if node in div_nodes:
     #   return self.node(target_agent, query)
@@ -281,15 +280,14 @@ class AdjustAgent(SensitiveAgent):
     #   return self.post(target_agent, query)
     # else:
     #   raise ValueError
-
+    
   def all_causal_path_nodes_corrupted(self, agent):
-    return self.environment.cgm.get_descendants(self.action_var).issubset(set(self.div_nodes(agent)))
-
-
+    return self.environment.cgm.causal_path(self.act_var, self.rew_var).issubset(set(self.div_nodes(agent)))
+  
   def thompson_sample(self, givens):
     max_sample = 0
     choices = []
-    for action in permutations(self.action_domain):
+    for action in permutations(self.act_dom):
       alpha = 0
       beta = 0
       # transport_agents = 0

@@ -6,12 +6,12 @@ from math import inf
 from numpy import random
 from cgm import CausalGraph
 class Knowledge:
-  def __init__(self, rng, cgm, domains, X, Y):
+  def __init__(self, rng, cgm, domains, act_var, rew_var):
     self.rng = rng
     self.cgm = cgm
     self.domains = domains
-    self.X = X
-    self.Y = Y
+    self.act_var = act_var
+    self.rew_var = rew_var
     self.cpts = {
       var: CPT(var, self.cgm.get_parents(var), domains) \
         for var in domains if var != X
@@ -28,7 +28,7 @@ class Knowledge:
       cpt.add(sample)
 
   def get_rew_query(self):
-    dist_vars = self.cgm.causal_path(self.X, self.Y)
+    dist_vars = self.cgm.causal_path(self.act_var, self.rew_var)
     return Product(
       self.cgm.get_node_dist(v)
       for v in dist_vars
@@ -37,8 +37,8 @@ class Knowledge:
   def expected_rew(self, givens):
     query = self.rew_query.assign(givens)
     sum_over_rew = 0
-    for rew_val in self.domains[self.Y]:
-      query[self.Y] = rew_val
+    for rew_val in self.domains[self.rew_var]:
+      query[self.rew_var] = rew_val
       if query.all_assigned():
         sum_over_rew += self.exp_rew_addition(rew_val, query)
         continue
@@ -56,7 +56,7 @@ class Knowledge:
   def optimal_choice(self, givens):
     best_choice = []
     best_rew = -inf
-    choices = permutations({self.X: self.domains[self.X]})
+    choices = permutations({self.act_var: self.domains[self.act_var]})
     for choice in choices:
       expected_rew = self.expected_rew({**choice, **givens})
       if expected_rew is not None:
@@ -66,6 +66,41 @@ class Knowledge:
         elif expected_rew == best_rew:
           best_choice.append(choice)
     return self.rng.choice(best_choice) if best_choice else None
+  
+  def all_causal_path_nodes_corrupted(self, agent):
+    return self.cgm.causal_path(self.act_var, self.rew_var).issubset(set(self.div_nodes(agent)))
+  
+  def thompson_sample(self, givens):
+    max_sample = 0
+    choices = []
+    for action in permutations(self.act_dom):
+      alpha = 0
+      beta = 0
+      for agent in self.databank:
+        if self.all_causal_path_nodes_corrupted(agent):
+          continue
+        rew_query = self.get_rew_query()
+        rew_query.over()
+        for w in (0,1):
+          alpha_y_prob = self.solve_query(agent, Query({"Y": 1}, {**{"W": w}, **givens}))
+          beta_y_prob = 1 - alpha_y_prob if alpha_y_prob is not None else None
+          w_prob = self.solve_query(agent, Query({"W": w}, action))
+          if alpha_y_prob is None or w_prob is None:
+            continue
+          else:
+            count = self.databank[agent].num({**action, **givens})
+            alpha += w_prob * alpha_y_prob * count
+            beta += w_prob * beta_y_prob * count
+      # alpha /= transport_agents
+      # beta /= transport_agents
+      sample = self.rng.beta(alpha + 1, beta + 1)
+      if sample > max_sample:
+        max_sample = sample
+        choices = [action]
+      if sample == max_sample:
+        choices.append(action)
+    return self.rng.choice(choices)
+  
 
 class CPT:
   def __init__(self, var, parents, domains):

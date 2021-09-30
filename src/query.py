@@ -1,6 +1,8 @@
+from networkx.classes.function import create_empty_copy
 from util import hash_from_dict, only_given_keys, permutations
 from collections.abc import MutableSequence, Iterable
 from copy import deepcopy, copy
+# from cpt import CPT   
 
 def is_Q(obj):
   return isinstance(obj, (Query, Queries, Quotient))
@@ -27,7 +29,16 @@ class Query:
   def get_vars(self):
     return set(self.Q_and_e().keys())
   
-  def query_var(self):
+  def var(self):
+    """
+    Previously called "var()"
+    Renamed for simplicity
+    Returns the variable of the query var if there is only one
+    Will return an assertion error if now
+    Ex:
+    q = P(Y|W,Z)
+    q.var() = "Y"
+    """
     assert len(self.Q) == 1
     return list(self.Q.keys())[0]
   
@@ -190,11 +201,10 @@ class Queries(MutableSequence):
   def all_assigned(self):
     return len(self.get_unassigned()) == 0
   
-  def over(self, domains):
-    assert all(var in self for var in domains)
-    return self.over_helper(domains, self)
-  
-  def over_unassigned(self):
+  def over(self, domains={}):
+    # [*] assert all(var in self for var in domains)
+    if domains:
+      return self.over_helper(domains, self)
     return self.over_helper(self.get_unassigned(), self)
   
   def over_helper(self, unassigned, assignments):
@@ -345,7 +355,7 @@ class Product(Queries):
     # assert all(is_Q(q) or is_num(q) for q in self._list)
     product = 1
     for q in self._list:
-      new_mult = q.solve(cpts[q.query_var()]) if is_Q(q) else q
+      new_mult = q.solve(cpts[q.var()]) if is_Q(q) else q
       if new_mult is None:
         return None
       product *= new_mult
@@ -409,17 +419,12 @@ class Quotient():
     return item in self.nume or item in self.denom
   
 if __name__ == "__main__":
-  q = Query({"Y": 1}, {"X": 0, "Z":1, "S":1})
-  q1 = Query({"S": 1}, {"Z": 1})
-  qs = Product([q1, q])
-  qs.assign_many({"S": 1})
-  # data = [{"X": 1, "Y": 0, "W": 1}]
-  # print(qs.solve(data))
-  print(qs)
-  so = Summation(qs.over_unassigned())
-  print(so)
-  quo = Quotient(qs, so)
-  # print(quo)
-  # print(Summation(qs.over({"X": (0,1)})))
-  # print(so)
-  
+  cpt_y = CPT("Y", ("W", "Z"), {"Y": (0,1), "W": (0,1), "Z": (0,1)})
+  cpt_w = CPT("W", "X", {"W": (0,1), "X": (0,1)})
+  cpts = {"Y": cpt_y, "W": cpt_w}
+  rew_query = Product([Query({"Y": 1},{"Z": 1, "W": (0,1)}), Query({"W": (0,1)},{"X": 0})])
+  prod = 1
+  for q in rew_query:
+    q.q_var()
+    prod *= q.solve(cpt_y)
+    

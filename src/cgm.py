@@ -130,7 +130,8 @@ class CausalGraph:
       
       causal_path(X, Y) = {W, Y}
     """
-    self.an(n2).union(self.get_descendants(n1))
+    # print(self.get_descendants(n1), self.an(n2))
+    return self.an(n2).union(self.get_descendants(n1))
 
   def draw_model(self, v=True):
     self.draw().render('output/causal-model.gv', view=v)
