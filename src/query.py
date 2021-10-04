@@ -31,15 +31,18 @@ class Query(object):
     return set(self.Q_and_e().keys())
   
   def solve(self, data):
-    try:
-      # this maintains backwards compatibility
-      return data.prob(self)
-    except:
-      count_e = Count(self.e)
-      count_e = count_e.solve(data)
-      if count_e is None:
-        return None
-      return Count(self).solve(data) / count_e
+    cpt = data[self.var()] if isinstance(data, dict) else data
+    count_e = Count(self.e)
+    # if cpt is None:
+    #   print("**********")
+    #   print(data)
+    #   print(cpt)
+    #   print(count_e)
+    #   print("**********")
+    count_e = count_e.solve(cpt)
+    if count_e == 0:
+      return None
+    return Count(self).solve(cpt) / count_e
   
   def var(self):
     """
@@ -160,6 +163,9 @@ class Query(object):
   
   def __setitem__(self, key, val):
     return self.assign_one(key, val)
+
+  def __getitem__(self, key):
+    return self.Q_and_e()[key]
   
   def __contains__(self, item):
     if isinstance(item, Iterable):
@@ -193,8 +199,8 @@ class Count(Query):
       self.assign_one(var, ass)
     # return self
   
-  def solve(self, data):
-    return data[self]
+  def solve(self, cpt):
+    return cpt[self]
 
   def issubset(self, other):
     assert isinstance(other, Count)
@@ -358,12 +364,15 @@ class Summation(Queries):
   def solve(self, cpts):
     summation = 0
     for q in self:
-      if isinstance(q, (Summation, Product)):
-        summation += q.solve(cpts)
-      elif isinstance(q, Query):
-        summation += q.solve(cpts[q.var()])
-      else:
-        summation += q
+      try:
+        if isinstance(q, (Summation, Product)):
+          summation += q.solve(cpts)
+        elif isinstance(q, Query):
+          summation += q.solve(cpts[q.var()])
+        else:
+          summation += q
+      except TypeError:
+        return None
     return summation
   
   def __str__(self):
@@ -384,12 +393,15 @@ class Product(Queries):
     assert all(is_Q(q) or is_num(q) for q in self._list)
     product = 1
     for q in self:
-      if isinstance(q, (Summation, Product)):
-        product *= q.solve(cpts)
-      elif isinstance(q, Query):
-        product *= q.solve(cpts[q.var()])
-      else:
-        product *= q
+      try:
+        if isinstance(q, (Summation, Product)):
+          product *= q.solve(cpts)
+        elif isinstance(q, Query):
+          product *= q.solve(cpts[q.var()])
+        else:
+          product *= q
+      except TypeError:
+        return None
     return product
     
   def __str__(self):

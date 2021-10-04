@@ -1,31 +1,51 @@
-from query import Product, Query
-from util import permutations, only_dicts_with_givens
+from cpt import Knowledge, CPT
+from query import Count, Product, Query, Summation
+from util import only_given_keys, permutations, only_dicts_with_givens, hellinger_dist
 from data import DataSet
 from enums import ASR
+from math import inf
 
 class Agent:
-  def __init__(self, rng, name, environment, databank, tau=None, asr=ASR.EG, epsilon=0, rand_trials=0, cooling_rate=0):
+  def __init__(self, rng, name, environment, agents, tau=None, asr=ASR.EG, epsilon=0, rand_trials=0, cooling_rate=0):
     self.rng = rng
     self.name = name
-    self.environment = environment
-    self.databank = databank
+    self._environment = environment
+    self.cgm = environment.cgm
+    self.agents = agents
+    self.domains = environment.domains
+    self.act_var = environment.act_var
+    self.act_dom = self.domains[self.act_var]
+    self.actions = permutations(only_given_keys(self.domains, [self.act_var]))
+    self.rew_var = environment.rew_var
+    self.rew_dom = self.domains[self.rew_var]
+    self.rewards = permutations(only_given_keys(self.domains, [self.rew_var]))
+    self.contexts = permutations(self.get_context())
     self.tau = tau
     self.asr = asr
-    self.feat_perms = permutations(environment.get_feat_doms())
-    self.epsilon = [1] * len(self.feat_perms) if asr == ASR.ED else epsilon
+    self.epsilon = [1] * len(self.contexts.keys()) if asr == ASR.ED else epsilon
     self.rand_trials = rand_trials
-    self.rand_trials_rem = [rand_trials] * len(self.feat_perms)
+    self.rand_trials_rem = [rand_trials] * len(self.contexts)
     self.cooling_rate = cooling_rate
-    self.act_var = environment.get_act_var()
-    self.act_dom = environment.get_act_dom()
-    self.rew_var = environment.get_rew_var()
-    self.rew_dom = environment.get_rew_dom()
-    
-    self.databank.add_agent(self)
+    self.my_cpts = {
+        var: CPT(var, self.cgm.get_parents(var), self.domains)
+        for var in self.domains
+    }
+    # nodes in the cgm that Y is dependent on that is either X or observed by X
+    # in the OG example, this is Z, X 
+    # but if Z is not a counfounder on Y, but only connected to Y through X, 
+    # Z would not be included
+    parents = {self.act_var}
+    for var in self.cgm.get_ancestors(self.act_var):
+      if not self.cgm.is_d_separated(var, self.rew_var, self.act_var):
+        parents.add(var)
+    self.my_cpts["rew"] = CPT(self.rew_var, parents, self.domains)
 
-  def get_recent(self):
-    return self.databank[self][-1]
-  
+  def update_divergence(self):
+    return
+
+  def get_context(self):
+    return only_given_keys(self.domains, self.cgm.get_parents(self.act_var))
+
   def get_ind_var_value(self, ind_var):
     if ind_var == "tau":
       return self.tau
@@ -42,29 +62,19 @@ class Agent:
     else:
       return ""
 
-  def communicate(self, agents):
-    pass
-      
-  def act(self):
-    givens = self.environment.pre.sample(self.rng)
-    choice = self.choose(givens)
-    givens |= choice
-    observation = self.environment.post.sample(self.rng, givens)
-    self.databank[self].append(observation)
-      
   def choose(self, givens):
     if self.asr == ASR.EG:
       if self.rng.random() < self.epsilon:
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == ASR.EF:
-      given_i = self.feat_perms.index(givens)
+      given_i = self.contexts.index(givens)
       if self.rand_trials_rem[given_i] > 0:
         self.rand_trials_rem[given_i] -= 1
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == ASR.ED:
-      given_i = self.feat_perms.index(givens)
+      given_i = self.contexts.index(givens)
       if self.rng.random() < self.epsilon[given_i]:
         self.epsilon[given_i] *= self.cooling_rate
         return self.choose_random()
@@ -74,28 +84,73 @@ class Agent:
       return self.thompson_sample(givens)
     else:
       raise ValueError("%s ASR not found" % self.asr)
+
+  def observe(self, sample):
+    self.recent = sample
+    for cpt in self.my_cpts.values():
+      cpt.add(sample)
   
-  def choose_optimal(self, givens):
-    pass
+  def get_recent(self):
+    return self.recent
+
+  def get_rew_query(self):
+    dist_vars = self.cgm.causal_path(self.act_var, self.rew_var)
+    return Product(
+        self.cgm.get_node_dist(v)
+        for v in dist_vars
+    ).assign(self.domains)
+  
+  def get_rew_query_unfactored(self):
+    parents = {self.act_var}
+    for var in self.cgm.get_ancestors(self.act_var):
+      if not self.cgm.is_d_separated(var, self.rew_var, self.act_var):
+        parents.add(var)
+    return Query(self.rew_var, parents)
+
+  def expected_rew(self, givens, cpts):
+    summ = 0
+    query = self.get_rew_query_unfactored()
+    query.assign(givens)
+    for rew in self.rewards:
+      query.assign(rew)
+      rew_prob = query.solve(cpts["rew"])
+      summ += rew[self.rew_var] * rew_prob if rew_prob is not None else 0
+    return summ
+  
+  def choose_optimal(self, context):
+    cpts = self.get_cpts()
+    best_acts = []
+    best_rew = -inf
+    for act in self.actions:
+      expected_rew = self.expected_rew({**context, **act}, cpts)
+      if expected_rew is not None:
+        if expected_rew > best_rew:
+          best_acts = [act]
+          best_rew = expected_rew
+        elif expected_rew == best_rew:
+          best_acts.append(act)
+    return self.rng.choice(best_acts) if best_acts else None
   
   def choose_random(self):
-    return self.rng.choice(permutations(self.act_dom))
+    return self.rng.choice(self.actions)
   
-  def thompson_sample(self, givens):
-    pass
-  
-  def ts_from_dataset(self, dataset, givens):
-    choice = None
-    max_sample = 0 #float('-inf')
-    data = dataset.query(givens)
-    for action in permutations(self.act_dom):
-      alpha = len(data.query({**action, **{self.rew_var: 1}}))
-      beta = len(data.query({**action, **{self.rew_var: 0}}))
+  def thompson_sample(self, context):
+    best_acts = []
+    best_sample = 0
+    cpts = self.get_cpts()
+    rew_query = self.get_rew_query_unfactored()
+    rew_query.assign(context)
+    for act in self.actions:
+      rew_query.assign(act)
+      alpha = cpts["rew"][rew_query.assign({self.rew_var: 1})]
+      beta  = cpts["rew"][rew_query.assign({self.rew_var: 0})]
       sample = self.rng.beta(alpha + 1, beta + 1)
-      if sample > max_sample:
-        choice = action
-        max_sample = sample
-    return choice
+      if sample > best_sample:
+        best_sample = sample
+        best_acts = [act]
+      if sample == best_sample:
+        best_acts.append(act)
+    return self.rng.choice(best_acts)
   
   def get_otp(self):
     return self.__class__.__name__[:-5]
@@ -117,197 +172,109 @@ class SoloAgent(Agent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
 
-  def communicate(self, agents):
-    return
-    
-  def choose_optimal(self, givens):
-    optimal = self.databank[self].optimal_choice(self.rng, self.act_dom, self.rew_var, givens)
-    return optimal if optimal else self.choose_random()
-  
-  def thompson_sample(self, givens):
-    return self.ts_from_dataset(self.databank[self], givens)
-
+  def get_cpts(self):
+    return self.my_cpts
 class NaiveAgent(Agent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
 
-  def communicate(self, agents):
-    for a in agents:
-      if a == self:
-        continue
-      self.knowledge.listen(a.knowledge.recent)
-    
-  def choose_optimal(self, givens):
-    optimal = self.databank[self].optimal_choice(self.rng, self.act_dom, self.rew_var, givens)
-    return optimal if optimal else self.choose_random()
-  
-  def thompson_sample(self, givens):
-    return self.ts_from_dataset(self.databank.all_data(), givens)
+  def get_cpts(self):
+    cpts = dict(self.my_cpts)
+    for n in cpts:
+      for a in self.agents:
+        if a == self:
+          continue
+        cpts[n].update(a.my_cpts[n])
+    return cpts
 
 class SensitiveAgent(Agent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
+    # May want to include all ancestors of X, not just parents
+    self.context_vars = set(self.get_context().keys())
+    self.divergence = dict()
 
-  def communicate(self, agents):
-    for a in agents:
+  def get_cpts(self):
+    cpts = dict(self.my_cpts)
+    for a in self.agents:
       if a == self:
         continue
-      elif self.div_nodes(a):
-        return
+      if self.div_nodes(a).issubset(self.context_vars):
+        (cpts[n].update(a.my_cpts[n]) for n in cpts)
+    return cpts
 
+  def update_divergence(self):
+    for a in self.agents:
+      if self == a:
+        continue
+      if a not in self.divergence:
+        self.divergence[a] = {n: inf for n in self.cgm.get_unset_nodes()}
+      nodes = set(self.domains.keys())
+      nodes.remove(self.act_var)
+      for n in nodes:
+        self.divergence[a][n] = hellinger_dist(
+            self.domains, self.my_cpts, a.my_cpts, self.cgm.get_node_dist(n))
 
-    
-  def choose_optimal(self, givens):
-    optimal = self.databank.sensitive_data(self).optimal_choice(self.rng, self.act_dom, self.rew_var, givens)
-    return optimal if optimal else self.choose_random()
-  
-  def thompson_sample(self, givens):
-    return self.ts_from_dataset(self.databank.sensitive_data(self), givens)
+  def div_nodes(self, agent):
+    if self == agent:
+      return set()
+    return {node for node, dist in self.divergence[agent].items() if dist is None or dist > self.get_scaled_tau(agent, node)}
+
+  def get_scaled_tau(self, agent, node):
+    scale_factor = 1
+    for parent in self.cgm.get_parents(node):
+      scale_factor *= len(self.domains[parent])
+    return agent.tau * scale_factor
     
 class AdjustAgent(SensitiveAgent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
-    self.act_var = self.environment.get_act_var()
-    
-  def has_S_node(self, node, other):
-    return node in self.div_nodes(other)
 
-  def div_nodes(self, other):
-    return self.databank.div_nodes(self, other)
+  def get_cpts(self):
+    cpts = dict(self.my_cpts)
+    for a in self.agents:
+      if a == self:
+        continue
+      div_nodes = self.div_nodes(a)
+      for n in cpts:
+        if n not in div_nodes:
+          cpts[n].update(a.my_cpts[n])
+    return cpts
 
-  def get_num_datapoints(self, tf, other):
-    return len(only_dicts_with_givens(self.databank[self], tf[0].get_assignments(tf[0].e())))\
-      + len(only_dicts_with_givens(self.databank[other], tf[1].get_assignments(tf[1].e())))
-  
-  def transport_formula(self, div_nodes, givens):
-    model = self.environment.cgm
-    unformatted_tf = model.from_cpts(
-        model.selection_diagram(
-          div_nodes
-        ).get_transport_formula(
-          self.act_var, self.rew_var, set(givens)
-        )
-      )
-    query = Product()
-    for q in unformatted_tf:
-      query_var = q.var()
-      if query_var not in givens and query_var != self.act_var:
-        query.append(q)
-    return query.assign(self.environment.domains).assign(givens)
+  def expected_rew(self, givens, cpts):
+    query = self.get_rew_query().assign(givens)
+    summ = 0
+    for rew_val in self.rew_dom:
+      query[self.rew_var] = rew_val
+      rew_prob = Summation(query.over()).solve(cpts)
+      summ += rew_val * rew_prob if rew_prob is not None else 0
+    return summ
 
-  def get_CPTs(self):
-    div_nodes = {a: self.div_nodes(a) for a in self.databank}
-    CPTs = {}
-    for node in self.environment.get_non_act_vars():
-      CPTs[node] = DataSet()
-      for agent, data in self.databank.items():
-        if node not in div_nodes[agent]:
-          CPTs[node].extend(data)
-    return CPTs
-
-  def choose_optimal(self, givens):
-    CPTs = self.get_CPTs()
-    max_val = 0
-    choices = []
-    for action in permutations(self.act_dom):
-      expected_value = self.get_expected_value(CPTs, action, givens)
-      if expected_value > max_val:
-        max_val = expected_value
-        choices = [action]
-      elif expected_value == max_val:
-        choices.append(action)
-    return self.rng.choice(choices)
-
-  def home(self, query):
-      return query.solve(self.databank[self])
-
-  def target(self, target_agent, query):
-      return query.solve(self.databank[target_agent])
-
-  def home_and_target(self, target_agent, query):
-    data = DataSet(self.databank[self] + self.databank[target_agent])
-    return query.solve(data)
-
-
-  def all(self, query):
-      node = query.var()
-      transportable_data = DataSet()
-      for agent in self.databank:
-          if node not in self.div_nodes(agent):
-              transportable_data.extend(self.databank[agent])
-      return query.solve(transportable_data)
-
-  # def pre(self, target_agent, query):
-  #   return self.all(query)
-
-  # def node(self, target_agent, query):
-  #   return self.all(query)
-
-  # def post(self, target_agent, query):
-  #   return self.target(target_agent, query)
-
-  def get_pre_nodes(self, target_agent):
-    div_nodes = self.div_nodes(target_agent)
-    dn_list = list(div_nodes)
-    if not div_nodes:
-      return self.environment.get_non_act_vars()
-    pre = self.environment.cgm.get_ancestors(dn_list[0])
-    if len(div_nodes) > 1:
-      for i in range(1, len(dn_list)):
-        pre = pre.intersection(self.environment.cgm.get_ancestors(dn_list[i]))
-    return pre
-
-  def get_post_nodes(self, target_agent):
-    div_nodes = self.div_nodes(target_agent)
-    dn_list = list(div_nodes)
-    if not div_nodes:
-      return set()
-    post = self.environment.cgm.get_descendants(dn_list[0])
-    if len(div_nodes) > 1:
-      for i in range(1, len(dn_list)):
-        post = post.union(self.environment.cgm.get_descendants(dn_list[i]))
-    return post
-
-  def solve_query(self, target_agent, query):
-    return self.all(query)
-    
   def all_causal_path_nodes_corrupted(self, agent):
-    return self.environment.cgm.causal_path(self.act_var, self.rew_var).issubset(set(self.div_nodes(agent)))
-  
-  def thompson_sample(self, givens):
-    max_sample = 0
-    choices = []
-    for action in permutations(self.act_dom):
-      alpha = 0
-      beta = 0
-      for agent in self.databank:
+    return self.cgm.causal_path(self.act_var, self.rew_var).issubset(set(self.div_nodes(agent)))
+
+  def thompson_sample(self, context):
+    best_acts = []
+    best_sample = 0
+    cpts = self.get_cpts()
+    for act in self.actions:
+      a = 0
+      b = 0
+      for agent in self.agents:
         if self.all_causal_path_nodes_corrupted(agent):
           continue
-        for w in (0,1):
-          alpha_y_prob = self.solve_query(agent, Query({"Y": 1}, {**{"W": w}, **givens}))
-          beta_y_prob = 1 - alpha_y_prob if alpha_y_prob is not None else None
-          w_prob = self.solve_query(agent, Query({"W": w}, action))
-          if alpha_y_prob is None or w_prob is None:
-            continue
-          else:
-            count = self.databank[agent].num({**action, **givens})
-            alpha += w_prob * alpha_y_prob * count
-            beta += w_prob * beta_y_prob * count
-      sample = self.rng.beta(alpha + 1, beta + 1)
-      if sample > max_sample:
-        max_sample = sample
-        choices = [action]
-      if sample == max_sample:
-        choices.append(action)
-    return self.rng.choice(choices)
-
-  def get_expected_value(self, CPTs, action, givens):
-    prob = 0
-    for w in (0,1):
-      y_prob = Query({"Y": 1}, {**{"W": w}, **givens}).solve(CPTs["Y"])
-      w_prob = Query({"W": w}, action).solve(CPTs["W"])
-      if y_prob is None or w_prob is None:
-        prob += 0
-        continue
-      prob += y_prob * w_prob
-    return prob
+        rew_query = Summation(self.get_rew_query().over())
+        a_prob = rew_query.assign(self.rew_var, 1).solve(cpts)
+        b_prob = rew_query.assign(self.rew_var, 0).solve(cpts)
+        if a_prob is None or b_prob is None:
+          continue
+        count = self.databank[agent].num({**act, **context})
+        a += a_prob * count
+        b += b_prob * count
+      sample = self.rng.beta(a+1, b+1)
+      if sample > best_sample:
+        best_sample = sample
+        best_acts = [act]
+      if sample == best_sample:
+        best_acts.append(act)
+    return self.rng.choice(best_acts)

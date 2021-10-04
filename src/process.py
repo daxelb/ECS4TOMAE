@@ -24,16 +24,16 @@ class Process:
     self.domains = domains
     self.act_var = act_var
 
-  def agent_maker(self, name, environment, databank, assignments):
+  def agent_maker(self, name, environment, assignments, agents):
     otp = assignments.pop("otp")
     if otp == OTP.SOLO:
-      return SoloAgent(self.rng, name, environment, databank, **assignments)
+      return SoloAgent(self.rng, name, environment, agents, **assignments)
     elif otp == OTP.NAIVE:
-      return NaiveAgent(self.rng, name, environment, databank, **assignments)
+      return NaiveAgent(self.rng, name, environment, agents, **assignments)
     elif otp == OTP.SENSITIVE:
-      return SensitiveAgent(self.rng, name, environment, databank, **assignments)
+      return SensitiveAgent(self.rng, name, environment, agents, **assignments)
     elif otp == OTP.ADJUST:
-      return AdjustAgent(self.rng, name, environment, databank, **assignments)
+      return AdjustAgent(self.rng, name, environment, agents, **assignments)
     else:
       raise ValueError("OTP type %s is not supported." % otp)
 
@@ -59,12 +59,12 @@ class Process:
     if not self.is_community:
       self.rng.shuffle(assignments)
     envs = cycle(self.environment_generator()) if self.rand_envs else cycle(self.environments)
+    agents = []
     for _ in range(len(self.ass_perms)):
-      databank = None
-      databank = DataBank(self.domains, self.act_var,
-                          self.rew_var, data={}, divergence={})
-      agents = [self.agent_maker(str(i), next(
-          envs), databank, assignments.pop()) for i in range(self.num_agents)]
+      agents = []
+      for i in range(self.num_agents):
+        agents.append(self.agent_maker(str(i), next(envs), assignments.pop(), agents))
+      
       yield World(agents, self.T, self.is_community)
 
   def simulate(self):
