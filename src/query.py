@@ -32,11 +32,10 @@ class Query(object):
   
   def solve(self, data):
     try:
+      # this maintains backwards compatibility
       return data.prob(self)
     except:
-      count_e = Count(self)
-      for v in self.get_vars():
-        count_e.assign_one(v, None)
+      count_e = Count(self.e)
       count_e = count_e.solve(data)
       if count_e is None:
         return None
@@ -95,15 +94,6 @@ class Query(object):
       if is_num(ass):
         str_query += "{0} == {1} & ".format(var,ass)
     return str_query[:-3]
-
-  def num_consistent(self, data):
-    return len(data.query(self.parse_as_df_query())) if self else len(data)
-
-  def uncomputed_prob(self, data):
-    return (Query(self.Q_and_e()).num_consistent(data), Query(self.e).num_consistent(data))
-  
-  def vars_as_tup(self):
-    return (tuple(self.Q.keys()), tuple(self.e.keys()))
   
   def solve_unassigned(self, data, domains):
     return {q: q.solve(data) for q in self.unassigned_combos(domains)}
@@ -205,6 +195,10 @@ class Count(Query):
   
   def solve(self, data):
     return data[self]
+
+  def issubset(self, other):
+    assert isinstance(other, Count)
+    return other.Q.items() <= self.Q.items()
   
   def __str__(self):
     return "N({})".format(hash_from_dict(self.Q))
@@ -335,8 +329,6 @@ class Queries(MutableSequence):
       return True
     return any(item in q for q in self)
     
-  
-  # try to get this to work with __deepcopy__
   def deepcopy(self):
     return self.__class__(deepcopy(self._list))
 
@@ -363,23 +355,15 @@ class Summation(Queries):
       if isinstance(q, Queries) and not isinstance(q, Product):
         self._list[i] = Summation(q)
     
-  def solve(self, data):
+  def solve(self, cpts):
     summation = 0
-    for q in self._list:
-      new_add = q.solve(data) if is_Q(q) else q
-      if new_add is None:
-        return None
-      summation += new_add
-    return summation
-  
-  def uncomputed_prob(self, data):
-    summation = [0,0]
-    for q in self._list:
-      new_add = q.uncomputed_prob(data) if is_Q(q) else q
-      if new_add is None:
-        return None
-      summation[0] += new_add[0]
-      summation[1] += new_add[1]
+    for q in self:
+      if isinstance(q, (Summation, Product)):
+        summation += q.solve(cpts)
+      elif isinstance(q, Query):
+        summation += q.solve(cpts[q.var()])
+      else:
+        summation += q
     return summation
   
   def __str__(self):
@@ -395,35 +379,17 @@ class Product(Queries):
     for i, q in enumerate(self._list):
       if isinstance(q, Queries) and not isinstance(q, Summation):
         self._list[i] = Product(q)
-    
-  # def solve(self, data):
-  #   # assert all(is_Q(q) or is_num(q) for q in self._list)
-  #   product = 1
-  #   for q in self._list:
-  #     new_mult = q.solve(data) if is_Q(q) else q
-  #     if new_mult is None:
-  #       return None
-  #     product *= new_mult
-  #   return product
   
   def solve(self, cpts):
-    # assert all(is_Q(q) or is_num(q) for q in self._list)
+    assert all(is_Q(q) or is_num(q) for q in self._list)
     product = 1
-    for q in self._list:
-      new_mult = q.solve(cpts[q.var()]) if is_Q(q) else q
-      if new_mult is None:
-        return None
-      product *= new_mult
-    return product
-  
-  def uncomputed_prob(self, data):
-    product = [0,0]
-    for q in self._list:
-      new_mult = q.uncomputed_prob(data) if is_Q(q) else q
-      if new_mult is None:
-        return None
-      product[0] *= new_mult[0]
-      product[1] *= new_mult[1]
+    for q in self:
+      if isinstance(q, (Summation, Product)):
+        product *= q.solve(cpts)
+      elif isinstance(q, Query):
+        product *= q.solve(cpts[q.var()])
+      else:
+        product *= q
     return product
     
   def __str__(self):
@@ -477,92 +443,3 @@ class Quotient():
   
   def __contains__(self, item):
     return item in self.nume or item in self.denom
-  
-# if __name__ == "__main__":
-#   cpt_y = CPT("Y", ("W", "Z"), {"Y": (0,1), "W": (0,1), "Z": (0,1)})
-#   cpt_w = CPT("W", "X", {"W": (0,1), "X": (0,1)})
-#   cpt_w.add({"X": 0, "W": 0})
-#   cpt_w.add({"X": 0, "W": 0})
-#   cpt_w.add({"X": 0, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 0})
-#   cpt_w.add({"X": 0, "W": 0})
-#   cpt_w.add({"X": 0, "W": 0})
-#   cpt_w.add({"X": 0, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 0})
-#   cpt_w.add({"X": 0, "W": 0})
-#   cpt_w.add({"X": 0, "W": 0})
-#   cpt_w.add({"X": 0, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 0})
-#   cpt_w.add({"X": 0, "W": 0})
-#   cpt_w.add({"X": 0, "W": 0})
-#   cpt_w.add({"X": 0, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 0})
-#   cpt_w.add({"X": 0, "W": 0})
-#   cpt_w.add({"X": 0, "W": 0})
-#   cpt_w.add({"X": 0, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 1})
-#   cpt_w.add({"X": 1, "W": 0})
-            
-#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
-#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
-#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
-#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
-#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
-#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
-#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
-#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
-#   cpt_y.add({"Y": 0, "Z": 0, "W": 0})
-#   cpt_y.add({"Y": 1, "Z": 0, "W": 0})
-#   #
-#   cpt_y.add({"Y": 1, "Z": 0, "W": 1})
-#   cpt_y.add({"Y": 1, "Z": 0, "W": 1})
-#   cpt_y.add({"Y": 1, "Z": 0, "W": 1})
-#   cpt_y.add({"Y": 1, "Z": 0, "W": 1})
-#   cpt_y.add({"Y": 1, "Z": 0, "W": 1})
-#   cpt_y.add({"Y": 0, "Z": 0, "W": 1})
-#   cpt_y.add({"Y": 0, "Z": 0, "W": 1})
-#   cpt_y.add({"Y": 0, "Z": 0, "W": 1})
-#   cpt_y.add({"Y": 0, "Z": 0, "W": 1})
-#   cpt_y.add({"Y": 0, "Z": 0, "W": 1})
-#   #
-#   cpt_y.add({"Y": 1, "Z": 1, "W": 0})#
-#   cpt_y.add({"Y": 1, "Z": 1, "W": 0})
-#   cpt_y.add({"Y": 1, "Z": 1, "W": 0})
-#   cpt_y.add({"Y": 1, "Z": 1, "W": 0})
-#   cpt_y.add({"Y": 1, "Z": 1, "W": 0})
-#   cpt_y.add({"Y": 0, "Z": 1, "W": 0})
-#   cpt_y.add({"Y": 0, "Z": 1, "W": 0})
-#   cpt_y.add({"Y": 0, "Z": 1, "W": 0})
-#   cpt_y.add({"Y": 0, "Z": 1, "W": 0})
-#   cpt_y.add({"Y": 0, "Z": 1, "W": 0})
-# #
-#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})#
-#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})
-#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})
-#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})
-#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})
-#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})
-#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})
-#   cpt_y.add({"Y": 1, "Z": 1, "W": 1})
-#   cpt_y.add({"Y": 0, "Z": 1, "W": 1})
-#   cpts = {"Y": cpt_y, "W": cpt_w}
-#   rew_query = Product([Query({"Y": 1},{"Z": 1, "W": (0,1)}), Query({"W": (0,1)},{"X": 0})])
-#   prod = 1
-#   for q in rew_query:
-#     prod *= q.solve(cpts[q.var()])
-#   print(prod)
-    

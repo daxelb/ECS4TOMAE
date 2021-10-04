@@ -107,15 +107,7 @@ class CPT:
     self.var = var
     self.parents = set(parents)
     self.domains = only_given_keys(domains, self.parents | {self.var})
-    print()
-    # print(self.domains)
-    # print(permutations(self.domains))
     self.query = Query(self.var, self.parents)
-    # for p in permutations(self.domains):
-    #   print(p)
-    #   q = Count(self.var, self.parents)
-    #   print(q.assign({"W": 1, "X": 0}))
-    # print()
     self.table = {n: 0 for n in Count(self.var, self.parents).unassigned_combos(self.domains)}
 
   def add(self, obs):
@@ -131,15 +123,14 @@ class CPT:
     return bool(self.parents)
   
   def __getitem__(self, key):
-    # THis is wrong. We can't be looping through unassigned at the individual CPT level, but rather the whole distribution
-    # We need to make a method that solves with each CPT but uses assigns W: w to the whole thing, not just one at a time.
     if isinstance(key, Query):
-      if key.all_assigned():
+      if key in self.table:
         return self.table[key]
       else:
         summ = 0
-        for p in key.unassigned_combos(self.domains):
-          summ += self.table[p]
+        for k in self.table:
+          if k.issubset(key):
+            summ += self.table[k]
         return summ
   
   def __str__(self):
@@ -214,6 +205,8 @@ if __name__ == "__main__":
   cpt_y.add({"Y": 0, "Z": 1, "W": 1})
   cpts = {"Y": cpt_y, "W": cpt_w}
   rew_query = Product([Query({"Y": 1},{"Z": 1, "W": (0,1)}), Query({"W": (0,1)},{"X": 0})])
+  # print(rew_query)
+  rew_query = Summation(rew_query.over())
   
   # print(cpts["Y"][Count({"Y": 1},{"Z": 1, "W": 1})])
   # print(cpts["Y"][Count({"Y": (0,1)},{"Z": 1, "W": 1})])
@@ -223,10 +216,7 @@ if __name__ == "__main__":
   # print(Count({"Y": 0},{"Z": 1, "W": 1}).solve(cpts["Y"]))
   # print(Count({"Y": (0,1)},{"Z": 1, "W": 1}).solve(cpts["Y"]))
   # print(Query({"Y": 1},{"Z": 1, "W": 1}).solve(cpts["Y"]))
-  prod = 1
-  for q in rew_query:
-    prod *= q.solve(cpts[q.var()])
-  print(prod)
+  print(rew_query.solve(cpts))
   
   
   
