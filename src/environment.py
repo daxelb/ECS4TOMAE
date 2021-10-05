@@ -132,8 +132,8 @@ class Environment:
       assigned_dist[var] = self._assignment[var].prob(assignment)
     return assigned_dist
 
-  def expected_reward(self, context={}):
-    assigned_dist = self.assign_dist_with_givens(self.cgm.get_dist_as_dict(self.rew_var), context)
+  def expected_reward(self, givens={}):
+    assigned_dist = self.assign_dist_with_givens(self.cgm.get_dist_as_dict(self.rew_var), givens)
     reward_value_probs = self._assignment[self.rew_var].prob(self.parse_dist_as_probs(assigned_dist[self.rew_var]))
     return self.expected_value(reward_value_probs)
 

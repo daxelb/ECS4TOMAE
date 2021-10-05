@@ -23,10 +23,11 @@ class RandomModel:
   def randomize(self, rng, rand_prob=1.0):
     return RandomModel(randomize(rng, self._probs))
   
-  def prob(self, assignments):
+  def prob(self, assignment):
+    assert assignment in self.domain
     probs = dict()
-    for i in range(len(self.domain)):
-      probs[self.domain[i]] = self._probs[i]
+    for val in self.domain:
+      probs[val] = 1 if val == assignment else 0
     return probs
         
   def __repr__(self):
