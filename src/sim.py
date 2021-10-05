@@ -173,10 +173,10 @@ class Sim:
         font=dict(size=18),
         margin=dict(l=20, r=20, t=20, b=20),
         legend=dict(
-            yanchor="top",
-            y=0.99,
-            xanchor="left",
-            x=0.01
+            yanchor="bottom",
+            y=0.02,
+            xanchor="right",
+            x=0.99
         ),
         yaxis_title=yaxis_title,
         xaxis_title="Trial",
@@ -261,10 +261,10 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    otp=OTP.ADJUST,
-    asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
-    T=3000,
-    mc_sims=50,
+    otp=(OTP.SOLO,OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
+    asr=ASR.TS,
+    T=100,
+    mc_sims=1,
     tau=0.05,
     EG_epsilon=0.02,
     EF_rand_trials=30,
@@ -273,7 +273,7 @@ if __name__ == "__main__":
     rand_envs=True,
     node_mutation_chance=(0.2,0.8),
     show=True,
-    save=True,
+    save=False,
     seed=None
   )
   experiment.run(desc="asrCommunity_T3000")

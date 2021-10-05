@@ -175,26 +175,6 @@ class AdjustAgent(SensitiveAgent):
   def div_nodes(self, other):
     return self.databank.div_nodes(self, other)
 
-  def get_num_datapoints(self, tf, other):
-    return len(only_dicts_with_givens(self.databank[self], tf[0].get_assignments(tf[0].e())))\
-      + len(only_dicts_with_givens(self.databank[other], tf[1].get_assignments(tf[1].e())))
-  
-  def transport_formula(self, div_nodes, givens):
-    model = self.environment.cgm
-    unformatted_tf = model.from_cpts(
-        model.selection_diagram(
-          div_nodes
-        ).get_transport_formula(
-          self.act_var, self.rew_var, set(givens)
-        )
-      )
-    query = Product()
-    for q in unformatted_tf:
-      query_var = q.var()
-      if query_var not in givens and query_var != self.act_var:
-        query.append(q)
-    return query.assign(self.environment.domains).assign(givens)
-
   def get_CPTs(self):
     div_nodes = {a: self.div_nodes(a) for a in self.databank}
     CPTs = {}
@@ -218,58 +198,13 @@ class AdjustAgent(SensitiveAgent):
         choices.append(action)
     return self.rng.choice(choices)
 
-  def home(self, query):
-      return query.solve(self.databank[self])
-
-  def target(self, target_agent, query):
-      return query.solve(self.databank[target_agent])
-
-  def home_and_target(self, target_agent, query):
-    data = DataSet(self.databank[self] + self.databank[target_agent])
-    return query.solve(data)
-
-
-  def all(self, query):
+  def solve_query(self, query):
       node = query.var()
       transportable_data = DataSet()
       for agent in self.databank:
           if node not in self.div_nodes(agent):
               transportable_data.extend(self.databank[agent])
       return query.solve(transportable_data)
-
-  # def pre(self, target_agent, query):
-  #   return self.all(query)
-
-  # def node(self, target_agent, query):
-  #   return self.all(query)
-
-  # def post(self, target_agent, query):
-  #   return self.target(target_agent, query)
-
-  def get_pre_nodes(self, target_agent):
-    div_nodes = self.div_nodes(target_agent)
-    dn_list = list(div_nodes)
-    if not div_nodes:
-      return self.environment.get_non_act_vars()
-    pre = self.environment.cgm.get_ancestors(dn_list[0])
-    if len(div_nodes) > 1:
-      for i in range(1, len(dn_list)):
-        pre = pre.intersection(self.environment.cgm.get_ancestors(dn_list[i]))
-    return pre
-
-  def get_post_nodes(self, target_agent):
-    div_nodes = self.div_nodes(target_agent)
-    dn_list = list(div_nodes)
-    if not div_nodes:
-      return set()
-    post = self.environment.cgm.get_descendants(dn_list[0])
-    if len(div_nodes) > 1:
-      for i in range(1, len(dn_list)):
-        post = post.union(self.environment.cgm.get_descendants(dn_list[i]))
-    return post
-
-  def solve_query(self, target_agent, query):
-    return self.all(query)
     
   def all_causal_path_nodes_corrupted(self, agent):
     return self.environment.cgm.causal_path(self.act_var, self.rew_var).issubset(set(self.div_nodes(agent)))
@@ -284,9 +219,9 @@ class AdjustAgent(SensitiveAgent):
         if self.all_causal_path_nodes_corrupted(agent):
           continue
         for w in (0,1):
-          alpha_y_prob = self.solve_query(agent, Query({"Y": 1}, {**{"W": w}, **givens}))
+          alpha_y_prob = self.solve_query(Query({"Y": 1}, {**{"W": w}, **givens}))
           beta_y_prob = 1 - alpha_y_prob if alpha_y_prob is not None else None
-          w_prob = self.solve_query(agent, Query({"W": w}, action))
+          w_prob = self.solve_query(Query({"W": w}, action))
           if alpha_y_prob is None or w_prob is None:
             continue
           else:
