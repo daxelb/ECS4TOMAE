@@ -22,6 +22,12 @@ class RandomModel:
   
   def randomize(self, rng, rand_prob=1.0):
     return RandomModel(randomize(rng, self._probs))
+  
+  def prob(self, assignments):
+    probs = dict()
+    for i in range(len(self.domain)):
+      probs[self.domain[i]] = self._probs[i]
+    return probs
         
   def __repr__(self):
     return "RandomModel(Domain: {}, Probs:{})".format(self.domain, self._probs)
@@ -104,11 +110,18 @@ class DiscreteModel:
 
 class ActionModel:
   def __init__(self, parents, domain):
-    self.parents = parents
+    self.parents = parents if parents is not None else tuple()
     self.domain = tuple(domain)
     
   def randomize(self, rng=None, rand_prob=1.0):
     return self
+  
+  def prob(self, assignment):
+    assert assignment in self.domain
+    probs = dict()
+    for val in self.domain:
+      probs[val] = 1 if val == assignment else 0
+    return probs
   
   def __repr__(self):
     return "ActionModel(Parents: {0}, Domain: {1})".format(self.parents, self.domain)

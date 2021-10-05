@@ -209,7 +209,37 @@ class AdjustAgent(SensitiveAgent):
   def all_causal_path_nodes_corrupted(self, agent):
     return self.environment.cgm.causal_path(self.act_var, self.rew_var).issubset(set(self.div_nodes(agent)))
   
+  # def thompson_sample(self, givens):
+  #   max_sample = 0
+  #   choices = []
+  #   for action in permutations(self.act_dom):
+  #     alpha = 0
+  #     beta = 0
+  #     for agent in self.databank:
+  #       if self.all_causal_path_nodes_corrupted(agent):
+  #         continue
+  #       for w in (0,1):
+  #         alpha_y_prob = self.solve_query(Query({"Y": 1}, {**{"W": w}, **givens}))
+  #         beta_y_prob = 1 - alpha_y_prob if alpha_y_prob is not None else None
+  #         w_prob = self.solve_query(Query({"W": w}, action))
+  #         if alpha_y_prob is None or w_prob is None:
+  #           continue
+  #         else:
+  #           count = self.databank[agent].num({**action, **givens})
+  #           alpha += w_prob * alpha_y_prob * count
+  #           beta += w_prob * beta_y_prob * count
+  #     sample = self.rng.beta(alpha + 1, beta + 1)
+  #     if sample > max_sample:
+  #       max_sample = sample
+  #       choices = [action]
+  #     if sample == max_sample:
+  #       choices.append(action)
+  #   return self.rng.choice(choices)
+  
   def thompson_sample(self, givens):
+    """
+    For new 'large chain' model
+    """
     max_sample = 0
     choices = []
     for action in permutations(self.act_dom):
@@ -218,16 +248,18 @@ class AdjustAgent(SensitiveAgent):
       for agent in self.databank:
         if self.all_causal_path_nodes_corrupted(agent):
           continue
-        for w in (0,1):
-          alpha_y_prob = self.solve_query(Query({"Y": 1}, {**{"W": w}, **givens}))
-          beta_y_prob = 1 - alpha_y_prob if alpha_y_prob is not None else None
-          w_prob = self.solve_query(Query({"W": w}, action))
-          if alpha_y_prob is None or w_prob is None:
+        for s in (0,1):
+          for r in (0,1):
+            alpha_y_prob = self.solve_query(Query({"Y": 1}, {"R": r}))
+            beta_y_prob = 1 - alpha_y_prob if alpha_y_prob is not None else None
+            r_prob = self.solve_query(Query({"R": r}, {"S": s}))
+            s_prob = self.solve_query(Query({"S": s}, action))
+          if alpha_y_prob is None or r_prob is None or s_prob is None:
             continue
           else:
             count = self.databank[agent].num({**action, **givens})
-            alpha += w_prob * alpha_y_prob * count
-            beta += w_prob * beta_y_prob * count
+            alpha += alpha_y_prob * r_prob * s_prob * count
+            beta += beta_y_prob * r_prob * s_prob * count
       sample = self.rng.beta(alpha + 1, beta + 1)
       if sample > max_sample:
         max_sample = sample
@@ -236,13 +268,29 @@ class AdjustAgent(SensitiveAgent):
         choices.append(action)
     return self.rng.choice(choices)
 
+  # def get_expected_value(self, CPTs, action, givens):
+  #   prob = 0
+  #   for w in (0,1):
+  #     y_prob = Query({"Y": 1}, {**{"W": w}, **givens}).solve(CPTs["Y"])
+  #     w_prob = Query({"W": w}, action).solve(CPTs["W"])
+  #     if y_prob is None or w_prob is None:
+  #       prob += 0
+  #       continue
+  #     prob += y_prob * w_prob
+  #   return prob
+
   def get_expected_value(self, CPTs, action, givens):
+    """
+    For new 'large chain' model
+    """
     prob = 0
-    for w in (0,1):
-      y_prob = Query({"Y": 1}, {**{"W": w}, **givens}).solve(CPTs["Y"])
-      w_prob = Query({"W": w}, action).solve(CPTs["W"])
-      if y_prob is None or w_prob is None:
-        prob += 0
-        continue
-      prob += y_prob * w_prob
+    for s in (0,1):
+      for r in (0,1):
+        y_prob = Query({"Y": 1}, {"R": r}).solve(CPTs["Y"])
+        r_prob = Query({"R": r}, {"S": s}).solve(CPTs["R"])
+        s_prob = Query({"S": s}, action).solve(CPTs["S"])
+        if y_prob is None or r_prob is None or s_prob is None:
+          prob += 0
+          continue
+        prob += y_prob * r_prob * s_prob
     return prob

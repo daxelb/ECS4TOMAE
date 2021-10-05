@@ -258,13 +258,22 @@ if __name__ == "__main__":
   }
   reversed_w = dict(baseline)
   reversed_w["W"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
+  
+  # baseline = {
+  #   "X": ActionModel(None, (0,1)),
+  #   "S": DiscreteModel("X", {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+  #   "R": DiscreteModel("S", {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+  #   "Y": DiscreteModel("R", {(0,): (0.75, 0.25), (1,): (0.25, 0.75)})
+  # }
+  # reversed_w = dict(baseline)
+  # reversed_w["S"] = DiscreteModel("X", {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    otp=(OTP.SOLO,OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
-    asr=ASR.TEDS,
-    T=3000,
-    mc_sims=50,
+    otp=OTP.SOLO,#(OTP.SOLO,OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
+    asr=ASR.TS,
+    T=2000,
+    mc_sims=20,
     tau=0.05,
     EG_epsilon=0.02,
     EF_rand_trials=50,
@@ -273,7 +282,7 @@ if __name__ == "__main__":
     rand_envs=True,
     node_mutation_chance=(0.2,0.8),
     show=True,
-    save=True,
+    save=False,
     seed=None
   )
-  experiment.run(desc="otpED")
+  experiment.run(desc="chain")
