@@ -72,38 +72,22 @@ class CausalGraph:
   def get_parents(self, nodes):
     if isinstance(nodes, str):
       return set(self.dag.predecessors(nodes))
-    parents = set()
-    [parents.update(self.dag.predecessors(node)) for node in nodes]
-    return parents
+    return set.union(*[self.dag.predecessors(node) for node in nodes])
 
   def get_children(self, nodes):
     if isinstance(nodes, str):
       return set(self.dag.successors(nodes))
-    children = set.union(*[self.dag.successors(node) for node in nodes])
-    return children
+    return set.union(*[self.dag.successors(node) for node in nodes])
   
   def get_ancestors(self, nodes):
     if isinstance(nodes, str):
       return nx.ancestors(self.dag, nodes)
-    ancestors = set()
-    [ancestors.update(nx.ancestors(self.dag, node)) for node in nodes]
-    return ancestors
+    return set.union(*[nx.ancestors(self.dag, node) for node in nodes])
   
   def get_descendants(self, nodes):
     if isinstance(nodes, str):
       return nx.descendants(self.dag, nodes)
-    descendants = set()
-    [descendants.update(nx.descendants(self.dag, node)) for node in nodes]
-    return descendants
-  
-  def pa(self, node):
-    return self.get_parents(node).union(node)
-  
-  def an(self, node):
-    return self.get_ancestors(node).union(node)
-  
-  def de(self, node):
-    return self.get_descendants(node).union(node)
+    return set.union(*[nx.descendants(self.dag, node) for node in nodes])
 
   def get_exogenous(self):
     return {n for n in self.dag.nodes if not self.get_parents(n)}
@@ -116,6 +100,9 @@ class CausalGraph:
   
   def get_unset_nodes(self):
     return {n for n in self.dag.nodes if n not in self.set_nodes}
+
+  def get_feat_vars(self, act_var):
+    return self.cgm.get_parents(act_var)
 
   def causal_path(self, n1, n2):
     """
@@ -130,8 +117,9 @@ class CausalGraph:
       
       causal_path(X, Y) = {W, Y}
     """
-    # print(self.get_descendants(n1), self.an(n2))
-    return self.an(n2).union(self.get_descendants(n1))
+    path_nodes = self.get_ancestors(n2).intersection(self.get_descendants(n1))
+    path_nodes.add(n2)
+    return path_nodes
 
   def draw_model(self, v=True):
     self.draw().render('output/causal-model.gv', view=v)
@@ -548,7 +536,7 @@ class CausalGraph:
     return Product([
         q for q in
         self.get_dist()
-        if q.contains(query.get_vars())
+        if q.contains(query.g())
       ])
   
   def do_set_nodes(self):

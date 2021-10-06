@@ -8,7 +8,7 @@ from scm import StructuralCausalModel
 from cgm import CausalGraph
 from assignment_models import ActionModel, DiscreteModel, RandomModel
 
-# REVISIT - update indentation to 2 spaces instead of 4
+
 class Environment:
   def __init__(self, assignment, rew_var="Y"):
     """
@@ -38,66 +38,82 @@ class Environment:
     pre_nodes = list(self.cgm.get_ancestors(self.act_var))
     self.pre = StructuralCausalModel(only_given_keys(self._assignment, pre_nodes))
     post_ass = self._assignment.copy()
-    [post_ass.update({n: ActionModel(self.cgm.get_parents(n), self.domains[n])}) for n in pre_nodes]
+    [post_ass.update({n: ActionModel(self.cgm.get_parents(n), self.domains[n])})
+     for n in pre_nodes]
     self.post = StructuralCausalModel(post_ass)
-    
+
     self.feat_vars = self.get_feat_vars()
     self.assigned_optimal_actions()
-  
+
   def get_domains(self):
     return self.domains
 
   def get_domain(self, node):
     return self.domains[node]
-  
+
   def get_vars(self):
     return set(self.domains.keys())
-  
+
   def get_non_act_vars(self):
     return self.get_vars() - {self.act_var}
 
   def get_act_var(self):
     return self.act_var
-  
+
   def get_act_dom(self):
     return {self.act_var: self.domains[self.act_var]}
-  
+
   def get_feat_vars(self):
     return set(self.cgm.get_parents(self.act_var))
 
   def get_feat_doms(self):
     return only_given_keys(self.domains, self.get_feat_vars())
-  
+
+  def has_context(self):
+    return bool(self.get_feat_vars())
+
   def get_act_feat_vars(self):
     return self.feat_vars.union(set(self.act_var))
-  
+
   def get_act_feat_doms(self):
     return only_given_keys(self.domains, self.get_act_feat_vars())
-  
+
   def get_rew_var(self):
     return self.rew_var
-  
+
   def get_rew_dom(self):
     return only_given_keys(self.domains, [self.rew_var])
 
   def assigned_optimal_actions(self):
-    self.optimal_reward = {}
-    self.optimal_actions = {}
-    for feat_combo in permutations(self.get_feat_doms()):
+    if self.has_context():
+      self.optimal_reward = {}
+      self.optimal_actions = {}
+      for feat_combo in permutations(self.get_feat_doms()):
+        best_actions = set()
+        best_rew = -inf
+        for action in permutations(self.get_act_dom()):
+          expected_rew = self.expected_reward({**action, **feat_combo})
+          if expected_rew > best_rew:
+            best_actions = {action[self.act_var]}
+            best_rew = expected_rew
+          elif expected_rew == best_rew:
+            best_actions.add(action[self.act_var])
+        feat_hash = hash_from_dict(feat_combo)
+        self.optimal_reward[feat_hash] = best_rew
+        self.optimal_actions[feat_hash] = best_actions
+    else:
       best_actions = set()
       best_rew = -inf
       for action in permutations(self.get_act_dom()):
-        expected_rew = self.expected_reward({**action, **feat_combo})
+        expected_rew = self.expected_reward(action)
         if expected_rew > best_rew:
           best_actions = {action[self.act_var]}
           best_rew = expected_rew
         elif expected_rew == best_rew:
           best_actions.add(action[self.act_var])
-      feat_hash = hash_from_dict(feat_combo)
-      self.optimal_reward[feat_hash] = best_rew
-      self.optimal_actions[feat_hash] = best_actions
-    return
-  
+      self.optimal_reward = best_rew
+      self.optimal_actions = best_actions
+
   def selection_diagram(self, s_node_children):
     return self.cgm.selection_diagram(s_node_children)
 
@@ -111,16 +127,17 @@ class Environment:
 
   def parse_dist_as_probs(self, assigned_dist):
     for var, assignment in assigned_dist.items():
+      # print(var, assignment)
       if isinstance(assignment, dict):
-        if any(isinstance(e, dict) for e in assignment.values()):
-          assigned_dist[var] = self.parse_dist_as_probs(assignment)
-        else:
-          assigned_dist[var] = self._assignment[var].prob(assignment)
+        assigned_dist[var] = self.parse_dist_as_probs(assignment)
+      assigned_dist[var] = self._assignment[var].prob(assignment)
     return assigned_dist
 
-  def expected_reward(self, context={}):
-    assigned_dist = self.assign_dist_with_givens(self.cgm.get_dist_as_dict(self.rew_var), context)
-    reward_value_probs = self._assignment[self.rew_var].prob(self.parse_dist_as_probs(assigned_dist[self.rew_var]))
+  def expected_reward(self, givens={}):
+    assigned_dist = self.assign_dist_with_givens(
+        self.cgm.get_dist_as_dict(self.rew_var), givens)
+    reward_value_probs = self._assignment[self.rew_var].prob(
+        self.parse_dist_as_probs(assigned_dist[self.rew_var]))
     return self.expected_value(reward_value_probs)
 
   def expected_value(self, value_probs):
@@ -130,25 +147,30 @@ class Environment:
     return expected_value
 
   def get_optimal_reward(self, context):
-    return self.optimal_reward[hash_from_dict(context)]
+    if context:
+      return self.optimal_reward[hash_from_dict(context)]
+    return self.optimal_reward
 
   def get_optimal_actions(self, context):
-    return self.optimal_actions[hash_from_dict(context)]
-  
+    if context:
+      return self.optimal_actions[hash_from_dict(context)]
+    return self.optimal_actions
+
   def __reduce__(self):
     return (self.__class__, (self._assignment, self.rew_var))
 
   def __repr__(self):
     variables = ", ".join(map(str, sorted(self.cgm.dag.nodes())))
     return ("{classname}({vars})"
-        .format(classname=self.__class__.__name__,
-            vars=variables))
-  
+            .format(classname=self.__class__.__name__,
+                    vars=variables))
+
   def __copy__(self):
     return Environment(self._assignment, self.rew_var)
-  
+
   def __getitem__(self, key):
     return self._assignment[key]
+
 
 if __name__ == "__main__":
   baseline = {

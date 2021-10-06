@@ -25,10 +25,9 @@ class StructuralCausalModel:
           (parent, node)
           for parent in model.parents
           ])
-
-      self.cgm = CausalGraph(
-        nodes=nodes, edges=edges, set_nodes=set_nodes
-      )
+    self.cgm = CausalGraph(
+      nodes=nodes, edges=edges, set_nodes=set_nodes
+    )
 
   def __repr__(self):
     variables = ", ".join(map(str, sorted(self.cgm.dag.nodes())))
@@ -53,7 +52,6 @@ class StructuralCausalModel:
     samples: pd.DataFrame
     """
     samples = {}
-
     for node in nx.topological_sort(self.cgm.dag):
       c_model = self.assignment[node]
 

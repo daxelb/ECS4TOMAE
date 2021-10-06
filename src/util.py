@@ -76,7 +76,7 @@ def kl_divergence(domains, P_data, Q_data, query, log_base=e):
     kld += P_i * log(P_i / Q_i, log_base)
   return kld
 
-def hellinger_distance(domains, P_data, Q_data, query):
+def hellinger_dist(domains, P_data, Q_data, query):
   Px_and_Qx = get_Px_and_Qx(domains, P_data, Q_data, query)
   if Px_and_Qx is None:
     return None

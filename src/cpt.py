@@ -1,3 +1,4 @@
+from copy import deepcopy
 from util import only_given_keys, permutations, hash_from_dict, Counter
 from query import Query, Product, Summation, Count
 from re import findall
@@ -6,17 +7,22 @@ from math import inf
 from numpy import random
 from cgm import CausalGraph
 class Knowledge:
-  def __init__(self, rng, cgm, domains, act_var, rew_var):
+  def __init__(self, rng, cgm, domains, act_var, rew_var, agents):
     self.rng = rng
     self.cgm = cgm
     self.domains = domains
     self.act_var = act_var
     self.rew_var = rew_var
+    self.act_dom = self.get_act_dom()
+    self.rew_dom = self.get_rew_dom()
+    self.actions = permutations(self.act_dom)
+    self.rewards = permutations(self.rew_dom)
     self.cpts = {
       var: CPT(var, self.cgm.get_parents(var), domains) \
-        for var in domains if var != X
+        for var in domains
     }
     self.rew_query = self.get_rew_query()
+    self.agents = agents
     
   def observe(self, sample):
     self.recent = sample
@@ -36,70 +42,37 @@ class Knowledge:
     
   def expected_rew(self, givens):
     query = self.rew_query.assign(givens)
-    sum_over_rew = 0
-    for rew_val in self.domains[self.rew_var]:
+    summ = 0
+    for rew_val in self.rew_dom:
       query[self.rew_var] = rew_val
-      if query.all_assigned():
-        sum_over_rew += self.exp_rew_addition(rew_val, query)
-        continue
-      for q in query.over_unassigned():
-        sum_over_rew += self.exp_rew_addition(rew_val, q)
-    return sum_over_rew
-  
-  def exp_rew_addition(self, rew_val, query):
-    try:
-      return rew_val * query.solve(self.cpts)
-    except TypeError:
-      # is this the right thing to return when query.solve returns None?...
-      return 0
+      rew_prob = Summation(query.over()).solve(self.cpts)
+      summ += rew_val * rew_prob if rew_prob is not None else 0
+    return summ
     
-  def optimal_choice(self, givens):
-    best_choice = []
+  def optimal_choice(self, context):
+    best_acts = []
     best_rew = -inf
-    choices = permutations({self.act_var: self.domains[self.act_var]})
-    for choice in choices:
-      expected_rew = self.expected_rew({**choice, **givens})
+    for act in self.actions:
+      expected_rew = self.expected_rew({**act, **context})
       if expected_rew is not None:
         if expected_rew > best_rew:
-          best_choice = [choice]
+          best_acts = [act]
           best_rew = expected_rew
         elif expected_rew == best_rew:
-          best_choice.append(choice)
-    return self.rng.choice(best_choice) if best_choice else None
+          best_acts.append(act)
+    return self.rng.choice(best_acts) if best_acts else None
   
-  def all_causal_path_nodes_corrupted(self, agent):
-    return self.cgm.causal_path(self.act_var, self.rew_var).issubset(set(self.div_nodes(agent)))
-  
-  def thompson_sample(self, givens):
-    max_sample = 0
-    choices = []
-    for action in permutations(self.act_dom):
-      alpha = 0
-      beta = 0
-      for agent in self.databank:
-        if self.all_causal_path_nodes_corrupted(agent):
-          continue
-        rew_query = self.get_rew_query()
-        rew_query.over()
-        for w in (0,1):
-          alpha_y_prob = self.solve_query(agent, Query({"Y": 1}, {**{"W": w}, **givens}))
-          beta_y_prob = 1 - alpha_y_prob if alpha_y_prob is not None else None
-          w_prob = self.solve_query(agent, Query({"W": w}, action))
-          if alpha_y_prob is None or w_prob is None:
-            continue
-          else:
-            count = self.databank[agent].num({**action, **givens})
-            alpha += w_prob * alpha_y_prob * count
-            beta += w_prob * beta_y_prob * count
-      # alpha /= transport_agents
-      # beta /= transport_agents
-      sample = self.rng.beta(alpha + 1, beta + 1)
-      if sample > max_sample:
-        max_sample = sample
-        choices = [action]
-      if sample == max_sample:
-        choices.append(action)
-    return self.rng.choice(choices)
+  def get_scaled_tau(self, agent, node):
+    scale_factor = 1
+    for parent in self.cgm.get_parents(node):
+      scale_factor *= len(self.domains[parent])
+    return agent.tau * scale_factor
+
+  def get_act_dom(self):
+    return only_given_keys(self.domains, self.act_var)
+
+  def get_rew_dom(self):
+    return only_given_keys(self.domains, self.rew_var)
   
 
 class CPT:
@@ -108,10 +81,18 @@ class CPT:
     self.parents = set(parents)
     self.domains = only_given_keys(domains, self.parents | {self.var})
     self.query = Query(self.var, self.parents)
-    self.table = {n: 0 for n in Count(self.var, self.parents).unassigned_combos(self.domains)}
+    self.table = {key: 0 for key in Count(self.var, self.parents).unassigned_combos(self.domains)}
+
+  def clear(self):
+    for key in self.table:
+      self.table[key] = 0
 
   def add(self, obs):
     self.table[Count(self.query).assign(obs)] += 1
+
+  def update(self, other):
+    for key in self.table:
+      self.table[key] += other.table[key]
   
   def size(self):
     return sum(sum(e.values()) for e in self.table.values())
@@ -132,6 +113,11 @@ class CPT:
           if k.issubset(key):
             summ += self.table[k]
         return summ
+      
+  def __deepcopy__(self, memo):
+    dc = self.__class__(self.var, self.parents, self.domains)
+    dc.table = deepcopy(self.table)
+    return dc
   
   def __str__(self):
     res = ''
@@ -142,9 +128,9 @@ class CPT:
     for pa in self.table:
       for va in self.domains[self.var]:
         row = []
-        for parent_val in findall(r'\d+', pa):
+        for parent_val in findall(r'\d+', str(pa)):
           row.append(parent_val)
-        row += [str(va), str(self.table[pa][va])]
+        row += [str(va), str(self.table[va])]
         res += format_row.format(*row)
     return res + '\n'
       
