@@ -199,7 +199,7 @@ class NaiveAgent(Agent):
     super().__init__(*args, **kwargs)
 
   def get_cpts(self):
-    cpts = copy(self.my_cpts)
+    cpts = deepcopy(self.my_cpts)
     for n in cpts:
       for a in self.agents:
         if a == self:
@@ -217,7 +217,7 @@ class SensitiveAgent(Agent):
 
   def get_cpts(self):
     # might not be deepcopying here...
-    cpts = copy(self.my_cpts)
+    cpts = deepcopy(self.my_cpts)
     for a in self.agents:
       if a == self:
         continue
@@ -288,17 +288,20 @@ class AdjustAgent(SensitiveAgent):
     best_acts = []
     best_sample = 0
     cpts = self.get_cpts()
+    rew_query = self.get_rew_query().assign(context)
     for act in self.actions:
       a = 0
       b = 0
       for agent in self.agents:
         if self.all_causal_path_nodes_corrupted(agent):
           continue
-        rew_query = self.get_rew_query().assign(act).assign(context)
+        rew_query = rew_query.assign(act)
         a_prob = rew_query.assign(self.rew_var, 1).solve(cpts)
         b_prob = rew_query.assign(self.rew_var, 0).solve(cpts)
         if a_prob is None or b_prob is None:
           continue
+        if not (1.02 > (a_prob + b_prob) > 0.98):
+          print(a_prob + b_prob)
         count = agent.my_cpts[self.act_var][Count({**act, **context})]
         a += a_prob * count
         b += b_prob * count

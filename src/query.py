@@ -210,14 +210,14 @@ class Queries(MutableSequence):
     a dictionary of their (domain/None) mappings
     """
     unassigned = dict()
-    (unassigned.update(q.get_unassigned()) for q in self)
+    [unassigned.update(q.get_unassigned()) for q in self]
     return unassigned
 
   def all_assigned(self):
     return len(self.get_unassigned()) == 0
 
   def over(self, domains={}):
-    self.assign(domains)
+    # self.assign(domains)
     if self.all_assigned():
       return self.__class__(self)
     assignments = permutations(self.get_unassigned())
@@ -333,7 +333,7 @@ class Summation(Queries):
   def __str__(self):
     if not len(self):
       return '0'
-    ' + '.join([str(e) for e in self._list])
+    return ' + '.join([str(e) for e in self._list])
 
 
 class Product(Queries):

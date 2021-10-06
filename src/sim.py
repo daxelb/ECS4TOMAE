@@ -277,10 +277,10 @@ if __name__ == "__main__":
 
   experiment = Sim(
       environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-      otp=OTP.SOLO,  # (OTP.SOLO,OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
+      otp=OTP.ADJUST,  # (OTP.SOLO,OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
       asr=ASR.TS,
-      T=300,
-      mc_sims=100,
+      T=3000,
+      mc_sims=50,
       tau=0.05,
       EG_epsilon=0.02,
       EF_rand_trials=50,
