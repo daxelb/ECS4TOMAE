@@ -78,18 +78,25 @@ class Agent:
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == ASR.EF:
-      given_i = self.contexts.index(givens)
-      if self.rand_trials_rem[given_i] > 0:
-        self.rand_trials_rem[given_i] -= 1
+      if self.feat_perms:
+        given_i = self.feat_perms.index(givens)
+        if self.rand_trials_rem[given_i] > 0:
+          self.rand_trials_rem[given_i] -= 1
+          return self.choose_random()
+      elif self.rand_trials_rem > 0:
+        self.rand_trials_rem -= 1
         return self.choose_random()
       return self.choose_optimal(givens)
     elif self.asr == ASR.ED:
-      given_i = self.contexts.index(givens)
-      if self.rng.random() < self.epsilon[given_i]:
-        self.epsilon[given_i] *= self.cooling_rate
+      if self.feat_perms:
+        given_i = self.feat_perms.index(givens)
+        if self.rng.random() < self.epsilon[given_i]:
+          self.epsilon[given_i] *= self.cooling_rate
+          return self.choose_random()
+      elif self.rng.random() < self.epsilon:
+        self.epsilon *= self.cooling_rate
         return self.choose_random()
-      self.epsilon[given_i] *= self.cooling_rate
-      return self.choose_optimal(givens)
+      self.epsilon *= self.cooling_rate
     elif self.asr == ASR.TS:
       return self.thompson_sample(givens)
     else:

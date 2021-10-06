@@ -277,14 +277,14 @@ if __name__ == "__main__":
 
   experiment = Sim(
       environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-      otp=OTP.SOLO,
-      asr=ASR.EG,
+      otp=OTP.SOLO,  # (OTP.SOLO,OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
+      asr=ASR.TS,
       T=300,
-      mc_sims=5,
+      mc_sims=100,
       tau=0.05,
       EG_epsilon=0.02,
       EF_rand_trials=50,
-      ED_cooling_rate=0.97,
+      ED_cooling_rate=0.98,
       is_community=True,
       rand_envs=True,
       node_mutation_chance=(0.2, 0.8),
