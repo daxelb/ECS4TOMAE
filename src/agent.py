@@ -23,7 +23,7 @@ class Agent:
     self.contexts = permutations(self.get_context())
     self.tau = tau
     self.asr = asr
-    self.epsilon = [1] * len(self.contexts) if asr == ASR.ED and self.contexts else epsilon
+    self.epsilon = ([1] * len(self.contexts) if self.contexts else 1) if asr == ASR.ED else epsilon
     self.rand_trials = rand_trials
     self.rand_trials_rem = [rand_trials] * len(self.contexts) if self.contexts else rand_trials
     self.cooling_rate = cooling_rate
@@ -188,9 +188,6 @@ class Agent:
 
   def __hash__(self):
     return hash(self.name)
-
-  def __reduce__(self):
-    return (self.__class__, (self.rng, self.name, self.environment, self.databank, self.tau, self.asr, self.epsilon, self.rand_trials, self.cooling_rate))
 
   def __repr__(self):
     return "<" + self.get_otp() + self.name + ": " + self.asr.value + ">"
