@@ -173,10 +173,10 @@ class Sim:
         font=dict(size=18),
         margin=dict(l=20, r=20, t=20, b=20),
         legend=dict(
-            yanchor="top",
-            y=0.99,
-            xanchor="left",
-            x=0.01
+            yanchor="bottom",
+            y=0.02,
+            xanchor="right",
+            x=0.99
         ),
         yaxis_title=yaxis_title,
         xaxis_title="Trial",
@@ -258,6 +258,15 @@ if __name__ == "__main__":
   }
   reversed_w = dict(baseline)
   reversed_w["W"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
+  
+  # baseline = {
+  #   "X": ActionModel(None, (0,1)),
+  #   "S": DiscreteModel("X", {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+  #   "R": DiscreteModel("S", {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+  #   "Y": DiscreteModel("R", {(0,): (0.75, 0.25), (1,): (0.25, 0.75)})
+  # }
+  # reversed_w = dict(baseline)
+  # reversed_w["S"] = DiscreteModel("X", {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),

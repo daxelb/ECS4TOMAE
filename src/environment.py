@@ -68,6 +68,9 @@ class Environment:
   def get_feat_doms(self):
     return only_given_keys(self.domains, self.get_feat_vars())
   
+  def has_context(self):
+    return bool(self.get_feat_vars())
+  
   def get_act_feat_vars(self):
     return self.feat_vars.union(set(self.act_var))
   
@@ -81,22 +84,34 @@ class Environment:
     return only_given_keys(self.domains, [self.rew_var])
 
   def assigned_optimal_actions(self):
-    self.optimal_reward = {}
-    self.optimal_actions = {}
-    for feat_combo in permutations(self.get_feat_doms()):
+    if self.has_context():
+      self.optimal_reward = {}
+      self.optimal_actions = {}
+      for feat_combo in permutations(self.get_feat_doms()):
+        best_actions = set()
+        best_rew = -inf
+        for action in permutations(self.get_act_dom()):
+          expected_rew = self.expected_reward({**action, **feat_combo})
+          if expected_rew > best_rew:
+            best_actions = {action[self.act_var]}
+            best_rew = expected_rew
+          elif expected_rew == best_rew:
+            best_actions.add(action[self.act_var])
+        feat_hash = hash_from_dict(feat_combo)
+        self.optimal_reward[feat_hash] = best_rew
+        self.optimal_actions[feat_hash] = best_actions
+    else:
       best_actions = set()
       best_rew = -inf
       for action in permutations(self.get_act_dom()):
-        expected_rew = self.expected_reward({**action, **feat_combo})
+        expected_rew = self.expected_reward(action)
         if expected_rew > best_rew:
           best_actions = {action[self.act_var]}
           best_rew = expected_rew
         elif expected_rew == best_rew:
           best_actions.add(action[self.act_var])
-      feat_hash = hash_from_dict(feat_combo)
-      self.optimal_reward[feat_hash] = best_rew
-      self.optimal_actions[feat_hash] = best_actions
-    return
+      self.optimal_reward = best_rew
+      self.optimal_actions = best_actions
   
   def selection_diagram(self, s_node_children):
     return self.cgm.selection_diagram(s_node_children)
@@ -111,15 +126,14 @@ class Environment:
 
   def parse_dist_as_probs(self, assigned_dist):
     for var, assignment in assigned_dist.items():
+      # print(var, assignment)
       if isinstance(assignment, dict):
-        if any(isinstance(e, dict) for e in assignment.values()):
-          assigned_dist[var] = self.parse_dist_as_probs(assignment)
-        else:
-          assigned_dist[var] = self._assignment[var].prob(assignment)
+        assigned_dist[var] = self.parse_dist_as_probs(assignment)
+      assigned_dist[var] = self._assignment[var].prob(assignment)
     return assigned_dist
 
-  def expected_reward(self, context={}):
-    assigned_dist = self.assign_dist_with_givens(self.cgm.get_dist_as_dict(self.rew_var), context)
+  def expected_reward(self, givens={}):
+    assigned_dist = self.assign_dist_with_givens(self.cgm.get_dist_as_dict(self.rew_var), givens)
     reward_value_probs = self._assignment[self.rew_var].prob(self.parse_dist_as_probs(assigned_dist[self.rew_var]))
     return self.expected_value(reward_value_probs)
 
@@ -130,10 +144,14 @@ class Environment:
     return expected_value
 
   def get_optimal_reward(self, context):
-    return self.optimal_reward[hash_from_dict(context)]
+    if context:
+      return self.optimal_reward[hash_from_dict(context)]
+    return self.optimal_reward
 
   def get_optimal_actions(self, context):
-    return self.optimal_actions[hash_from_dict(context)]
+    if context:
+      return self.optimal_actions[hash_from_dict(context)]
+    return self.optimal_actions
   
   def __reduce__(self):
     return (self.__class__, (self._assignment, self.rew_var))
