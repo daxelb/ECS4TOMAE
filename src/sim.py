@@ -278,11 +278,11 @@ if __name__ == "__main__":
   experiment = Sim(
       environment_dicts=(baseline, reversed_w, baseline, reversed_w),
       otp=OTP.ADJUST,  # (OTP.SOLO,OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
-      asr=ASR.TS,
+      asr=ASR.EG, # (ASR.EG, ASR.EF, ASR.ED, ASR.TS)
       T=3000,
       mc_sims=50,
       tau=0.05,
-      EG_epsilon=0.02,
+      EG_epsilon=100/3000,
       EF_rand_trials=50,
       ED_cooling_rate=0.98,
       is_community=True,
