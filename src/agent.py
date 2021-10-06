@@ -155,7 +155,7 @@ class Agent:
           best_rew = expected_rew
         elif expected_rew == best_rew:
           best_acts.append(act)
-    assert bool(best_acts)
+    # assert bool(best_acts)
     return self.rng.choice(best_acts)
 
   def choose_random(self):
