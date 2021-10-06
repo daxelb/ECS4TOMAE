@@ -23,9 +23,9 @@ class Agent:
     self.contexts = permutations(self.get_context())
     self.tau = tau
     self.asr = asr
-    self.epsilon = [1] * len(self.contexts.keys()) if asr == ASR.ED else epsilon
+    self.epsilon = [1] * len(self.contexts) if asr == ASR.ED and self.contexts else epsilon
     self.rand_trials = rand_trials
-    self.rand_trials_rem = [rand_trials] * len(self.contexts)
+    self.rand_trials_rem = [rand_trials] * len(self.contexts) if self.contexts else rand_trials
     self.cooling_rate = cooling_rate
     self.my_cpts = {
         var: CPT(var, self.cgm.get_parents(var), self.domains)
@@ -67,6 +67,37 @@ class Agent:
     else:
       return ""
 
+  def eg(self, givens):
+    if self.rng.random() < self.epsilon:
+      return self.choose_random()
+    return self.choose_optimal(givens)
+
+  def ef(self, givens):
+    if self.contexts:
+      given_i = self.contexts.index(givens)
+      if self.rand_trials_rem[given_i] > 0:
+        self.rand_trials_rem[given_i] -= 1
+        return self.choose_random()
+    elif self.rand_trials_rem > 0:
+      self.rand_trials_rem -= 1
+      return self.choose_random()
+    return self.choose_optimal(givens)
+
+
+  def ed(self, givens):
+    if self.contexts:
+      given_i = self.contexts.index(givens)
+      if self.rng.random() < self.epsilon[given_i]:
+        self.epsilon[given_i] *= self.cooling_rate
+        return self.choose_random()
+      self.epsilon[given_i] *= self.cooling_rate
+      return self.choose_optimal(givens)
+    elif self.rng.random() < self.epsilon:
+      self.epsilon *= self.cooling_rate
+      return self.choose_random()
+    self.epsilon *= self.cooling_rate
+    return self.choose_optimal(givens)
+
   def choose(self, givens):
     """
     Defines the logic of how the agent
@@ -74,29 +105,11 @@ class Agent:
     Selection Rule (ASR).
     """
     if self.asr == ASR.EG:
-      if self.rng.random() < self.epsilon:
-        return self.choose_random()
-      return self.choose_optimal(givens)
+      return self.eg(givens)
     elif self.asr == ASR.EF:
-      if self.feat_perms:
-        given_i = self.feat_perms.index(givens)
-        if self.rand_trials_rem[given_i] > 0:
-          self.rand_trials_rem[given_i] -= 1
-          return self.choose_random()
-      elif self.rand_trials_rem > 0:
-        self.rand_trials_rem -= 1
-        return self.choose_random()
-      return self.choose_optimal(givens)
+      return self.ef(givens)
     elif self.asr == ASR.ED:
-      if self.feat_perms:
-        given_i = self.feat_perms.index(givens)
-        if self.rng.random() < self.epsilon[given_i]:
-          self.epsilon[given_i] *= self.cooling_rate
-          return self.choose_random()
-      elif self.rng.random() < self.epsilon:
-        self.epsilon *= self.cooling_rate
-        return self.choose_random()
-      self.epsilon *= self.cooling_rate
+      return self.ed(givens)
     elif self.asr == ASR.TS:
       return self.thompson_sample(givens)
     else:
@@ -142,7 +155,8 @@ class Agent:
           best_rew = expected_rew
         elif expected_rew == best_rew:
           best_acts.append(act)
-    return self.rng.choice(best_acts) if best_acts else None
+    assert bool(best_acts)
+    return self.rng.choice(best_acts)
 
   def choose_random(self):
     """

@@ -15,6 +15,10 @@ class World:
         a.update_divergence()
       context = a._environment.pre.sample(a.rng)
       action = a.choose(context)
+      try:
+        v = {**context, **action}
+      except TypeError:
+        print('\n', context, action, '\n')
       sample = a._environment.post.sample(a.rng, {**context, **action})
       a.observe(sample)
     self.update_pseudo_regret(ep)
