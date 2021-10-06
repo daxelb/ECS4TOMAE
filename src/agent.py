@@ -5,6 +5,7 @@ from util import only_given_keys, permutations, only_dicts_with_givens, hellinge
 from enums import ASR
 from math import inf
 
+
 class Agent:
   def __init__(self, rng, name, environment, agents, tau=None, asr=ASR.EG, epsilon=0, rand_trials=0, cooling_rate=0):
     self.rng = rng
@@ -31,8 +32,8 @@ class Agent:
         for var in self.domains
     }
     # nodes in the cgm that Y is dependent on that is either X or observed by X
-    # in the OG example, this is Z, X 
-    # but if Z is not a counfounder on Y, but only connected to Y through X, 
+    # in the OG example, this is Z, X
+    # but if Z is not a counfounder on Y, but only connected to Y through X,
     # Z would not be included
     parents = {self.act_var}
     for var in self.cgm.get_ancestors(self.act_var):
@@ -47,6 +48,10 @@ class Agent:
     return only_given_keys(self.domains, self.cgm.get_parents(self.act_var))
 
   def get_ind_var_value(self, ind_var):
+    """
+    Returns the assignment of the givent
+    "indepedent variable."
+    """
     if ind_var == "tau":
       return self.tau
     elif ind_var == "otp":
@@ -63,6 +68,11 @@ class Agent:
       return ""
 
   def choose(self, givens):
+    """
+    Defines the logic of how the agent
+    'chooses' according their Action 
+    Selection Rule (ASR).
+    """
     if self.asr == ASR.EG:
       if self.rng.random() < self.epsilon:
         return self.choose_random()
@@ -86,13 +96,16 @@ class Agent:
       raise ValueError("%s ASR not found" % self.asr)
 
   def observe(self, sample):
+    """
+    The behavior of the agent returning 
+    """
     self.recent = sample
     for cpt in self.my_cpts.values():
       cpt.add(sample)
-  
+
   def get_recent(self):
     return self.recent
-  
+
   def get_rew_query_unfactored(self):
     parents = {self.act_var}
     for var in self.cgm.get_ancestors(self.act_var):
@@ -109,7 +122,7 @@ class Agent:
       rew_prob = query.solve(cpts["rew"])
       summ += rew[self.rew_var] * rew_prob if rew_prob is not None else 0
     return summ
-  
+
   def choose_optimal(self, context):
     cpts = self.get_cpts()
     best_acts = []
@@ -123,20 +136,24 @@ class Agent:
         elif expected_rew == best_rew:
           best_acts.append(act)
     return self.rng.choice(best_acts) if best_acts else None
-  
+
   def choose_random(self):
+    """
+    Randomly chooses from the possible acti
+    """
     return self.rng.choice(self.actions)
-  
+
   def thompson_sample(self, context):
     best_acts = []
     best_sample = 0
     cpts = self.get_cpts()
     rew_query = self.get_rew_query_unfactored()
+    rew_query = Count(rew_query)
     rew_query.assign(context)
     for act in self.actions:
       rew_query.assign(act)
       alpha = cpts["rew"][rew_query.assign({self.rew_var: 1})]
-      beta  = cpts["rew"][rew_query.assign({self.rew_var: 0})]
+      beta = cpts["rew"][rew_query.assign({self.rew_var: 0})]
       sample = self.rng.beta(alpha + 1, beta + 1)
       if sample > best_sample:
         best_sample = sample
@@ -144,22 +161,23 @@ class Agent:
       if sample == best_sample:
         best_acts.append(act)
     return self.rng.choice(best_acts)
-  
+
   def get_otp(self):
     return self.__class__.__name__[:-5]
 
   def __hash__(self):
     return hash(self.name)
-    
+
   def __reduce__(self):
     return (self.__class__, (self.rng, self.name, self.environment, self.databank, self.tau, self.asr, self.epsilon, self.rand_trials, self.cooling_rate))
-  
+
   def __repr__(self):
     return "<" + self.get_otp() + self.name + ": " + self.asr.value + ">"
-  
+
   def __eq__(self, other):
     return isinstance(other, self.__class__) \
-      and self.name == other.name
+        and self.name == other.name
+
 
 class SoloAgent(Agent):
   def __init__(self, *args, **kwargs):
@@ -167,6 +185,8 @@ class SoloAgent(Agent):
 
   def get_cpts(self):
     return self.my_cpts
+
+
 class NaiveAgent(Agent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
@@ -179,6 +199,7 @@ class NaiveAgent(Agent):
           continue
         cpts[n].update(a.my_cpts[n])
     return cpts
+
 
 class SensitiveAgent(Agent):
   def __init__(self, *args, **kwargs):
@@ -220,14 +241,14 @@ class SensitiveAgent(Agent):
     for parent in self.cgm.get_parents(node):
       scale_factor *= len(self.domains[parent])
     return self.tau * scale_factor
-    
+
+
 class AdjustAgent(SensitiveAgent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
 
   def get_cpts(self):
     cpts = deepcopy(self.my_cpts)
-    # print()
     for a in self.agents:
       if a == self:
         continue
@@ -235,9 +256,6 @@ class AdjustAgent(SensitiveAgent):
       for n in cpts:
         if n not in div_nodes:
           cpts[n].update(a.my_cpts[n])
-    # print(self.my_cpts["Y"][Count({"Y": 1, "W": 1, "Z": 1})])
-    # print(cpts["Y"][Count({"Y": 1, "W": 1, "Z": 1})])
-    # print()
     return cpts
 
   def expected_rew(self, givens, cpts):
@@ -248,7 +266,7 @@ class AdjustAgent(SensitiveAgent):
       rew_prob = query.solve(cpts)
       summ += rew_val * rew_prob if rew_prob is not None else 0
     return summ
-  
+
   def get_rew_query(self):
     dist_vars = self.cgm.causal_path(self.act_var, self.rew_var)
     return Product(

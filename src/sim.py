@@ -11,6 +11,7 @@ from json import dump
 from enums import OTP, ASR
 from process import Process
 
+
 class Sim:
   def __init__(self, environment_dicts, otp, tau, asr, T, mc_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
@@ -21,12 +22,12 @@ class Sim:
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     self.num_agents = len(self.environments)
     self.assignments = {
-      "otp": otp,
-      "tau": tau,
-      "asr": asr,
-      "epsilon": EG_epsilon,
-      "rand_trials": EF_rand_trials,
-      "cooling_rate": ED_cooling_rate,
+        "otp": otp,
+        "tau": tau,
+        "asr": asr,
+        "epsilon": EG_epsilon,
+        "rand_trials": EF_rand_trials,
+        "cooling_rate": ED_cooling_rate,
     }
     if isinstance(asr, str):
       if asr != ASR.EG:
@@ -58,7 +59,7 @@ class Sim:
     self.domains = self.environments[0].get_domains()
     self.act_var = self.environments[0].get_act_var()
     self.rew_var = self.environments[0].get_rew_var()
-  
+
   def multithreaded_sim(self):
     jobs = []
     results = mp.Manager().list([None] * self.num_threads)
@@ -71,19 +72,19 @@ class Sim:
 
   def process_args(self, index):
     return {
-      'rng': random.default_rng(abs(self.seed - index)),
-      'environments': self.environments,
-      'rew_var': self.rew_var,
-      'is_community': self.is_community,
-      'nmc': self.nmc,
-      'ind_var': self.ind_var,
-      'mc_sims': self.mc_sims,
-      'T': self.T,
-      'ass_perms': self.ass_perms,
-      'num_agents': self.num_agents,
-      'rand_envs': self.rand_envs,
-      'domains': self.domains,
-      'act_var': self.act_var
+        'rng': random.default_rng(abs(self.seed - index)),
+        'environments': self.environments,
+        'rew_var': self.rew_var,
+        'is_community': self.is_community,
+        'nmc': self.nmc,
+        'ind_var': self.ind_var,
+        'mc_sims': self.mc_sims,
+        'T': self.T,
+        'ass_perms': self.ass_perms,
+        'num_agents': self.num_agents,
+        'rand_envs': self.rand_envs,
+        'domains': self.domains,
+        'act_var': self.act_var
     }
 
   def sim_process(self, results, index):
@@ -92,7 +93,7 @@ class Sim:
     return
 
   def combine_results(self, process_results):
-    results = [{},{}]
+    results = [{}, {}]
     for pr in process_results:
       for i in range(len(results)):
         for ind_var, res in pr[i].items():
@@ -184,23 +185,26 @@ class Sim:
     )
     return plotly_fig
 
-  
   def get_cpr_plot(self, results, desc):
     plot_title = "Community CPR of " + desc if self.is_community else "Mean Agent CPR of " + desc
     return self.get_plot(results, plot_title, "Cumulative Pseudo Regret")
-  
+
   def get_poa_plot(self, results, desc):
     plot_title = "POA of " + desc
     return self.get_plot(results, plot_title, "Probability of Optimal Action")
 
   def display_and_save(self, results, desc):
+    """
+    Taking in a 'results' pandas Dataframe and a description of the results,
+    outputs a 
+    """
     cpr_plot = self.get_cpr_plot(results[0], desc)
     poa_plot = self.get_poa_plot(results[1], desc)
     elapsed_time = time.time() - self.start_time
-    print_info = "Time Elapsed: {}h {}m {}s".format(\
-      int(elapsed_time // (60 * 60)),\
-      int(elapsed_time // 60 % 60),\
-      int(elapsed_time % 60)
+    print_info = "Time Elapsed: {}h {}m {}s".format(
+        int(elapsed_time // (60 * 60)),
+        int(elapsed_time // 60 % 60),
+        int(elapsed_time % 60)
     )
     print(f'{print_info}{" " * (70 - len(print_info))}')
 
@@ -224,21 +228,23 @@ class Sim:
           df.to_excel(writer, sheet_name=sheet_name)
       with open(dir_path + '/values.json', 'w') as outfile:
         dump(self.values, outfile)
-      
+
   def run(self, desc=None):
     if desc:
       print(desc)
     print("seed=%d | N=%d" % (self.seed, self.get_N()))
     results = self.combine_results(self.multithreaded_sim())
     self.display_and_save(results, desc)
-    
+
   def get_N(self):
     return self.num_threads * self.mc_sims * self.num_agents
-  
+
   def get_values(self, locals):
     values = {key: val for key, val in locals.items() if key != 'self'}
-    values["otp"] = values["otp"].value if isinstance(values["otp"], Enum) else [e.value for e in values["otp"]]
-    values["asr"]    = values["asr"].value    if isinstance(values["asr"], Enum)    else [e.value for e in values["asr"]]
+    values["otp"] = values["otp"].value if isinstance(values["otp"], Enum) else [
+        e.value for e in values["otp"]]
+    values["asr"] = values["asr"].value if isinstance(values["asr"], Enum) else [
+        e.value for e in values["asr"]]
     parsed_env_dicts = []
     for env in values["environment_dicts"]:
       parsed_env = {}
@@ -249,40 +255,41 @@ class Sim:
     values["seed"] = self.seed
     return values
 
+
 if __name__ == "__main__":
-  baseline = {
-    "Z": RandomModel((0.5, 0.5)),
-    "X": ActionModel(("Z"), (0, 1)),
-    "W": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
-    "Y": DiscreteModel(("Z", "W"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
-  }
-  reversed_w = dict(baseline)
-  reversed_w["W"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
-  
   # baseline = {
-  #   "X": ActionModel(None, (0,1)),
-  #   "S": DiscreteModel("X", {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
-  #   "R": DiscreteModel("S", {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
-  #   "Y": DiscreteModel("R", {(0,): (0.75, 0.25), (1,): (0.25, 0.75)})
+  #     "Z": RandomModel((0.5, 0.5)),
+  #     "X": ActionModel(("Z"), (0, 1)),
+  #     "W": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+  #     "Y": DiscreteModel(("Z", "W"), {(0, 0): (0.8, 0.2), (0, 1): (0.5, 0.5), (1, 0): (0.5, 0.5), (1, 1): (0.2, 0.8)})
   # }
   # reversed_w = dict(baseline)
-  # reversed_w["S"] = DiscreteModel("X", {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
+  # reversed_w["W"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
+
+  baseline = {
+      "X": ActionModel(None, (0, 1)),
+      "S": DiscreteModel("X", {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+      "R": DiscreteModel("S", {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
+      "Y": DiscreteModel("R", {(0,): (0.75, 0.25), (1,): (0.25, 0.75)})
+  }
+  reversed_w = dict(baseline)
+  reversed_w["S"] = DiscreteModel("X", {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
 
   experiment = Sim(
-    environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    otp=OTP.ADJUST,
-    asr=ASR.TS,
-    T=3000,
-    mc_sims=25,
-    tau=0.05,
-    EG_epsilon=0.02,
-    EF_rand_trials=50,
-    ED_cooling_rate=0.97,
-    is_community=True,
-    rand_envs=True,
-    node_mutation_chance=(0.2,0.8),
-    show=True,
-    save=False,
-    seed=None
+      environment_dicts=(baseline, reversed_w, baseline, reversed_w),
+      otp=OTP.SOLO,
+      asr=ASR.EG,
+      T=300,
+      mc_sims=5,
+      tau=0.05,
+      EG_epsilon=0.02,
+      EF_rand_trials=50,
+      ED_cooling_rate=0.97,
+      is_community=True,
+      rand_envs=True,
+      node_mutation_chance=(0.2, 0.8),
+      show=True,
+      save=False,
+      seed=None
   )
   experiment.run(desc="revampedData-AdjustTS")
