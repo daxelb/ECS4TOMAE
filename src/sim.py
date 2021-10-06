@@ -261,10 +261,10 @@ if __name__ == "__main__":
 
   experiment = Sim(
     environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-    otp=OTP.SOLO,
-    asr=ASR.EF,
-    T=250,
-    mc_sims=5,
+    otp=OTP.ADJUST,
+    asr=ASR.TS,
+    T=3000,
+    mc_sims=25,
     tau=0.05,
     EG_epsilon=0.02,
     EF_rand_trials=50,
@@ -276,4 +276,4 @@ if __name__ == "__main__":
     save=False,
     seed=None
   )
-  experiment.run(desc="asrCommunity_T3000")
+  experiment.run(desc="revampedData-AdjustTS")

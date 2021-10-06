@@ -33,12 +33,6 @@ class Query(object):
   def solve(self, data):
     cpt = data[self.var()] if isinstance(data, dict) else data
     count_e = Count(self.e)
-    # if cpt is None:
-    #   print("**********")
-    #   print(data)
-    #   print(cpt)
-    #   print(count_e)
-    #   print("**********")
     count_e = count_e.solve(cpt)
     if count_e == 0:
       return None
@@ -57,25 +51,8 @@ class Query(object):
     assert len(self.Q) == 1
     return list(self.Q.keys())[0]
   
-  def get_assignments(self, dictionary=None):
-    if dictionary is None:
-      dictionary = self.Q_and_e()
-    assignments = {}
-    [assignments.update({var: ass}) for var, ass in dictionary.items() if self.is_assigned(ass)]
-    return assignments
-  
-  def is_assigned(self, assignment):
-    return not isinstance(assignment, Iterable) and assignment is not None
-  
-  def get_unassigned_vars(self):
-    unassigned = set()
-    for var, ass in self.Q_and_e().items():
-      if isinstance(ass, Iterable) or ass is None:
-        unassigned.add(var)
-    return unassigned
-  
   def get_unassigned(self):
-    return only_given_keys(self.Q_and_e(), self.get_unassigned_vars())
+    return {var: ass for var, ass in self.items() if isinstance(ass, Iterable) or ass is None}
   
   def all_assigned(self):
     return len(self.get_unassigned()) == 0
@@ -136,6 +113,9 @@ class Query(object):
   
   def as_tup(self):
     return (self.Q, self.e)
+
+  def items(self):
+    return self.Q_and_e().items()
   
   def __copy__(self):
     return self.__class__(copy(self.Q), copy(self.e))
@@ -213,7 +193,7 @@ class Queries(MutableSequence):
   def __init__(self, data=None):
     super(Queries, self).__init__()
     self._list = list() if data is None else list(data) if isinstance(data, Iterable) else [data]
-    
+  
   def get_vars(self):
     vars = set()
     for q in self:
@@ -234,16 +214,9 @@ class Queries(MutableSequence):
     Q_and_e = dict()
     [Q_and_e.update(q.Q_and_e()) for q in self]
     return Q_and_e
-    
-  def get_assignments(self, dictionary=None):
-    if dictionary is None:
-      dictionary = self.Q_and_e()
-    assignments = {}
-    [assignments.update(q.get_assignments(dictionary)) for q in self]
-    return assignments
 
   def get_unassigned(self):
-    unassigned = {}
+    unassigned = dict()
     for q in self:
       unassigned.update(q.get_unassigned())
     return unassigned
@@ -252,20 +225,14 @@ class Queries(MutableSequence):
     return len(self.get_unassigned()) == 0
   
   def over(self, domains={}):
-    # [*] assert all(var in self for var in domains)
-    if domains:
-      return self.over_helper(domains, self)
-    return self.over_helper(self.get_unassigned(), self)
-  
-  def over_helper(self, unassigned, assignments):
-    if not unassigned:
-      return assignments
-    var = list(unassigned.keys())[0]
-    dom = unassigned.pop(var)
-    new_assignments = Queries()
-    for a in dom:
-      new_assignments.append(deepcopy(assignments).assign_one(var, a))
-    return self.over_helper(unassigned, new_assignments)
+    self.assign(domains)
+    if self.all_assigned():
+      return self.__class__(self)
+    assignments = permutations(self.get_unassigned())
+    assigned = self.__class__()
+    for ass in assignments:
+      assigned.append(deepcopy(self).assign(ass))
+    return assigned
   
   def assign_(self, var_or_dict, ass=None):
     new = copy(self)
@@ -390,7 +357,8 @@ class Product(Queries):
         self._list[i] = Product(q)
   
   def solve(self, cpts):
-    assert all(is_Q(q) or is_num(q) for q in self._list)
+    if not self.all_assigned():
+      return Summation(self.over()).solve(cpts)
     product = 1
     for q in self:
       try:

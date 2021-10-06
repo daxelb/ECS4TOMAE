@@ -117,7 +117,7 @@ class CausalGraph:
       
       causal_path(X, Y) = {W, Y}
     """
-    path_nodes = self.get_ancestors(n2).union(self.get_descendants(n1))
+    path_nodes = self.get_ancestors(n2).intersection(self.get_descendants(n1))
     path_nodes.add(n2)
     return path_nodes
 

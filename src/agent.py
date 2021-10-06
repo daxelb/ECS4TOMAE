@@ -1,7 +1,7 @@
-from cpt import Knowledge, CPT
+from copy import copy, deepcopy
+from cpt import CPT
 from query import Count, Product, Query, Summation
 from util import only_given_keys, permutations, only_dicts_with_givens, hellinger_dist
-from data import DataSet
 from enums import ASR
 from math import inf
 
@@ -92,13 +92,6 @@ class Agent:
   
   def get_recent(self):
     return self.recent
-
-  def get_rew_query(self):
-    dist_vars = self.cgm.causal_path(self.act_var, self.rew_var)
-    return Product(
-        self.cgm.get_node_dist(v)
-        for v in dist_vars
-    ).assign(self.domains)
   
   def get_rew_query_unfactored(self):
     parents = {self.act_var}
@@ -179,7 +172,7 @@ class NaiveAgent(Agent):
     super().__init__(*args, **kwargs)
 
   def get_cpts(self):
-    cpts = dict(self.my_cpts)
+    cpts = copy(self.my_cpts)
     for n in cpts:
       for a in self.agents:
         if a == self:
@@ -195,7 +188,8 @@ class SensitiveAgent(Agent):
     self.divergence = dict()
 
   def get_cpts(self):
-    cpts = dict(self.my_cpts)
+    # might not be deepcopying here...
+    cpts = copy(self.my_cpts)
     for a in self.agents:
       if a == self:
         continue
@@ -203,35 +197,37 @@ class SensitiveAgent(Agent):
         (cpts[n].update(a.my_cpts[n]) for n in cpts)
     return cpts
 
+  def get_non_act_nodes(self):
+    return {node for node in self.domains if node != self.act_var}
+
   def update_divergence(self):
     for a in self.agents:
-      if self == a:
+      if a == self:
         continue
       if a not in self.divergence:
         self.divergence[a] = {n: inf for n in self.cgm.get_unset_nodes()}
-      nodes = set(self.domains.keys())
-      nodes.remove(self.act_var)
-      for n in nodes:
+      for n in self.get_non_act_nodes():
         self.divergence[a][n] = hellinger_dist(
-            self.domains, self.my_cpts, a.my_cpts, self.cgm.get_node_dist(n))
+            self.domains, self.my_cpts[n], a.my_cpts[n], self.cgm.get_node_dist(n))
 
   def div_nodes(self, agent):
     if self == agent:
       return set()
-    return {node for node, dist in self.divergence[agent].items() if dist is None or dist > self.get_scaled_tau(agent, node)}
+    return {node for node, dist in self.divergence[agent].items() if dist is None or dist > self.get_scaled_tau(node)}
 
-  def get_scaled_tau(self, agent, node):
+  def get_scaled_tau(self, node):
     scale_factor = 1
     for parent in self.cgm.get_parents(node):
       scale_factor *= len(self.domains[parent])
-    return agent.tau * scale_factor
+    return self.tau * scale_factor
     
 class AdjustAgent(SensitiveAgent):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
 
   def get_cpts(self):
-    cpts = dict(self.my_cpts)
+    cpts = deepcopy(self.my_cpts)
+    # print()
     for a in self.agents:
       if a == self:
         continue
@@ -239,16 +235,26 @@ class AdjustAgent(SensitiveAgent):
       for n in cpts:
         if n not in div_nodes:
           cpts[n].update(a.my_cpts[n])
+    # print(self.my_cpts["Y"][Count({"Y": 1, "W": 1, "Z": 1})])
+    # print(cpts["Y"][Count({"Y": 1, "W": 1, "Z": 1})])
+    # print()
     return cpts
 
   def expected_rew(self, givens, cpts):
     query = self.get_rew_query().assign(givens)
     summ = 0
     for rew_val in self.rew_dom:
-      query[self.rew_var] = rew_val
-      rew_prob = Summation(query.over()).solve(cpts)
+      query.assign(self.rew_var, rew_val)
+      rew_prob = query.solve(cpts)
       summ += rew_val * rew_prob if rew_prob is not None else 0
     return summ
+  
+  def get_rew_query(self):
+    dist_vars = self.cgm.causal_path(self.act_var, self.rew_var)
+    return Product(
+        self.cgm.get_node_dist(v)
+        for v in dist_vars
+    ).assign(self.domains)
 
   def all_causal_path_nodes_corrupted(self, agent):
     return self.cgm.causal_path(self.act_var, self.rew_var).issubset(set(self.div_nodes(agent)))
@@ -263,12 +269,12 @@ class AdjustAgent(SensitiveAgent):
       for agent in self.agents:
         if self.all_causal_path_nodes_corrupted(agent):
           continue
-        rew_query = Summation(self.get_rew_query().over())
+        rew_query = self.get_rew_query().assign(act).assign(context)
         a_prob = rew_query.assign(self.rew_var, 1).solve(cpts)
         b_prob = rew_query.assign(self.rew_var, 0).solve(cpts)
         if a_prob is None or b_prob is None:
           continue
-        count = self.databank[agent].num({**act, **context})
+        count = agent.my_cpts[self.act_var][Count({**act, **context})]
         a += a_prob * count
         b += b_prob * count
       sample = self.rng.beta(a+1, b+1)

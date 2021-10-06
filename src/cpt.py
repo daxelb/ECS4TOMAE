@@ -1,3 +1,4 @@
+from copy import deepcopy
 from util import only_given_keys, permutations, hash_from_dict, Counter
 from query import Query, Product, Summation, Count
 from re import findall
@@ -112,6 +113,11 @@ class CPT:
           if k.issubset(key):
             summ += self.table[k]
         return summ
+      
+  def __deepcopy__(self, memo):
+    dc = self.__class__(self.var, self.parents, self.domains)
+    dc.table = deepcopy(self.table)
+    return dc
   
   def __str__(self):
     res = ''
