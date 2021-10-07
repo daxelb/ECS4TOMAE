@@ -14,7 +14,7 @@ from itertools import combinations_with_replacement
 
 
 class Sim:
-  def __init__(self, environment_dicts, otp, tau, asr, T, mc_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, asr_combos=None, show=True, save=False, seed=None):
+  def __init__(self, environment_dicts, otp, tau, asr, T, mc_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(self.seed)
     self.start_time = time.time()
@@ -40,7 +40,7 @@ class Sim:
     self.act_var = self.environments[0].get_act_var()
     self.rew_var = self.environments[0].get_rew_var()
 
-  def get_assignments(self, otp, tau, asr, EG_epsilon, EF_rand_trials, ED_cooling_rate, asr_combos):
+  def get_assignments(self, otp, tau, asr, EG_epsilon, EF_rand_trials, ED_cooling_rate):
     assignments = {
         "otp": otp,
         "tau": tau,
@@ -49,20 +49,29 @@ class Sim:
         "rand_trials": EF_rand_trials,
         "cooling_rate": ED_cooling_rate,
     }
+    if isinstance(asr, combinations_with_replacement):
+      asr = tuple(asr)
+      if any(ASR.EG in combo for combo in asr):
+        del assignments['epsilon']
+      if any(ASR.EF in combo for combo in asr):
+        del assignments['rand_trials']
+      if any(ASR.ED in combo for combo in asr):
+        del assignments['cooling_rate']
     if isinstance(asr, str):
       if asr != ASR.EG:
-        del self.assignments["epsilon"]
+        del assignments["epsilon"]
       if asr != ASR.EF:
-        del self.assignments["rand_trials"]
+        del assignments["rand_trials"]
       if asr != ASR.ED:
-        del self.assignments["cooling_rate"]
+        del assignments["cooling_rate"]
     elif isinstance(asr, (tuple, list, set)):
       if ASR.EG not in asr:
-        del self.assignments["epsilon"]
+        del assignments["epsilon"]
       if ASR.EF not in asr:
-        del self.assignments["rand_trials"]
+        del assignments["rand_trials"]
       if ASR.ED not in asr:
-        del self.assignments["cooling_rate"]
+        del assignments["cooling_rate"]
+    return assignments
 
 
   def multithreaded_sim(self):
@@ -90,7 +99,6 @@ class Sim:
         'rand_envs': self.rand_envs,
         'domains': self.domains,
         'act_var': self.act_var,
-        'transition_asrs': self.transition_asrs
     }
 
   def sim_process(self, results, index):
@@ -111,8 +119,6 @@ class Sim:
 
   def get_ind_var(self):
     ind_var = None
-    if self.transition_asrs:
-      ind_var = "asr_combo"
     for var, assignment in self.assignments.items():
       if isinstance(assignment, (list, tuple, set)):
         assert ind_var is None
@@ -287,8 +293,8 @@ if __name__ == "__main__":
   experiment = Sim(
       environment_dicts=(baseline, reversed_w, baseline, reversed_w),
       otp=OTP.ADJUST, #(OTP.SOLO,OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
-      asr=(ASR.TS, ASR.EF),
-      asr_combos=combinations_with_replacement((ASR.TS, ASR.EF), 4),
+      # (ASR.EG, ASR.EF, ASR.ED, ASR.TS),
+      asr=combinations_with_replacement((ASR.TS, ASR.EF), 4),
       T=3000,
       mc_sims=50,
       tau=0.05,
@@ -298,7 +304,6 @@ if __name__ == "__main__":
       is_community=False,
       rand_envs=True,
       node_mutation_chance=(0.2, 0.8),
-      transition_asrs=True,
       show=True,
       save=True,
       seed=None

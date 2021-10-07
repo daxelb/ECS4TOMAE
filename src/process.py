@@ -9,7 +9,7 @@ from enums import OTP
 
 
 class Process:
-  def __init__(self, rng, environments, rew_var, is_community, nmc, ind_var, mc_sims, T, ass_perms, num_agents, rand_envs, domains, act_var, transition_asrs):
+  def __init__(self, rng, environments, rew_var, is_community, nmc, ind_var, mc_sims, T, ass_perms, num_agents, rand_envs, domains, act_var):
     self.rng = rng
     self.environments = environments
     self.rew_var = rew_var
@@ -23,7 +23,6 @@ class Process:
     self.rand_envs = rand_envs
     self.domains = domains
     self.act_var = act_var
-    self.transition_asrs = transition_asrs
 
   def agent_maker(self, name, environment, assignments, agents):
     otp = assignments.pop("otp")
@@ -56,10 +55,10 @@ class Process:
     # These two lines should NOT be necessary. Need to do testing to make sure.
     ap = list(self.ass_perms)
     self.rng.shuffle(ap)
-    if self.transition_asrs:
-      assignments = combinations_with_replacement([dict(ass) for ass in ap], self.num_agents)
-    else:
-      assignments = [dict(ass) for ass in ap for _ in range(self.num_agents)]
+    # if self.transition_asrs:
+    #   assignments = combinations_with_replacement([dict(ass) for ass in ap], self.num_agents)
+    # else:
+    assignments = [dict(ass) for ass in ap for _ in range(self.num_agents)]
     if not self.is_community:
       self.rng.shuffle(assignments)
     envs = cycle(self.environment_generator()) if self.rand_envs else cycle(self.environments)
