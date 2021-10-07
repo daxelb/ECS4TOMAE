@@ -5,103 +5,22 @@ from re import findall
 from math import inf
 
 from numpy import random
-from cgm import CausalGraph
-class Knowledge:
-  def __init__(self, rng, cgm, domains, act_var, rew_var, agents):
-    self.rng = rng
-    self.cgm = cgm
-    self.domains = domains
-    self.act_var = act_var
-    self.rew_var = rew_var
-    self.act_dom = self.get_act_dom()
-    self.rew_dom = self.get_rew_dom()
-    self.actions = permutations(self.act_dom)
-    self.rewards = permutations(self.rew_dom)
-    self.cpts = {
-      var: CPT(var, self.cgm.get_parents(var), domains) \
-        for var in domains
-    }
-    self.rew_query = self.get_rew_query()
-    self.agents = agents
-    
-  def observe(self, sample):
-    self.recent = sample
-    for cpt in self.cpts.values():
-      cpt.add(sample)
-    
-  def listen(self, sample):
-    for cpt in self.cpts.values():
-      cpt.add(sample)
-
-  def get_rew_query(self):
-    dist_vars = self.cgm.causal_path(self.act_var, self.rew_var)
-    return Product(
-      self.cgm.get_node_dist(v)
-      for v in dist_vars
-    ).assign(self.domains)
-    
-  def expected_rew(self, givens):
-    query = self.rew_query.assign(givens)
-    summ = 0
-    for rew_val in self.rew_dom:
-      query[self.rew_var] = rew_val
-      rew_prob = Summation(query.over()).solve(self.cpts)
-      summ += rew_val * rew_prob if rew_prob is not None else 0
-    return summ
-    
-  def optimal_choice(self, context):
-    best_acts = []
-    best_rew = -inf
-    for act in self.actions:
-      expected_rew = self.expected_rew({**act, **context})
-      if expected_rew is not None:
-        if expected_rew > best_rew:
-          best_acts = [act]
-          best_rew = expected_rew
-        elif expected_rew == best_rew:
-          best_acts.append(act)
-    return self.rng.choice(best_acts) if best_acts else None
-  
-  def get_scaled_tau(self, agent, node):
-    scale_factor = 1
-    for parent in self.cgm.get_parents(node):
-      scale_factor *= len(self.domains[parent])
-    return agent.tau * scale_factor
-
-  def get_act_dom(self):
-    return only_given_keys(self.domains, self.act_var)
-
-  def get_rew_dom(self):
-    return only_given_keys(self.domains, self.rew_var)
-  
+from cgm import CausalGraph  
 
 class CPT:
   def __init__(self, var, parents, domains):
     self.var = var
     self.parents = set(parents)
     self.domains = only_given_keys(domains, self.parents | {self.var})
-    self.query = Query(self.var, self.parents)
+    self.query = Count(self.var, self.parents)
     self.table = {key: 0 for key in Count(self.var, self.parents).unassigned_combos(self.domains)}
 
-  def clear(self):
-    for key in self.table:
-      self.table[key] = 0
-
   def add(self, obs):
-    self.table[Count(self.query).assign(obs)] += 1
+    self.table[self.query.assign(obs)] += 1
 
   def update(self, other):
     for key in self.table:
       self.table[key] += other.table[key]
-  
-  def size(self):
-    return sum(sum(e.values()) for e in self.table.values())
-  
-  def is_empty(self):
-    return self.size() == 0
-  
-  def has_parents(self):
-    return bool(self.parents)
   
   def __getitem__(self, key):
     if isinstance(key, Query):
@@ -121,17 +40,16 @@ class CPT:
   
   def __str__(self):
     res = ''
-    header = sorted(list(self.parents)) + [self.var, '']
+    header = sorted(list(self.parents)) + [self.var, str(self.query)]
     format_row = '\n' + '{:<3}' * len(header)
     res += format_row.format(*header)
     res += format_row.format(*['-' * len(e) for e in header])
-    for pa in self.table:
-      for va in self.domains[self.var]:
-        row = []
-        for parent_val in findall(r'\d+', str(pa)):
-          row.append(parent_val)
-        row += [str(va), str(self.table[va])]
-        res += format_row.format(*row)
+    for key in self.table:
+      row = []
+      for var_val in findall(r'\d+', str(key)):
+        row.append(var_val)
+      row.append(str(self.table[key]))
+      res += format_row.format(*row)
     return res + '\n'
       
 if __name__ == "__main__":

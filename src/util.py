@@ -12,7 +12,7 @@ def hash_from_dict(dictionary):
   hashstring = ""
   for i, key in enumerate(sorted(list(dictionary.keys()))):
     hashstring += str(key)
-    if not isinstance(dictionary[key], Iterable):
+    if not isinstance(dictionary[key], Iterable) and dictionary[key] is not None:
       hashstring += "=" + str(dictionary[key])
     if i < len(dictionary.keys()) - 1:
       hashstring += ","
