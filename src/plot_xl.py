@@ -1,18 +1,20 @@
 from pandas import ExcelFile
 import plotly.graph_objs as go
 
-desc = '1b2b3a_N960'
+desc = 'DIR_NAME'
 yaxis_short = 'poa'
 directory = '../output/%s' % desc
 ex_file = '/%s.xlsx' % yaxis_short
 yaxis_title = 'Cumulative Pseudo Regret' if yaxis_short == 'cpr' else 'Probability of Optimal Action'
 figure = []
 results = ExcelFile(directory + ex_file).parse(sheet_name=None, index_col=0)
+line_dashes = ['solid', 'dot', 'dash', 'dashdot']
 for i, ind_var in enumerate(sorted(results)):
   df = results[ind_var]
   x = list(range(len(df.columns)))
   line_name = ind_var
   line_hue = str(int(360 * (i / len(results))))
+  line_dash = line_dashes[i] if len(results) <= 4 else 'solid'
   y = df.mean(axis=0, numeric_only=True)
   sem = df.sem(axis=0, numeric_only=True)
   y_upper = y + sem
@@ -24,7 +26,7 @@ for i, ind_var in enumerate(sorted(results)):
           name=line_name,
           x=x,
           y=y,
-          line=dict(color=line_color, width=2.4),
+          line=dict(color=line_color, width=3, dash=line_dash),
           mode='lines',
       ),
       go.Scatter(

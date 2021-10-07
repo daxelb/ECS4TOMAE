@@ -27,7 +27,7 @@ class Sim:
     self.T = T
     self.mc_sims = mc_sims
     self.num_threads = mp.cpu_count()
-    self.seed = randint(0, 2**32 - (1 + self.num_threads)) if seed is None else seed
+    self.seed = randint(0, 2**31 - (1 + self.num_threads)) if seed is None else seed
     self.ass_perms = self.get_assignment_permutations()
     self.is_community = is_community
     self.show = show
@@ -297,9 +297,9 @@ if __name__ == "__main__":
       environment_dicts=(baseline, reversed_w, baseline, reversed_w),
       otp=OTP.ADJUST, #(OTP.SOLO,OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
       # (ASR.EG, ASR.EF, ASR.ED, ASR.TS),
-      asr=(ASR.EG,ASR.TS),#combinations_with_replacement((ASR.TS, ASR.EF), 4),
+      asr=combinations_with_replacement((ASR.TS, ASR.EF), 4),
       T=3000,
-      mc_sims=2,
+      mc_sims=25,
       tau=0.05,
       EG_epsilon=100/3000,
       EF_rand_trials=50,
@@ -308,7 +308,7 @@ if __name__ == "__main__":
       rand_envs=True,
       node_mutation_chance=(0.2, 0.8),
       show=True,
-      save=False,
+      save=True,
       seed=None
   )
-  experiment.run(desc="ASR Individual")
+  experiment.run(desc="TS-EF combos 2")
