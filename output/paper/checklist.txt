@@ -1,0 +1,17 @@
+nmc (0.2, 0.8)
+ x ASR Community
+ x OTP TS
+ x OTP ED
+ x OTP EF
+ - ASR Individual
+
+nmc 0.8
+ x ASR Community
+ x OTP TS
+
+nmc 0.2
+ x ASR Community
+ x OTP TS
+
+misc
+ x Solo TS (can manually add to others for comparison)
