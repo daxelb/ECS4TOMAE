@@ -124,6 +124,7 @@ class Sim:
   def get_plot(self, results, plot_title, yaxis_title):
     figure = []
     x = list(range(self.T))
+    line_dash = ('solid', 'dot', 'dash', 'dashdot')
     for i, ind_var in enumerate(sorted(results)):
       line_name = str(ind_var)
       line_hue = str(int(360 * (i / len(results))))
@@ -145,7 +146,7 @@ class Sim:
               name=line_name,
               x=x,
               y=y,
-              line=dict(color=line_color, width=3),
+              line=dict(color=line_color, width=3, dash=line_dash[i]),
               mode='lines',
           ),
           go.Scatter(
@@ -289,7 +290,7 @@ if __name__ == "__main__":
       rand_envs=True,
       node_mutation_chance=(0.2, 0.8),
       show=True,
-      save=True,
+      save=False,
       seed=None
   )
   experiment.run(desc="chain OTP ED")

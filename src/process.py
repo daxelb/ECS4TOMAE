@@ -65,7 +65,7 @@ class Process:
       for i in range(self.num_agents):
         agents.append(self.agent_maker(str(i), next(envs), assignments.pop(), agents))
       
-      yield World(agents, self.T, self.is_community)
+      yield World(agents, self.T)
 
   def simulate(self):
     res = [{},{}]
@@ -90,7 +90,7 @@ class Process:
     return res
 
   def update_process_result(self, res, world):
-    raw = (world.pseudo_cum_regret, world.optimal_action)
+    raw = (world.cpr, world.poa)
     for i in (0, 1):
       for agent, data in raw[i].items():
         ind_var = agent.get_ind_var_value(self.ind_var)
