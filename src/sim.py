@@ -10,10 +10,11 @@ from os import mkdir
 from json import dump
 from enums import OTP, ASR
 from process import Process
+from itertools import combinations_with_replacement
 
 
 class Sim:
-  def __init__(self, environment_dicts, otp, tau, asr, T, mc_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
+  def __init__(self, environment_dicts, otp, tau, asr, T, mc_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, asr_combos=None, show=True, save=False, seed=None):
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(self.seed)
     self.start_time = time.time()
@@ -21,7 +22,26 @@ class Sim:
     self.nmc = node_mutation_chance
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     self.num_agents = len(self.environments)
-    self.assignments = {
+    self.assignments = self.get_assignments(otp, tau, asr, EG_epsilon, EF_rand_trials, ED_cooling_rate)
+    self.ind_var = self.get_ind_var()
+    self.T = T
+    self.mc_sims = mc_sims
+    self.num_threads = mp.cpu_count()
+    self.ass_perms = self.get_assignment_permutations()
+    self.is_community = is_community
+    self.show = show
+    self.save = save
+    self.data_cpr = {}
+    self.data_poa = {}
+    self.last_episode_cpr = DataFrame()
+    self.last_episode_poa = DataFrame()
+    self.values = self.get_values(locals())
+    self.domains = self.environments[0].get_domains()
+    self.act_var = self.environments[0].get_act_var()
+    self.rew_var = self.environments[0].get_rew_var()
+
+  def get_assignments(self, otp, tau, asr, EG_epsilon, EF_rand_trials, ED_cooling_rate, asr_combos):
+    assignments = {
         "otp": otp,
         "tau": tau,
         "asr": asr,
@@ -43,22 +63,7 @@ class Sim:
         del self.assignments["rand_trials"]
       if ASR.ED not in asr:
         del self.assignments["cooling_rate"]
-    self.ind_var = self.get_ind_var()
-    self.T = T
-    self.mc_sims = mc_sims
-    self.num_threads = mp.cpu_count()
-    self.ass_perms = self.get_assignment_permutations()
-    self.is_community = is_community
-    self.show = show
-    self.save = save
-    self.data_cpr = {}
-    self.data_poa = {}
-    self.last_episode_cpr = DataFrame()
-    self.last_episode_poa = DataFrame()
-    self.values = self.get_values(locals())
-    self.domains = self.environments[0].get_domains()
-    self.act_var = self.environments[0].get_act_var()
-    self.rew_var = self.environments[0].get_rew_var()
+
 
   def multithreaded_sim(self):
     jobs = []
@@ -84,7 +89,8 @@ class Sim:
         'num_agents': self.num_agents,
         'rand_envs': self.rand_envs,
         'domains': self.domains,
-        'act_var': self.act_var
+        'act_var': self.act_var,
+        'transition_asrs': self.transition_asrs
     }
 
   def sim_process(self, results, index):
@@ -105,6 +111,8 @@ class Sim:
 
   def get_ind_var(self):
     ind_var = None
+    if self.transition_asrs:
+      ind_var = "asr_combo"
     for var, assignment in self.assignments.items():
       if isinstance(assignment, (list, tuple, set)):
         assert ind_var is None
@@ -279,7 +287,8 @@ if __name__ == "__main__":
   experiment = Sim(
       environment_dicts=(baseline, reversed_w, baseline, reversed_w),
       otp=OTP.ADJUST, #(OTP.SOLO,OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
-      asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
+      asr=(ASR.TS, ASR.EF),
+      asr_combos=combinations_with_replacement((ASR.TS, ASR.EF), 4),
       T=3000,
       mc_sims=50,
       tau=0.05,
@@ -289,6 +298,7 @@ if __name__ == "__main__":
       is_community=False,
       rand_envs=True,
       node_mutation_chance=(0.2, 0.8),
+      transition_asrs=True,
       show=True,
       save=True,
       seed=None

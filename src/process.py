@@ -4,12 +4,12 @@ from data import DataBank
 from util import printProgressBar
 from environment import Environment
 import time
-from itertools import cycle
+from itertools import cycle, combinations_with_replacement
 from enums import OTP
 
 
 class Process:
-  def __init__(self, rng, environments, rew_var, is_community, nmc, ind_var, mc_sims, T, ass_perms, num_agents, rand_envs, domains, act_var):
+  def __init__(self, rng, environments, rew_var, is_community, nmc, ind_var, mc_sims, T, ass_perms, num_agents, rand_envs, domains, act_var, transition_asrs):
     self.rng = rng
     self.environments = environments
     self.rew_var = rew_var
@@ -23,6 +23,7 @@ class Process:
     self.rand_envs = rand_envs
     self.domains = domains
     self.act_var = act_var
+    self.transition_asrs = transition_asrs
 
   def agent_maker(self, name, environment, assignments, agents):
     otp = assignments.pop("otp")
@@ -55,7 +56,10 @@ class Process:
     # These two lines should NOT be necessary. Need to do testing to make sure.
     ap = list(self.ass_perms)
     self.rng.shuffle(ap)
-    assignments = [dict(ass) for ass in ap for _ in range(self.num_agents)]
+    if self.transition_asrs:
+      assignments = combinations_with_replacement([dict(ass) for ass in ap], self.num_agents)
+    else:
+      assignments = [dict(ass) for ass in ap for _ in range(self.num_agents)]
     if not self.is_community:
       self.rng.shuffle(assignments)
     envs = cycle(self.environment_generator()) if self.rand_envs else cycle(self.environments)
@@ -64,7 +68,6 @@ class Process:
       agents = []
       for i in range(self.num_agents):
         agents.append(self.agent_maker(str(i), next(envs), assignments.pop(), agents))
-      
       yield World(agents, self.T)
 
   def simulate(self):
