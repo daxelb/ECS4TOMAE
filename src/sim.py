@@ -162,7 +162,7 @@ class Sim:
               name=line_name,
               x=x,
               y=y,
-              line=dict(color=line_color, width=2.4, dash=line_dash),
+              line=dict(color=line_color, width=3, dash=line_dash),
               mode='lines',
           ),
           go.Scatter(
