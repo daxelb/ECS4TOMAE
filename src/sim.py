@@ -4,21 +4,19 @@ from assignment_models import ActionModel, DiscreteModel, RandomModel
 from environment import Environment
 import plotly.graph_objs as go
 import time
-from numpy import random
+from numpy.random import randint, default_rng
 import multiprocessing as mp
 from pandas import DataFrame, ExcelWriter
 from os import mkdir
 from json import dump
 from enums import OTP, ASR
 from process import Process
-from itertools import combinations_with_replacement, cycle
+from itertools import combinations_with_replacement
 
 
 class Sim:
   def __init__(self, environment_dicts, otp, tau, asr, T, mc_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
     asr = tuple(tuple(e) for e in asr) if isinstance(asr, combinations_with_replacement) else asr
-    self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
-    self.rng = random.default_rng(self.seed)
     self.start_time = time.time()
     self.rand_envs = rand_envs
     self.nmc = node_mutation_chance
@@ -29,6 +27,7 @@ class Sim:
     self.T = T
     self.mc_sims = mc_sims
     self.num_threads = mp.cpu_count()
+    self.seed = randint(0, 2**32 - (1 + self.num_threads)) if seed is None else seed
     self.ass_perms = self.get_assignment_permutations()
     self.is_community = is_community
     self.show = show
@@ -88,7 +87,7 @@ class Sim:
 
   def process_args(self, index):
     return {
-        'rng': random.default_rng(abs(self.seed - index)),
+        'rng': default_rng(self.seed + index),
         'environments': self.environments,
         'rew_var': self.rew_var,
         'is_community': self.is_community,
@@ -122,10 +121,7 @@ class Sim:
   def get_ind_var(self):
     ind_var = None
     for var, assignment in self.assignments.items():
-      # if isinstance(assignment, combinations_with_replacement):
-      #   assert ind_var is None
-      #   ind_var = 'asr_combo'
-      if isinstance(assignment, (list, tuple, set, combinations_with_replacement)):
+      if isinstance(assignment, (list, tuple, set)):
         assert ind_var is None
         ind_var = var
     return ind_var
@@ -134,9 +130,7 @@ class Sim:
     if self.ind_var is None:
       return [self.assignments]
     permutations = []
-    assignments = self.assignments[self.ind_var]
-    assignments = list(assignments) if isinstance(assignments, combinations_with_replacement) else assignments
-    for ind_var_assignment in iter(self.assignments[self.ind_var]):
+    for ind_var_assignment in self.assignments[self.ind_var]:
       permutation = dict(self.assignments)
       permutation[self.ind_var] = ind_var_assignment
       permutations.append(permutation)
@@ -303,9 +297,9 @@ if __name__ == "__main__":
       environment_dicts=(baseline, reversed_w, baseline, reversed_w),
       otp=OTP.ADJUST, #(OTP.SOLO,OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
       # (ASR.EG, ASR.EF, ASR.ED, ASR.TS),
-      asr=(ASR.EG, ASR.EF, ASR. ED, ASR.TS),#combinations_with_replacement((ASR.TS, ASR.EF), 4),
-      T=200,
-      mc_sims=1,
+      asr=(ASR.EG,ASR.TS),#combinations_with_replacement((ASR.TS, ASR.EF), 4),
+      T=3000,
+      mc_sims=2,
       tau=0.05,
       EG_epsilon=100/3000,
       EF_rand_trials=50,

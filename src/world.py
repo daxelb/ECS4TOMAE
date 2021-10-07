@@ -14,10 +14,6 @@ class World:
         a.update_divergence()
       context = a._environment.pre.sample(a.rng)
       action = a.choose(context)
-      try:
-        v = {**context, **action}
-      except TypeError:
-        print('\n', context, action, '\n')
       sample = a._environment.post.sample(a.rng, {**context, **action})
       a.observe(sample)
     self.update(ep)
@@ -35,21 +31,6 @@ class World:
       optimal_actions = a._environment.get_optimal_actions(feature_assignments)
       self.poa[a][ep] = 1 if recent[a.act_var] in optimal_actions else 0
     return
-
-  # def update(self, ep):
-  #   sum_regret = 0
-  #   poa_sum = 0
-  #   for a in self.agents:
-  #     recent = a.get_recent()
-  #     rew_received = recent[a.rew_var]
-  #     feature_assignments = only_given_keys(recent, a._environment.feat_vars)
-  #     rew_optimal = a._environment.get_optimal_reward(feature_assignments)
-  #     sum_regret += rew_optimal - rew_received
-  #     optimal_actions = a._environment.get_optimal_actions(feature_assignments)
-  #     poa_sum += 1 if recent[a.act_var] in optimal_actions else 0
-  #   self.cpr[ep] = self.cpr[ep-1] + sum_regret / len(self.agents)
-  #   self.poa[ep] = poa_sum / len(self.num_agents)
-  #   return
   
   def __reduce__(self):
     return (self.__class__, (self.agents, self.T))

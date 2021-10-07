@@ -313,8 +313,6 @@ class AdjustAgent(SensitiveAgent):
         b_prob = rew_query.assign(self.rew_var, 0).solve(cpts)
         if a_prob is None or b_prob is None:
           continue
-        if not (1.02 > (a_prob + b_prob) > 0.98):
-          print(a_prob + b_prob)
         count = agent.my_cpts[self.act_var][Count({**act, **context})]
         a += a_prob * count
         b += b_prob * count
