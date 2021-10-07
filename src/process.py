@@ -4,7 +4,7 @@ from data import DataBank
 from util import printProgressBar
 from environment import Environment
 import time
-from itertools import cycle
+from itertools import cycle, combinations_with_replacement
 from enums import OTP
 
 
@@ -63,8 +63,7 @@ class Process:
     for _ in range(len(self.ass_perms)):
       agents = []
       for i in range(self.num_agents):
-        agents.append(self.agent_maker(str(i), next(envs), assignments.pop(), agents))
-      
+        agents.append(self.agent_maker(i, next(envs), assignments.pop(), agents))
       yield World(agents, self.T)
 
   def simulate(self):

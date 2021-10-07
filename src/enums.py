@@ -15,10 +15,10 @@ class OTP(Enum):
     return self.value
 
 class ASR(Enum):
-  EG = "Epsilon Greedy"
-  EF = "Epsilon First"
-  ED = "Epsilon Decreasing"
-  TS = "Thompson Sampling"
+  EG = 'EG' # "Epsilon Greedy"
+  EF = 'EF' # "Epsilon First"
+  ED = 'ED' # "Epsilon Decreasing"
+  TS = 'TS' # "Thompson Sampling"
 
   def __lt__(self, other):
     if self.__class__ is other.__class__:
@@ -27,3 +27,6 @@ class ASR(Enum):
 
   def __str__(self):
     return self.value
+
+  def __repr__(self):
+    return str(self)
