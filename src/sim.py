@@ -1,4 +1,5 @@
 from enum import Enum
+from math import comb
 from assignment_models import ActionModel, DiscreteModel, RandomModel
 from environment import Environment
 import plotly.graph_objs as go
@@ -10,11 +11,12 @@ from os import mkdir
 from json import dump
 from enums import OTP, ASR
 from process import Process
-from itertools import combinations_with_replacement
+from itertools import combinations_with_replacement, cycle
 
 
 class Sim:
   def __init__(self, environment_dicts, otp, tau, asr, T, mc_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
+    asr = tuple(tuple(e) for e in asr) if isinstance(asr, combinations_with_replacement) else asr
     self.seed = int(random.rand() * 2**32 - 1) if seed is None else seed
     self.rng = random.default_rng(self.seed)
     self.start_time = time.time()
@@ -49,28 +51,28 @@ class Sim:
         "rand_trials": EF_rand_trials,
         "cooling_rate": ED_cooling_rate,
     }
-    if isinstance(asr, combinations_with_replacement):
-      asr = tuple(asr)
-      if any(ASR.EG in combo for combo in asr):
-        del assignments['epsilon']
-      if any(ASR.EF in combo for combo in asr):
-        del assignments['rand_trials']
-      if any(ASR.ED in combo for combo in asr):
-        del assignments['cooling_rate']
-    if isinstance(asr, str):
-      if asr != ASR.EG:
-        del assignments["epsilon"]
-      if asr != ASR.EF:
-        del assignments["rand_trials"]
-      if asr != ASR.ED:
-        del assignments["cooling_rate"]
-    elif isinstance(asr, (tuple, list, set)):
+    if isinstance(asr, (tuple, list)):
+      if isinstance(asr[0], (tuple, list)):
+        if any(ASR.EG in combo for combo in asr):
+          del assignments['epsilon']
+        if any(ASR.EF in combo for combo in asr):
+          del assignments['rand_trials']
+        if any(ASR.ED in combo for combo in asr):
+          del assignments['cooling_rate']
+        return assignments
       if ASR.EG not in asr:
         del assignments["epsilon"]
       if ASR.EF not in asr:
         del assignments["rand_trials"]
       if ASR.ED not in asr:
         del assignments["cooling_rate"]
+      return assignments
+    if asr != ASR.EG:
+      del assignments["epsilon"]
+    if asr != ASR.EF:
+      del assignments["rand_trials"]
+    if asr != ASR.ED:
+      del assignments["cooling_rate"]
     return assignments
 
 
@@ -120,7 +122,10 @@ class Sim:
   def get_ind_var(self):
     ind_var = None
     for var, assignment in self.assignments.items():
-      if isinstance(assignment, (list, tuple, set)):
+      # if isinstance(assignment, combinations_with_replacement):
+      #   assert ind_var is None
+      #   ind_var = 'asr_combo'
+      if isinstance(assignment, (list, tuple, set, combinations_with_replacement)):
         assert ind_var is None
         ind_var = var
     return ind_var
@@ -129,7 +134,9 @@ class Sim:
     if self.ind_var is None:
       return [self.assignments]
     permutations = []
-    for ind_var_assignment in self.assignments[self.ind_var]:
+    assignments = self.assignments[self.ind_var]
+    assignments = list(assignments) if isinstance(assignments, combinations_with_replacement) else assignments
+    for ind_var_assignment in iter(self.assignments[self.ind_var]):
       permutation = dict(self.assignments)
       permutation[self.ind_var] = ind_var_assignment
       permutations.append(permutation)
@@ -138,10 +145,11 @@ class Sim:
   def get_plot(self, results, plot_title, yaxis_title):
     figure = []
     x = list(range(self.T))
-    line_dash = ('solid', 'dot', 'dash', 'dashdot')
+    line_dashes = ['solid', 'dot', 'dash', 'dashdot']
     for i, ind_var in enumerate(sorted(results)):
       line_name = str(ind_var)
       line_hue = str(int(360 * (i / len(results))))
+      line_dash = line_dashes[i] if len(results) <= 4 else 'solid'
       df = DataFrame(results[ind_var])
       if yaxis_title == "Cumulative Pseudo Regret":
         self.last_episode_cpr.insert(0, line_name, df.iloc[:, -1])
@@ -160,7 +168,7 @@ class Sim:
               name=line_name,
               x=x,
               y=y,
-              line=dict(color=line_color, width=3, dash=line_dash[i]),
+              line=dict(color=line_color, width=3, dash=line_dash),
               mode='lines',
           ),
           go.Scatter(
@@ -259,7 +267,8 @@ class Sim:
     values["otp"] = values["otp"].value if isinstance(values["otp"], Enum) else [
         e.value for e in values["otp"]]
     values["asr"] = values["asr"].value if isinstance(values["asr"], Enum) else [
-        e.value for e in values["asr"]]
+        e.value for e in values["asr"]] if isinstance(values["asr"][0], Enum) else [
+        [e.value for e in a] for a in values['asr']]
     parsed_env_dicts = []
     for env in values["environment_dicts"]:
       parsed_env = {}
@@ -294,9 +303,9 @@ if __name__ == "__main__":
       environment_dicts=(baseline, reversed_w, baseline, reversed_w),
       otp=OTP.ADJUST, #(OTP.SOLO,OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
       # (ASR.EG, ASR.EF, ASR.ED, ASR.TS),
-      asr=combinations_with_replacement((ASR.TS, ASR.EF), 4),
-      T=3000,
-      mc_sims=50,
+      asr=(ASR.EG, ASR.EF, ASR. ED, ASR.TS),#combinations_with_replacement((ASR.TS, ASR.EF), 4),
+      T=200,
+      mc_sims=1,
       tau=0.05,
       EG_epsilon=100/3000,
       EF_rand_trials=50,
@@ -305,7 +314,7 @@ if __name__ == "__main__":
       rand_envs=True,
       node_mutation_chance=(0.2, 0.8),
       show=True,
-      save=True,
+      save=False,
       seed=None
   )
   experiment.run(desc="ASR Individual")

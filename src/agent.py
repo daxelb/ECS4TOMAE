@@ -1,4 +1,5 @@
 from copy import copy, deepcopy
+from itertools import combinations_with_replacement
 from cpt import CPT
 from query import Count, Product, Query, Summation
 from util import only_given_keys, permutations, only_dicts_with_givens, hellinger_dist
@@ -7,9 +8,9 @@ from math import inf
 
 
 class Agent:
-  def __init__(self, rng, name, environment, agents, tau=None, asr=ASR.EG, epsilon=0, rand_trials=0, cooling_rate=0):
+  def __init__(self, rng, index, environment, agents, tau=None, asr=ASR.EG, epsilon=0, rand_trials=0, cooling_rate=0):
     self.rng = rng
-    self.name = name
+    self.name = str(index)
     self._environment = environment
     self.cgm = environment.cgm
     self.agents = agents
@@ -22,7 +23,8 @@ class Agent:
     self.rewards = permutations(only_given_keys(self.domains, [self.rew_var]))
     self.contexts = permutations(self.get_context())
     self.tau = tau
-    self.asr = asr
+    self.asr_combo = asr
+    self.asr = asr[index] if isinstance(asr, tuple) else asr
     self.epsilon = ([1] * len(self.contexts) if self.contexts else 1) if asr == ASR.ED else epsilon
     self.rand_trials = rand_trials
     self.rand_trials_rem = [rand_trials] * len(self.contexts) if self.contexts else rand_trials
@@ -57,7 +59,7 @@ class Agent:
     elif ind_var == "otp":
       return self.get_otp()
     elif ind_var == "asr":
-      return self.asr
+      return self.asr_combo
     elif ind_var == "epsilon":
       return self.epsilon
     elif ind_var == "rand_trials":

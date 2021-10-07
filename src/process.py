@@ -55,9 +55,6 @@ class Process:
     # These two lines should NOT be necessary. Need to do testing to make sure.
     ap = list(self.ass_perms)
     self.rng.shuffle(ap)
-    # if self.transition_asrs:
-    #   assignments = combinations_with_replacement([dict(ass) for ass in ap], self.num_agents)
-    # else:
     assignments = [dict(ass) for ass in ap for _ in range(self.num_agents)]
     if not self.is_community:
       self.rng.shuffle(assignments)
@@ -66,7 +63,7 @@ class Process:
     for _ in range(len(self.ass_perms)):
       agents = []
       for i in range(self.num_agents):
-        agents.append(self.agent_maker(str(i), next(envs), assignments.pop(), agents))
+        agents.append(self.agent_maker(i, next(envs), assignments.pop(), agents))
       yield World(agents, self.T)
 
   def simulate(self):
