@@ -164,22 +164,6 @@ class Count(Query):
       super(self.__class__, self).__init__(
           {**self.parse_entry(Q), **self.parse_entry(e)})
 
-  def assign(self, var_or_dict, ass=None):
-    self.assign_many(var_or_dict) if ass is None else self.assign_one(var_or_dict, ass)
-    return self
-
-  def assign_one(self, var, ass):
-    if var in self.Q:
-      self.Q[var] = ass
-    if var in self.e:
-      self.e[var] = ass
-    # return self
-
-  def assign_many(self, assignments):
-    for var, ass in assignments.items():
-      self.assign_one(var, ass)
-    # return self
-
   def solve(self, cpt):
     return cpt[self]
 
