@@ -27,7 +27,7 @@ class Sim:
     self.T = T
     self.mc_sims = mc_sims
     self.num_threads = mp.cpu_count()
-    self.seed = randint(0, 2**32 - (1 + self.num_threads)) if seed is None else seed
+    self.seed = randint(0, 2**31 - (1 + self.num_threads)) if seed is None else seed
     self.ass_perms = self.get_assignment_permutations()
     self.is_community = is_community
     self.show = show
@@ -311,4 +311,4 @@ if __name__ == "__main__":
       save=True,
       seed=None
   )
-  experiment.run(desc="TS-EF combos 1")
+  experiment.run(desc="TS-EF combos 2")
