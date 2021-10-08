@@ -30,3 +30,10 @@ class ASR(Enum):
 
   def __repr__(self):
     return str(self)
+
+if __name__ == '__main__':
+  a = ASR.EG
+  b = ASR.EF
+  c = ASR.ED
+  d = ASR.TS
+  print(hash(a), hash(b), hash(c), hash(d))

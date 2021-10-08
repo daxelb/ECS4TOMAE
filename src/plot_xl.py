@@ -1,14 +1,16 @@
 from pandas import ExcelFile
 import plotly.graph_objs as go
 
-desc = 'DIR_NAME'
+desc = 'otpTS_nmc08'
 yaxis_short = 'poa'
-directory = '../output/%s' % desc
+directory = '../output/paper/%s' % desc
 ex_file = '/%s.xlsx' % yaxis_short
 yaxis_title = 'Cumulative Pseudo Regret' if yaxis_short == 'cpr' else 'Probability of Optimal Action'
 figure = []
 results = ExcelFile(directory + ex_file).parse(sheet_name=None, index_col=0)
 line_dashes = ['solid', 'dot', 'dash', 'dashdot']
+line_width = 4.5 if yaxis_short == 'cpr' else 2.5
+legend = dict(yanchor="bottom", y=0.01, xanchor="right", x=0.99) if yaxis_short == 'poa' else dict(yanchor='top', y=0.99, xanchor='left', x=0.01)
 for i, ind_var in enumerate(sorted(results)):
   df = results[ind_var]
   x = list(range(len(df.columns)))
@@ -20,13 +22,13 @@ for i, ind_var in enumerate(sorted(results)):
   y_upper = y + sem
   y_lower = y - sem
   line_color = "hsla(" + line_hue + ",100%,40%,1)"
-  error_band_color = "hsla(" + line_hue + ",100%,40%,0.125)"
+  error_band_color = "hsla(" + line_hue + ",100%,40%,0.1)"
   figure.extend([
       go.Scatter(
           name=line_name,
           x=x,
           y=y,
-          line=dict(color=line_color, width=3, dash=line_dash),
+          line=dict(color=line_color, width=line_width, dash=line_dash),
           mode='lines',
       ),
       go.Scatter(
@@ -52,14 +54,9 @@ for i, ind_var in enumerate(sorted(results)):
   ])
 plotly_fig = go.Figure(figure)
 plotly_fig.update_layout(
-    font=dict(size=18),
+    font=dict(size=19),
     margin=dict(l=20, r=20, t=20, b=20),
-    legend=dict(
-        yanchor="bottom",
-        y=0.01,
-        xanchor="right",
-        x=0.99
-    ),
+    legend=legend,
     yaxis_title=yaxis_title,
     xaxis_title="Trial",
     # title=plot_title,
