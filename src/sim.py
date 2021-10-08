@@ -312,4 +312,4 @@ if __name__ == "__main__":
       save=True,
       seed=None
   )
-  experiment.run(desc="EG OTP")
+  experiment.run(desc="otpEG2")
