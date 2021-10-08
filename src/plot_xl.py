@@ -1,15 +1,15 @@
 from pandas import ExcelFile
 import plotly.graph_objs as go
 
-desc = 'TSEF_combos'
-yaxis_short = 'cpr'
+desc = 'otpTS_nmc08'
+yaxis_short = 'poa'
 directory = '../output/paper/%s' % desc
 ex_file = '/%s.xlsx' % yaxis_short
 yaxis_title = 'Cumulative Pseudo Regret' if yaxis_short == 'cpr' else 'Probability of Optimal Action'
 figure = []
 results = ExcelFile(directory + ex_file).parse(sheet_name=None, index_col=0)
 line_dashes = ['solid', 'dot', 'dash', 'dashdot']
-line_width = 4 if yaxis_short == 'cpr' else 1
+line_width = 4.5 if yaxis_short == 'cpr' else 2.5
 legend = dict(yanchor="bottom", y=0.01, xanchor="right", x=0.99) if yaxis_short == 'poa' else dict(yanchor='top', y=0.99, xanchor='left', x=0.01)
 for i, ind_var in enumerate(sorted(results)):
   df = results[ind_var]
