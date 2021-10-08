@@ -140,6 +140,12 @@ class Sim:
     figure = []
     x = list(range(self.T))
     line_dashes = ['solid', 'dot', 'dash', 'dashdot']
+    if yaxis_title == "Cumulative Pseudo Regret":
+      line_width = 4.5
+      legend = dict(yanchor='top', y=0.99, xanchor='left', x=0.01)
+    else:
+      line_width = 2.5
+      legend = dict(yanchor="bottom", y=0.01, xanchor="right", x=0.99)
     for i, ind_var in enumerate(sorted(results)):
       line_name = str(ind_var)
       line_hue = str(int(360 * (i / len(results))))
@@ -162,7 +168,7 @@ class Sim:
               name=line_name,
               x=x,
               y=y,
-              line=dict(color=line_color, width=3, dash=line_dash),
+              line=dict(color=line_color, width=line_width, dash=line_dash),
               mode='lines',
           ),
           go.Scatter(
@@ -190,12 +196,7 @@ class Sim:
     plotly_fig.update_layout(
         font=dict(size=18),
         margin=dict(l=20, r=20, t=20, b=20),
-        legend=dict(
-            yanchor="bottom",
-            y=0.02,
-            xanchor="right",
-            x=0.99
-        ),
+        legend=legend,
         yaxis_title=yaxis_title,
         xaxis_title="Trial",
         # title=plot_title,
@@ -299,16 +300,16 @@ if __name__ == "__main__":
       asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
       # combinations_with_replacement((ASR.TS, ASR.EF), 4),
       T=3000,
-      mc_sims=50,
+      mc_sims=100,
       tau=0.05,
       EG_epsilon=100/3000,
       EF_rand_trials=50,
       ED_cooling_rate=0.98,
       is_community=False,
       rand_envs=True,
-      node_mutation_chance=0.2,
+      node_mutation_chance=0.8,
       show=True,
       save=True,
       seed=None
   )
-  experiment.run(desc="inidividualASR_nmc02")
+  experiment.run(desc="inidividualASR_nmc08")
