@@ -295,9 +295,8 @@ if __name__ == "__main__":
 
   experiment = Sim(
       environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-      otp=(OTP.SOLO, OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
-      # (ASR.EG, ASR.EF, ASR.ED, ASR.TS),
-      asr=ASR.EG,
+      otp=OTP.ADJUST,
+      asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
       # combinations_with_replacement((ASR.TS, ASR.EF), 4),
       T=3000,
       mc_sims=50,
@@ -307,9 +306,9 @@ if __name__ == "__main__":
       ED_cooling_rate=0.98,
       is_community=False,
       rand_envs=True,
-      node_mutation_chance=(0.2, 0.8),
+      node_mutation_chance=0.2,
       show=True,
       save=True,
       seed=None
   )
-  experiment.run(desc="otpEG2")
+  experiment.run(desc="inidividualASR_nmc02")
