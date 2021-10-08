@@ -89,30 +89,26 @@ class Environment:
       self.optimal_reward = {}
       self.optimal_actions = {}
       for feat_combo in permutations(self.get_feat_doms()):
-        best_actions = set()
-        best_rew = -inf
-        for action in permutations(self.get_act_dom()):
-          expected_rew = self.expected_reward({**action, **feat_combo})
-          if expected_rew > best_rew:
-            best_actions = {action[self.act_var]}
-            best_rew = expected_rew
-          elif expected_rew == best_rew:
-            best_actions.add(action[self.act_var])
+        best = self.get_optimal(feat_combo)
         feat_hash = hash_from_dict(feat_combo)
-        self.optimal_reward[feat_hash] = best_rew
-        self.optimal_actions[feat_hash] = best_actions
-    else:
-      best_actions = set()
-      best_rew = -inf
-      for action in permutations(self.get_act_dom()):
-        expected_rew = self.expected_reward(action)
-        if expected_rew > best_rew:
-          best_actions = {action[self.act_var]}
-          best_rew = expected_rew
-        elif expected_rew == best_rew:
-          best_actions.add(action[self.act_var])
-      self.optimal_reward = best_rew
-      self.optimal_actions = best_actions
+        self.optimal_reward[feat_hash] = best[0]
+        self.optimal_actions[feat_hash] = best[1]
+      return
+    best = self.get_optimal()
+    self.optimal_reward = best[0]
+    self.optimal_actions = best[1]
+
+  def get_optimal(self, givens={}):
+    best_actions = list()
+    best_rew = -inf
+    for action in permutations(self.get_act_dom()):
+      expected_rew = self.expected_reward({**action, **givens})
+      if expected_rew > best_rew:
+        best_actions = [action]
+        best_rew = expected_rew
+      elif expected_rew == best_rew:
+        best_actions.append(action)
+    return (best_rew, best_actions)
 
   def selection_diagram(self, s_node_children):
     return self.cgm.selection_diagram(s_node_children)
@@ -127,7 +123,6 @@ class Environment:
 
   def parse_dist_as_probs(self, assigned_dist):
     for var, assignment in assigned_dist.items():
-      # print(var, assignment)
       if isinstance(assignment, dict):
         assigned_dist[var] = self.parse_dist_as_probs(assignment)
       assigned_dist[var] = self._assignment[var].prob(assignment)
