@@ -296,11 +296,11 @@ if __name__ == "__main__":
 
   experiment = Sim(
       environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-      otp=(OTP.SOLO, OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
-      asr=ASR.ED,
+      otp=OTP.SOLO,#(OTP.SOLO, OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
+      asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
       # combinations_with_replacement((ASR.TS, ASR.EF), 4),
       T=3000,
-      mc_sims=100,
+      mc_sims=50,
       tau=0.05,
       EG_epsilon=100/3000,
       EF_rand_trials=50,
@@ -310,6 +310,6 @@ if __name__ == "__main__":
       node_mutation_chance=0.8,
       show=True,
       save=True,
-      seed=None
+      seed=420
   )
-  experiment.run(desc="otpED_big")
+  experiment.run(desc="heterogenous_SOLOASR")
