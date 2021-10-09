@@ -1,4 +1,4 @@
-=from util import hash_from_dict, only_given_keys, permutations
+from util import hash_from_dict, only_given_keys, permutations
 from collections.abc import MutableSequence, Iterable
 from copy import deepcopy, copy
 
