@@ -26,8 +26,8 @@ class Sim:
     self.ind_var = self.get_ind_var()
     self.T = T
     self.mc_sims = mc_sims
-    self.num_threads = mp.cpu_count()
-    self.seed = randint(0, 2**31 - (1 + self.num_threads)) if seed is None else seed
+    self.num_processes = mp.cpu_count()
+    self.seed = randint(0, 2**31 - (1 + self.num_processes)) if seed is None else seed
     self.ass_perms = self.get_assignment_permutations()
     self.is_community = is_community
     self.show = show
@@ -77,8 +77,8 @@ class Sim:
 
   def multithreaded_sim(self):
     jobs = []
-    results = mp.Manager().list([None] * self.num_threads)
-    for i in range(self.num_threads):
+    results = mp.Manager().list([None] * self.num_processes)
+    for i in range(self.num_processes):
       job = mp.Process(target=self.sim_process, args=(results, i))
       jobs.append(job)
       job.start()
@@ -255,7 +255,7 @@ class Sim:
     self.display_and_save(results, desc)
 
   def get_N(self):
-    return self.num_threads * self.mc_sims * self.num_agents
+    return self.num_processes * self.mc_sims * self.num_agents
 
   def get_values(self, locals):
     values = {key: val for key, val in locals.items() if key != 'self'}
@@ -285,6 +285,8 @@ if __name__ == "__main__":
   reversed_w = dict(baseline)
   reversed_w["W"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
 
+  # This is a 'big chain' causal structure'
+  # X -> S -> R -> Y
   # baseline = {
   #     "X": ActionModel(None, (0, 1)),
   #     "S": DiscreteModel("X", {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
@@ -296,20 +298,19 @@ if __name__ == "__main__":
 
   experiment = Sim(
       environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-      otp=(OTP.SOLO, OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
-      asr=ASR.ED,
-      # combinations_with_replacement((ASR.TS, ASR.EF), 4),
+      otp=OTP.ADJUST,#(OTP.SOLO, OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
+      asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
       T=3000,
-      mc_sims=100,
+      mc_sims=25,
       tau=0.05,
       EG_epsilon=100/3000,
       EF_rand_trials=50,
       ED_cooling_rate=0.98,
-      is_community=False,
+      is_community=True,
       rand_envs=True,
-      node_mutation_chance=0.8,
+      node_mutation_chance=0.2,
       show=True,
       save=True,
-      seed=None
+      seed=420
   )
-  experiment.run(desc="otpED_big")
+  experiment.run(desc="homogenousASR_nmc02_2")

@@ -1,10 +1,9 @@
 from agent import SoloAgent, NaiveAgent, SensitiveAgent, AdjustAgent
 from world import World
-from data import DataBank
 from util import printProgressBar
 from environment import Environment
 import time
-from itertools import cycle, combinations_with_replacement
+from itertools import cycle
 from enums import OTP
 
 
