@@ -299,9 +299,9 @@ if __name__ == "__main__":
   experiment = Sim(
       environment_dicts=(baseline, reversed_w, baseline, reversed_w),
       otp=OTP.ADJUST,#(OTP.SOLO, OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
-      asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
+      asr=(ASR.EF, ASR.TS),#(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
       T=3000,
-      mc_sims=25,
+      mc_sims=15,
       tau=0.05,
       EG_epsilon=100/3000,
       EF_rand_trials=50,
@@ -311,6 +311,6 @@ if __name__ == "__main__":
       node_mutation_chance=0.2,
       show=True,
       save=True,
-      seed=69
+      seed=420
   )
-  experiment.run(desc="homogenousASR_nmc02_1")
+  experiment.run(desc="TSTSEFEF_2_1")
