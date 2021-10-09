@@ -311,6 +311,6 @@ if __name__ == "__main__":
       node_mutation_chance=0.2,
       show=True,
       save=True,
-      seed=69
+      seed=420
   )
-  experiment.run(desc="homogenousASR_nmc02_1")
+  experiment.run(desc="homogenousASR_nmc02_2")
