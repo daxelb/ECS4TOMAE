@@ -1,9 +1,9 @@
 from pandas import ExcelFile
 import plotly.graph_objs as go
 
-desc = 'otpTS_nmc08'
+desc = 'homogenousASR_nmc02_1_N800'
 yaxis_short = 'poa'
-directory = '../output/paper/%s' % desc
+directory = '../output/%s' % desc
 ex_file = '/%s.xlsx' % yaxis_short
 yaxis_title = 'Cumulative Pseudo Regret' if yaxis_short == 'cpr' else 'Probability of Optimal Action'
 figure = []
