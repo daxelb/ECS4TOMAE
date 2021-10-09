@@ -29,7 +29,7 @@ class World:
       new_regret = curr_regret + (rew_optimal - rew_received)
       self.cpr[a][ep] = new_regret
       optimal_actions = a._environment.get_optimal_actions(feature_assignments)
-      self.poa[a][ep] = 1 if recent[a.act_var] in optimal_actions else 0
+      self.poa[a][ep] = 1 if only_given_keys(recent, a.act_var) in optimal_actions else 0
     return
   
   def __reduce__(self):

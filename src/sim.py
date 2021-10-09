@@ -296,8 +296,8 @@ if __name__ == "__main__":
 
   experiment = Sim(
       environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-      otp=OTP.ADJUST,
-      asr=(ASR.EG, ASR.EF, ASR.ED, ASR.TS),
+      otp=(OTP.SOLO, OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
+      asr=ASR.ED,
       # combinations_with_replacement((ASR.TS, ASR.EF), 4),
       T=3000,
       mc_sims=100,
@@ -312,4 +312,4 @@ if __name__ == "__main__":
       save=True,
       seed=None
   )
-  experiment.run(desc="inidividualASR_nmc08")
+  experiment.run(desc="otpED_big")
