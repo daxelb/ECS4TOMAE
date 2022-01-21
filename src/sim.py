@@ -1,5 +1,8 @@
+"""
+Defines the absolute top-level behavior of the project. This is the python file to be run from the command line.
+Simulation parameters can be set where a Sim object is created and called.
+"""
 from enum import Enum
-from math import comb
 from assignment_models import ActionModel, DiscreteModel, RandomModel
 from environment import Environment
 import plotly.graph_objs as go
@@ -16,13 +19,15 @@ from itertools import combinations_with_replacement
 
 class Sim:
   def __init__(self, environment_dicts, otp, tau, asr, T, mc_sims, EG_epsilon=0, EF_rand_trials=0, ED_cooling_rate=0, is_community=False, rand_envs=False, node_mutation_chance=0, show=True, save=False, seed=None):
-    asr = tuple(tuple(e) for e in asr) if isinstance(asr, combinations_with_replacement) else asr
+    asr = tuple(tuple(e) for e in asr) if isinstance(
+        asr, combinations_with_replacement) else asr
     self.start_time = time.time()
     self.rand_envs = rand_envs
     self.nmc = node_mutation_chance
     self.environments = [Environment(env_dict) for env_dict in environment_dicts]
     self.num_agents = len(self.environments)
-    self.assignments = self.get_assignments(otp, tau, asr, EG_epsilon, EF_rand_trials, ED_cooling_rate)
+    self.assignments = self.get_assignments(
+        otp, tau, asr, EG_epsilon, EF_rand_trials, ED_cooling_rate)
     self.ind_var = self.get_ind_var()
     self.T = T
     self.mc_sims = mc_sims
@@ -73,7 +78,6 @@ class Sim:
     if asr != ASR.ED:
       del assignments["cooling_rate"]
     return assignments
-
 
   def multithreaded_sim(self):
     jobs = []
@@ -295,7 +299,7 @@ if __name__ == "__main__":
 
   experiment = Sim(
       environment_dicts=(baseline, reversed_w, baseline, reversed_w),
-      otp=OTP.ADJUST, #(OTP.SOLO,OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
+      otp=OTP.ADJUST,  # (OTP.SOLO,OTP.NAIVE, OTP.SENSITIVE, OTP.ADJUST),
       # (ASR.EG, ASR.EF, ASR.ED, ASR.TS),
       asr=combinations_with_replacement((ASR.TS, ASR.EF), 4),
       T=3000,

@@ -1,5 +1,3 @@
-from networkx.classes.function import create_empty_copy
-from data import DataSet
 from util import hash_from_dict, only_given_keys, permutations
 from collections.abc import MutableSequence, Iterable
 from copy import deepcopy, copy

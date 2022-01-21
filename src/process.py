@@ -1,10 +1,14 @@
+"""
+Defines the behavior of the process which run simulations. Multiple processes
+run in parallel to get averaged results.
+"""
+
 from agent import SoloAgent, NaiveAgent, SensitiveAgent, AdjustAgent
 from world import World
-from data import DataBank
 from util import printProgressBar
 from environment import Environment
 import time
-from itertools import cycle, combinations_with_replacement
+from itertools import cycle
 from enums import OTP
 
 
@@ -58,7 +62,8 @@ class Process:
     assignments = [dict(ass) for ass in ap for _ in range(self.num_agents)]
     if not self.is_community:
       self.rng.shuffle(assignments)
-    envs = cycle(self.environment_generator()) if self.rand_envs else cycle(self.environments)
+    envs = cycle(self.environment_generator()
+                 ) if self.rand_envs else cycle(self.environments)
     agents = []
     for _ in range(len(self.ass_perms)):
       agents = []
@@ -67,7 +72,7 @@ class Process:
       yield World(agents, self.T)
 
   def simulate(self):
-    res = [{},{}]
+    res = [{}, {}]
     sim_time = []
     for i in range(self.mc_sims):
       sim_start = time.time()

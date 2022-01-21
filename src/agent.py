@@ -1,8 +1,11 @@
-from copy import copy, deepcopy
-from itertools import combinations_with_replacement
+"""
+Defines the Agent class and its inheritors (SoloAgent, NaiveAgent, SensitiveAgent, AdjustAgent)
+"""
+
+from copy import deepcopy
 from cpt import CPT
-from query import Count, Product, Query, Summation
-from util import only_given_keys, permutations, only_dicts_with_givens, hellinger_dist
+from query import Count, Product, Query
+from util import only_given_keys, permutations, hellinger_dist
 from enums import ASR
 from math import inf
 
@@ -25,9 +28,11 @@ class Agent:
     self.tau = tau
     self.asr_combo = asr
     self.asr = asr[index] if isinstance(asr, tuple) else asr
-    self.epsilon = ([1] * len(self.contexts) if self.contexts else 1) if asr == ASR.ED else epsilon
+    self.epsilon = ([1] * len(self.contexts)
+                    if self.contexts else 1) if asr == ASR.ED else epsilon
     self.rand_trials = rand_trials
-    self.rand_trials_rem = [rand_trials] * len(self.contexts) if self.contexts else rand_trials
+    self.rand_trials_rem = [rand_trials] * \
+        len(self.contexts) if self.contexts else rand_trials
     self.cooling_rate = cooling_rate
     self.my_cpts = {
         var: CPT(var, self.cgm.get_parents(var), self.domains)
@@ -84,7 +89,6 @@ class Agent:
       self.rand_trials_rem -= 1
       return self.choose_random()
     return self.choose_optimal(givens)
-
 
   def ed(self, givens):
     if self.contexts:

@@ -1,5 +1,16 @@
+"""
+Defines Assignment Model classes, which are used to describe the behaviors and
+probability distributions of nodes in a Structural Causal Model
+
+CREDIT:
+Much of this file/class was written by Iain Barr (#ijmbarr on GitHub)
+from his public repository, causalgraphicalmodels, which is registered with the MIT License.
+The code has been imported and modified into this project for ease/consistency
+"""
+
 import numpy as np
 from util import permutations, Counter
+
 
 def randomize(rng, iter):
   new_iter = []
@@ -8,9 +19,11 @@ def randomize(rng, iter):
     if i == num_elements - 1:
       new_iter.append(1-sum(new_iter))
       break
-    new_iter.append(rng.uniform(0,1-sum(new_iter)))
+    new_iter.append(rng.uniform(0, 1-sum(new_iter)))
   rng.shuffle(new_iter)
   return tuple(new_iter)
+
+
 class RandomModel:
   def __init__(self, probs):
     self._probs = tuple(probs)
@@ -19,26 +32,27 @@ class RandomModel:
 
   def model(self, rng, **kwargs):
     return rng.choice(self.domain, p=self._probs)
-  
+
   def randomize(self, rng, rand_prob=1.0):
     return RandomModel(randomize(rng, self._probs))
-  
+
   def prob(self, assignment):
     assert assignment in self.domain
     probs = dict()
     for val in self.domain:
       probs[val] = 1 if val == assignment else 0
     return probs
-        
+
   def __repr__(self):
     return "RandomModel(Domain: {}, Probs:{})".format(self.domain, self._probs)
-  
+
   def __call__(self, *args, **kwargs):
     assert len(args) == 1
     return self.model(args[0], **kwargs)
-  
+
   def __reduce__(self):
     return (self.__class__, (self._probs,))
+
 
 class DiscreteModel:
   def __init__(self, parents, lookup_table):
@@ -59,8 +73,10 @@ class DiscreteModel:
     assignment_domains = dict()
     assignment_probs = dict()
     for p in self.parents:
-      assignment_domains[p] = tuple(assignments[p].keys()) if isinstance(assignments[p], dict) else (assignments[p],)
-      assignment_probs[p] = tuple(assignments[p].values()) if isinstance(assignments[p], dict) else (1,)
+      assignment_domains[p] = tuple(assignments[p].keys()) if isinstance(
+          assignments[p], dict) else (assignments[p],)
+      assignment_probs[p] = tuple(assignments[p].values()) if isinstance(
+          assignments[p], dict) else (1,)
     prob_dist = Counter()
     for a, probs in zip(permutations(assignment_domains), permutations(assignment_probs)):
       for key, value in self.prob_helper(a, multiplier=np.prod(list(probs.values()))).items():
@@ -78,7 +94,6 @@ class DiscreteModel:
           "It looks like an input was provided which doesn't have a lookup.")
     return b if my_assignment is None else b[my_assignment]
 
-
   def model(self, rng, **kwargs):
     a = tuple([kwargs[p] for p in self.parents])
     b = None
@@ -90,40 +105,39 @@ class DiscreteModel:
       raise ValueError(
           "It looks like an input was provided which doesn't have a lookup.")
     return int(b)
-  
+
   def randomize(self, rng):
     new_table = dict(self._lookup_table)
     for input, probs in new_table.items():
       new_table[input] = randomize(rng, probs)
     return DiscreteModel(self.parents, new_table)
-        
+
   def __repr__(self):
     return "DiscreteModel(Parents: {}, Probs: {})".format(self.parents, self._ps)
-  
+
   def __call__(self, *args, **kwargs):
     assert len(args) == 1
     return self.model(args[0], **kwargs)
-  
+
   def __reduce__(self):
     return (self.__class__, (self.parents, self._lookup_table))
-  
 
 
 class ActionModel:
   def __init__(self, parents, domain):
     self.parents = parents if parents is not None else tuple()
     self.domain = tuple(domain)
-    
+
   def randomize(self, rng=None, rand_prob=1.0):
     return self
-  
+
   def prob(self, assignment):
     assert assignment in self.domain
     probs = dict()
     for val in self.domain:
       probs[val] = 1 if val == assignment else 0
     return probs
-  
+
   def __repr__(self):
     return "ActionModel(Parents: {0}, Domain: {1})".format(self.parents, self.domain)
 

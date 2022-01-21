@@ -1,11 +1,13 @@
+"""
+Defines the CPT (Conditional Probability Table) class. Which is how agents
+store observations about connecting to the Causal Graphical model of their environment.
+These are used to compute probabilities.
+"""
+
 from copy import deepcopy
-from util import only_given_keys, permutations, hash_from_dict, Counter
+from util import only_given_keys
 from query import Query, Product, Summation, Count
 from re import findall
-from math import inf
-
-from numpy import random
-from cgm import CausalGraph  
 
 class CPT:
   def __init__(self, var, parents, domains):

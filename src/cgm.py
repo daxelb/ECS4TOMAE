@@ -1,6 +1,15 @@
-# Much of this file/class was written by Iain Barr (#ijmbarr on GitHub)
-# from his public repository, causalgraphicalmodels, which is registered with the MIT License.
-# The code has been imported and modified into this project for ease/consistency
+"""
+Defines the Causal Graphical Model class which tracks the nodes and edges
+of a Structural Causal Model like a Bayesian Network. Does not store "Assignment Models"
+i.e. probability distributions.
+
+
+CREDIT:
+Much of this file/class was written by Iain Barr (#ijmbarr on GitHub)
+from his public repository, causalgraphicalmodels, which is registered with the MIT License.
+The code has been imported and modified into this project for ease/consistency
+"""
+
 
 import networkx as nx
 import graphviz
@@ -8,10 +17,12 @@ from itertools import combinations, chain
 from collections.abc import Iterable
 from query import Query, Product
 
+
 class CausalGraph:
   """
   Causal Graphical Models
   """
+
   def __init__(self, nodes, edges, latent_edges=None, set_nodes=None, s_node_children=set()):
     """
     Create CausalGraph
@@ -63,9 +74,9 @@ class CausalGraph:
   def __repr__(self):
     variables = ", ".join(map(str, sorted(self.observed_vars)))
     return ("{classname}({vars})"
-        .format(classname=self.__class__.__name__,
-            vars=variables))
-    
+            .format(classname=self.__class__.__name__,
+                    vars=variables))
+
   def get_observable(self):
     return sorted(list(self.observed_vars))
 
@@ -78,12 +89,12 @@ class CausalGraph:
     if isinstance(nodes, str):
       return set(self.dag.successors(nodes))
     return set.union(*[self.dag.successors(node) for node in nodes])
-  
+
   def get_ancestors(self, nodes):
     if isinstance(nodes, str):
       return nx.ancestors(self.dag, nodes)
     return set.union(*[nx.ancestors(self.dag, node) for node in nodes])
-  
+
   def get_descendants(self, nodes):
     if isinstance(nodes, str):
       return nx.descendants(self.dag, nodes)
@@ -97,7 +108,7 @@ class CausalGraph:
 
   def get_leaves(self):
     return {n for n in self.dag.nodes if not self.get_children(n)}
-  
+
   def get_unset_nodes(self):
     return {n for n in self.dag.nodes if n not in self.set_nodes}
 
@@ -114,7 +125,7 @@ class CausalGraph:
         /     \
        v       v
       X -> W -> Y
-      
+
       causal_path(X, Y) = {W, Y}
     """
     path_nodes = self.get_ancestors(n2).intersection(self.get_descendants(n1))
@@ -149,7 +160,7 @@ class CausalGraph:
 
   def get_dist(self, node=None):
     return self.get_model_dist() if node is None else self.get_node_dist(node)
-  
+
   def get_model_dist(self):
     """
     Returns a the Markovian Factorization (MF) of the model's
@@ -184,28 +195,28 @@ class CausalGraph:
     => <Query: P(B|A,C)>
     """
     return Query(node, self.get_parents(node))
-  
+
   def get_non_s_nodes(self):
     return [n for n in self.observed_vars if n not in self.s_nodes]
 
   def get_edges(self):
     return [
-      (a, b)
-      for a, b in self.dag.edges()
-      if a in self.observed_vars
-      and b in self.observed_vars]
-    
+        (a, b)
+        for a, b in self.dag.edges()
+        if a in self.observed_vars
+        and b in self.observed_vars]
+
   def get_latent_edges(self):
     return [
-      (a, b)
-      for a, b in self.latent_edges
-      if a not in self.set_nodes
-      and b not in self.set_nodes
+        (a, b)
+        for a, b in self.latent_edges
+        if a not in self.set_nodes
+        and b not in self.set_nodes
     ]
-    
+
   def get_s_node_children(self):
     return set.union(*[self.get_children(n) for n in self.s_nodes])
-    
+
   def do(self, node):
     """
     Apply intervention on node to CGM
@@ -215,15 +226,15 @@ class CausalGraph:
     edges = [e for e in self.get_edges() if e[1] != node]
     latent_edges = [e for e in self.get_latent_edges() if e[0] != node and e[1] != node]
     return CausalGraph(
-      nodes=self.get_non_s_nodes(), edges=edges,
-      latent_edges=latent_edges, set_nodes=set_nodes, s_node_children=self.get_s_node_children())
+        nodes=self.get_non_s_nodes(), edges=edges,
+        latent_edges=latent_edges, set_nodes=set_nodes, s_node_children=self.get_s_node_children())
 
   def selection_diagram(self, s_node_children):
     s_node_children = _variable_or_iterable_to_set(s_node_children)
     return CausalGraph(
-      nodes=self.get_non_s_nodes(), edges=self.get_edges(),
-      latent_edges=self.get_latent_edges(), set_nodes=self.set_nodes,
-      s_node_children=s_node_children)
+        nodes=self.get_non_s_nodes(), edges=self.get_edges(),
+        latent_edges=self.get_latent_edges(), set_nodes=self.set_nodes,
+        s_node_children=s_node_children)
 
   def _check_d_separation(self, path, zs=None):
     """
@@ -296,10 +307,10 @@ class CausalGraph:
     Get all backdoor paths between x and y
     """
     return [
-      path
-      for path in nx.all_simple_paths(self.graph, x, y)
-      if len(path) > 2
-      and path[1] in self.dag.predecessors(x)
+        path
+        for path in nx.all_simple_paths(self.graph, x, y)
+        if len(path) > 2
+        and path[1] in self.dag.predecessors(x)
     ]
 
   def is_valid_backdoor_adjustment_set(self, x, y, z):
@@ -336,9 +347,9 @@ class CausalGraph:
       return False
 
     unblocked_backdoor_paths = [
-      path
-      for path in self.get_all_backdoor_paths(x, y)
-      if not self._check_d_separation(path, z)
+        path
+        for path in self.get_all_backdoor_paths(x, y)
+        if not self._check_d_separation(path, z)
     ]
 
     if unblocked_backdoor_paths:
@@ -374,15 +385,15 @@ class CausalGraph:
     assert y in self.observed_vars
 
     possible_adjustment_variables = (
-      set(self.observed_vars)
-      - {x} - {y}
-      - set(nx.descendants(self.dag, x))
+        set(self.observed_vars)
+        - {x} - {y}
+        - set(nx.descendants(self.dag, x))
     )
 
     valid_adjustment_sets = frozenset([
-      frozenset(s)
-      for s in _powerset(possible_adjustment_variables)
-      if self.is_valid_backdoor_adjustment_set(x, y, s)
+        frozenset(s)
+        for s in _powerset(possible_adjustment_variables)
+        if self.is_valid_backdoor_adjustment_set(x, y, s)
     ])
 
     return valid_adjustment_sets
@@ -414,9 +425,9 @@ class CausalGraph:
 
     # 1. does z block all directed paths from x to y?
     unblocked_directed_paths = [
-      path for path in
-      nx.all_simple_paths(self.dag, x, y)
-      if not any(zz in path for zz in z)
+        path for path in
+        nx.all_simple_paths(self.dag, x, y)
+        if not any(zz in path for zz in z)
     ]
 
     if unblocked_directed_paths:
@@ -424,10 +435,10 @@ class CausalGraph:
 
     # 2. no unblocked backdoor paths between x and z
     unblocked_backdoor_paths_x_z = [
-      path
-      for zz in z
-      for path in self.get_all_backdoor_paths(x, zz)
-      if not self._check_d_separation(path, z - {zz})
+        path
+        for zz in z
+        for path in self.get_all_backdoor_paths(x, zz)
+        if not self._check_d_separation(path, z - {zz})
     ]
 
     if unblocked_backdoor_paths_x_z:
@@ -467,19 +478,19 @@ class CausalGraph:
     assert y in self.observed_vars
 
     possible_adjustment_variables = (
-      set(self.observed_vars)
-      - {x} - {y}
+        set(self.observed_vars)
+        - {x} - {y}
     )
 
     valid_adjustment_sets = frozenset(
-      [
-        frozenset(s)
-        for s in _powerset(possible_adjustment_variables)
-        if self.is_valid_frontdoor_adjustment_set(x, y, s)
-      ])
+        [
+            frozenset(s)
+            for s in _powerset(possible_adjustment_variables)
+            if self.is_valid_frontdoor_adjustment_set(x, y, s)
+        ])
 
     return valid_adjustment_sets
-  
+
   def is_directly_transportable(self, y, zs=set()):
     if len(self.s_nodes) == 0:
       return True
@@ -488,19 +499,19 @@ class CausalGraph:
       if not do_set_nodes.is_d_separated(s_node, y, set(list(zs) + list(self.set_nodes))):
         return False
     return True
-  
+
   def get_adjustment_sets(self, x, y, zs):
     if len(zs) > 0:
       return self.get_all_backdoor_adjustment_sets(x, y)
-    return set(list(self.get_all_backdoor_adjustment_sets(x,y)) + list(self.get_all_frontdoor_adjustment_sets(x,y)))
-  
+    return set(list(self.get_all_backdoor_adjustment_sets(x, y)) + list(self.get_all_frontdoor_adjustment_sets(x, y)))
+
   def is_trivially_transportable(self, x, y, zs=set()):
     zs = _variable_or_iterable_to_set(zs)
     for s in self.get_adjustment_sets(x, y, zs):
       if zs.issubset(s) and s.issubset(set(self.get_non_s_nodes())):
         return True
     return False
-  
+
   def shortest_triv_transp_adj_set(self, x, y, zs=set()):
     zs = set(zs)
     shortest = None
@@ -510,24 +521,24 @@ class CausalGraph:
         shortest = s
         shortest_set_size = len(s)
     return shortest
-  
+
   def direct_adj_formula(self, x, y, zs):
     return Query(y, [x] + list(zs))
-  
+
   def trivial_adj_formula(self, x, y, zs):
-    ss = [v for v in self.shortest_triv_transp_adj_set(x,y,zs) if v not in zs]
-    prob_query = Product(Query(y, ss + list(zs) + [x])) #[[{y: None}, {x: None}]]
+    ss = [v for v in self.shortest_triv_transp_adj_set(x, y, zs) if v not in zs]
+    prob_query = Product(Query(y, ss + list(zs) + [x]))  # [[{y: None}, {x: None}]]
     if len(ss) > 0:
       prob_query.append(Query(ss, zs))
     return prob_query
-  
+
   def get_transport_formula(self, x, y, zs=set()):
     if self.is_directly_transportable(y, zs):
-      return Product(self.direct_adj_formula(x,y,zs))
+      return Product(self.direct_adj_formula(x, y, zs))
     if self.is_trivially_transportable(x, y, zs):
       return self.trivial_adj_formula(x, y, zs)
     return None
-  
+
   def from_cpts(self, query):
     """
     Returns the input query in terms
@@ -537,20 +548,20 @@ class CausalGraph:
         q for q in
         self.get_dist()
         if q.contains(query.g())
-      ])
-  
+    ])
+
   def do_set_nodes(self):
     new_model = self.__copy__()
     for node in self.set_nodes:
       new_model = new_model.do(node)
     return new_model
-      
+
   def __copy__(self):
     return CausalGraph(
         nodes=self.get_non_s_nodes(), edges=self.get_edges(),
         latent_edges=self.get_latent_edges(), set_nodes=self.set_nodes,
         s_node_children=self.get_s_node_children())
-    
+
 
 def _variable_or_iterable_to_set(x):
   """
@@ -575,10 +586,11 @@ def _variable_or_iterable_to_set(x):
 
   if not isinstance(x, Iterable) or not all(isinstance(xx, str) for xx in x):
     raise ValueError(
-      "{} is expected to be either a string or an iterable of strings"
-      .format(x))
+        "{} is expected to be either a string or an iterable of strings"
+        .format(x))
 
   return frozenset(x)
+
 
 def _powerset(iterable):
   """
@@ -588,9 +600,10 @@ def _powerset(iterable):
   s = list(iterable)
   return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
+
 if __name__ == "__main__":
   nodes = ["W", "X", "Y", "Z"]
-  edges = [("W","X"),("W", "Y"), ("X", "Z"), ("Z", "Y")]
+  edges = [("W", "X"), ("W", "Y"), ("X", "Z"), ("Z", "Y")]
   model = CausalGraph(nodes, edges, set_nodes={"X"})
   # print(model.get_all_backdoor_adjustment_sets("Y", "X", "Z"))
   # print(model.get_all_backdoor_paths("Y", "Z"))
