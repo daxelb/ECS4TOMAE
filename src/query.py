@@ -1,3 +1,8 @@
+"""
+Defines Query, Count, Queries, Summation, and Product classes which are used to store known
+and unknown probability query values and computations.
+"""
+
 from util import hash_from_dict, only_given_keys, permutations
 from collections.abc import MutableSequence, Iterable
 from copy import deepcopy, copy

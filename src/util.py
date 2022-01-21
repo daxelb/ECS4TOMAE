@@ -1,3 +1,8 @@
+"""
+Defines several helper/utility methods that are used throughout the project
+for doing calculations, converting datatypes between forms, etc.
+"""
+
 from math import inf, e, log, sqrt
 from collections.abc import Iterable
 

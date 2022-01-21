@@ -60,6 +60,8 @@ class Process:
     ap = list(self.ass_perms)
     self.rng.shuffle(ap)
     assignments = [dict(ass) for ass in ap for _ in range(self.num_agents)]
+    # uncomment this line and set is_community to True to get a blend of input ASR
+    # assignments = [dict(ass) for _ in range(self.num_agents) for ass in ap]
     if not self.is_community:
       self.rng.shuffle(assignments)
     envs = cycle(self.environment_generator()

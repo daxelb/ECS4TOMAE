@@ -31,8 +31,8 @@ class Sim:
     self.ind_var = self.get_ind_var()
     self.T = T
     self.mc_sims = mc_sims
-    self.num_threads = mp.cpu_count()
-    self.seed = randint(0, 2**31 - (1 + self.num_threads)) if seed is None else seed
+    self.num_processes = mp.cpu_count()
+    self.seed = randint(0, 2**31 - (1 + self.num_processes)) if seed is None else seed
     self.ass_perms = self.get_assignment_permutations()
     self.is_community = is_community
     self.show = show
@@ -81,8 +81,8 @@ class Sim:
 
   def multithreaded_sim(self):
     jobs = []
-    results = mp.Manager().list([None] * self.num_threads)
-    for i in range(self.num_threads):
+    results = mp.Manager().list([None] * self.num_processes)
+    for i in range(self.num_processes):
       job = mp.Process(target=self.sim_process, args=(results, i))
       jobs.append(job)
       job.start()
@@ -144,6 +144,12 @@ class Sim:
     figure = []
     x = list(range(self.T))
     line_dashes = ['solid', 'dot', 'dash', 'dashdot']
+    if yaxis_title == "Cumulative Pseudo Regret":
+      line_width = 4.5
+      legend = dict(yanchor='top', y=0.99, xanchor='left', x=0.01)
+    else:
+      line_width = 2.5
+      legend = dict(yanchor="bottom", y=0.01, xanchor="right", x=0.99)
     for i, ind_var in enumerate(sorted(results)):
       line_name = str(ind_var)
       line_hue = str(int(360 * (i / len(results))))
@@ -166,7 +172,7 @@ class Sim:
               name=line_name,
               x=x,
               y=y,
-              line=dict(color=line_color, width=3, dash=line_dash),
+              line=dict(color=line_color, width=line_width, dash=line_dash),
               mode='lines',
           ),
           go.Scatter(
@@ -194,12 +200,7 @@ class Sim:
     plotly_fig.update_layout(
         font=dict(size=18),
         margin=dict(l=20, r=20, t=20, b=20),
-        legend=dict(
-            yanchor="bottom",
-            y=0.02,
-            xanchor="right",
-            x=0.99
-        ),
+        legend=legend,
         yaxis_title=yaxis_title,
         xaxis_title="Trial",
         # title=plot_title,
@@ -258,7 +259,7 @@ class Sim:
     self.display_and_save(results, desc)
 
   def get_N(self):
-    return self.num_threads * self.mc_sims * self.num_agents
+    return self.num_processes * self.mc_sims * self.num_agents
 
   def get_values(self, locals):
     values = {key: val for key, val in locals.items() if key != 'self'}
@@ -288,6 +289,8 @@ if __name__ == "__main__":
   reversed_w = dict(baseline)
   reversed_w["W"] = DiscreteModel(("X"), {(0,): (0.25, 0.75), (1,): (0.75, 0.25)})
 
+  # This is a 'big chain' causal structure'
+  # X -> S -> R -> Y
   # baseline = {
   #     "X": ActionModel(None, (0, 1)),
   #     "S": DiscreteModel("X", {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
@@ -303,16 +306,16 @@ if __name__ == "__main__":
       # (ASR.EG, ASR.EF, ASR.ED, ASR.TS),
       asr=combinations_with_replacement((ASR.TS, ASR.EF), 4),
       T=3000,
-      mc_sims=25,
+      mc_sims=8,
       tau=0.05,
       EG_epsilon=100/3000,
       EF_rand_trials=50,
       ED_cooling_rate=0.98,
-      is_community=False,
+      is_community=True,
       rand_envs=True,
       node_mutation_chance=(0.2, 0.8),
       show=True,
       save=True,
-      seed=None
+      seed=420
   )
-  experiment.run(desc="TS-EF combos 2")
+  experiment.run(desc="0208ASR_community_LETSGO_1")

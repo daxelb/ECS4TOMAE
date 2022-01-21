@@ -3,13 +3,11 @@ Defines the Causal Graphical Model class which tracks the nodes and edges
 of a Structural Causal Model like a Bayesian Network. Does not store "Assignment Models"
 i.e. probability distributions.
 
-
 CREDIT:
 Much of this file/class was written by Iain Barr (#ijmbarr on GitHub)
 from his public repository, causalgraphicalmodels, which is registered with the MIT License.
 The code has been imported and modified into this project for ease/consistency
 """
-
 
 import networkx as nx
 import graphviz

@@ -1,12 +1,18 @@
-# Much of this class was written by Iain Barr (ijmbarr on GitHub)
-# from his public repository, causalgraphicalmodels, which is registered with the MIT License.
-# The code has been imported and modified into this project for ease/consistency
+"""
+Defines the Environment Class, which Agents interact with to get take actions, make observations, etc.
+
+CREDIT:
+Much of this class was written by Iain Barr (ijmbarr on GitHub)
+from his public repository, causalgraphicalmodels, which is registered with the MIT License.
+The code has been imported and modified into this project for ease/consistency
+"""
+
 
 from util import hash_from_dict, only_given_keys, permutations
 from math import inf
 from scm import StructuralCausalModel
 from cgm import CausalGraph
-from assignment_models import ActionModel, DiscreteModel, RandomModel
+from assignment_models import ActionModel
 
 
 class Environment:
@@ -89,30 +95,26 @@ class Environment:
       self.optimal_reward = {}
       self.optimal_actions = {}
       for feat_combo in permutations(self.get_feat_doms()):
-        best_actions = set()
-        best_rew = -inf
-        for action in permutations(self.get_act_dom()):
-          expected_rew = self.expected_reward({**action, **feat_combo})
-          if expected_rew > best_rew:
-            best_actions = {action[self.act_var]}
-            best_rew = expected_rew
-          elif expected_rew == best_rew:
-            best_actions.add(action[self.act_var])
+        best = self.get_optimal(feat_combo)
         feat_hash = hash_from_dict(feat_combo)
-        self.optimal_reward[feat_hash] = best_rew
-        self.optimal_actions[feat_hash] = best_actions
-    else:
-      best_actions = set()
-      best_rew = -inf
-      for action in permutations(self.get_act_dom()):
-        expected_rew = self.expected_reward(action)
-        if expected_rew > best_rew:
-          best_actions = {action[self.act_var]}
-          best_rew = expected_rew
-        elif expected_rew == best_rew:
-          best_actions.add(action[self.act_var])
-      self.optimal_reward = best_rew
-      self.optimal_actions = best_actions
+        self.optimal_reward[feat_hash] = best[0]
+        self.optimal_actions[feat_hash] = best[1]
+      return
+    best = self.get_optimal()
+    self.optimal_reward = best[0]
+    self.optimal_actions = best[1]
+
+  def get_optimal(self, givens={}):
+    best_actions = list()
+    best_rew = -inf
+    for action in permutations(self.get_act_dom()):
+      expected_rew = self.expected_reward({**action, **givens})
+      if expected_rew > best_rew:
+        best_actions = [action]
+        best_rew = expected_rew
+      elif expected_rew == best_rew:
+        best_actions.append(action)
+    return (best_rew, best_actions)
 
   def selection_diagram(self, s_node_children):
     return self.cgm.selection_diagram(s_node_children)
@@ -127,7 +129,6 @@ class Environment:
 
   def parse_dist_as_probs(self, assigned_dist):
     for var, assignment in assigned_dist.items():
-      # print(var, assignment)
       if isinstance(assignment, dict):
         assigned_dist[var] = self.parse_dist_as_probs(assignment)
       assigned_dist[var] = self._assignment[var].prob(assignment)
@@ -170,22 +171,3 @@ class Environment:
 
   def __getitem__(self, key):
     return self._assignment[key]
-
-
-if __name__ == "__main__":
-  baseline = {
-      "W": RandomModel((0.4, 0.6)),
-      "X": ActionModel(("W"), (0, 1)),
-      "Z": DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)}),
-      "Y": DiscreteModel(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
-  }
-  e = Environment(baseline)
-  z = DiscreteModel(("X"), {(0,): (0.75, 0.25), (1,): (0.25, 0.75)})
-  y = DiscreteModel(("W", "Z"), {(0, 0): (1, 0), (0, 1): (1, 0), (1, 0): (1, 0), (1, 1): (0, 1)})
-  print(e.expected_reward({"W": 1, "X": 1}))
-  # print(z.prob({"X": 1}))
-  # print(y.prob({"W": 1, "Z": 1}))
-  # print(y.prob({"W": 1, "Z": z.prob({"X": {0:0.4, 1:0.6}})}))
-  # print(z.expected_value({"X": 1}))
-  # print(y.expected_value({"Z": 1, "W": 1}))
-  # print(e._assignment["Z"].__call__(X=1))
