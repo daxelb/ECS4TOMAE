@@ -1,6 +1,8 @@
 
 #  Exploiting Causal Structure for Transportability in Online, Multi-Agent Environments (ECS4TOMAE)
 
+Read the paper [here](https://www.ifaamas.org/Proceedings/aamas2022/pdfs/p199.pdf).
+
 Source code for simulating and comparing agent peer-communication policies described in the titular paper.
 
 ## Setup
